@@ -1,0 +1,443 @@
+# AGENTS.md — Hearthwild
+
+Every AI agent and every human working in this repo reads this file **before
+making any change**. It is the source of truth for how work is done here.
+If something in this file is wrong or out of date, fixing it is part of the
+change that made it wrong.
+
+---
+
+## 1. What Hearthwild is
+
+A **third-person multiplayer 3D village/life-sim survival game** in Godot.
+
+> COZY during the day → ALIVE in the evening → DANGEROUS at night → RELIEF at morning.
+
+Players live in a village: build, explore, gather, farm, socialize, care for
+animals, decorate their houses, watch TV together. At night zombies come, and
+players defend, cooperate, and survive until morning. Long-term target: Steam.
+
+Hearthwild is a **third-person** game. Never turn it into a first-person game.
+
+---
+
+## 2. The one rule
+
+**Build small → test → verify → expand.**
+
+- Implement the **smallest correct next step**, never the whole game.
+- Don't create folders, scripts, autoloads, managers, base classes or
+  "frameworks" for systems that don't exist yet.
+- Don't add placeholder architecture "because we'll need it later".
+- A feature is **not done** because code was written. It is done when it has
+  been run, tested, and its screenshots inspected (section 8).
+
+---
+
+## 3. Before you change anything
+
+1. Read this file.
+2. Run `git status` and `git branch`. Never start work on top of someone
+   else's uncommitted changes without saying so.
+3. Read `project.godot`, and every scene and script you're going to touch.
+4. Run the test suite once (`tests/run_tests.sh`) so you know the starting
+   state. If it already fails, report that before changing anything.
+5. Verify what actually exists. **Never claim a feature exists, works, or was
+   tested unless you checked it in the repo or by running the game.**
+
+---
+
+## 4. Engine and tools
+
+| Thing | Value |
+|---|---|
+| Engine | **Godot 4.7.2**, standard build (GDScript, not .NET) |
+| Renderer | Forward+ (CI uses the OpenGL compatibility renderer, no GPU) |
+| Physics | Jolt |
+| Machines | Windows PC and Linux laptop |
+| Code editor | Cursor |
+| Repo | https://github.com/poncema4/Hearthwild (public), default branch `master` |
+
+- Every machine uses **exactly 4.7.2**. Different versions rewrite scene files
+  and cause noisy, unrelated diffs.
+- Never hard-code OS paths. Use `res://` (project) and `user://` (save data).
+
+### Running things
+
+| What | Command |
+|---|---|
+| Open the editor | `godot -e --path .` |
+| Play the game | `godot --path .` (or F5 in the editor) |
+| All checks | `tests/run_tests.sh` |
+| Headless checks only | `tests/run_tests.sh --headless-only` |
+
+---
+
+## 5. Current state (keep this section accurate)
+
+| System | Status | Files |
+|---|---|---|
+| Test world (ground, sun, sky, crates, test wall) | Done | `scenes/world/world.tscn` |
+| Third-person player (walk, sprint, jump, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
+| Third-person camera (orbit, pitch clamp, zoom, wall collision) | Done | `scripts/player/third_person_camera.gd` |
+| Automated tests + CI | Done | `tests/`, `.github/workflows/tests.yml` |
+| Playtest kit (shared helpers for scenario scripts) | Done | `tests/support/playtest_kit.gd` |
+| Everything else | Not started | — |
+
+**Controls:** WASD move · Shift sprint · Space jump · mouse look · wheel zoom ·
+Esc frees the mouse · left-click captures it again.
+
+**Test world layout** (tests depend on it — update tests if you move these):
+player spawns at origin facing −Z; crates at (3, 0, −4) and stacked at
+(−4, 0, −2); `TestWall` 8 m wide centred at (0, 1.5, 6), front face at z = 5.75.
+
+---
+
+## 6. Project structure and naming
+
+Create a folder **only** when the first file that belongs in it is created.
+
+```text
+scenes/<area>/      .tscn scenes: world, player, zombies, npcs, buildings, ui ...
+scripts/<area>/     .gd scripts, mirroring scenes/<area>/
+assets/<kind>/      models, textures, materials, audio, fonts (real assets only)
+systems/<name>/     cross-cutting systems: day_night, saving, networking ...
+tests/              automated tests, the runner, and tests/support/ helpers
+docs/               design documents
+.claude/agents/     AI agent definitions (section 9)
+.github/workflows/  CI
+```
+
+- Files and folders: `snake_case` — `player_controller.gd`, `day_night_manager.gd`.
+- Nodes: `PascalCase` — `CameraRig`, `SpringArm3D`, `TestWall`.
+- `class_name` in `PascalCase` for any script other code refers to by type.
+- Tests: `test_<thing>.gd` for headless checks, `playtest_<thing>.gd` for
+  windowed checks that need rendering or screenshots.
+- **Banned names:** `test2.gd`, `final.gd`, `new.gd`, `stuff.gd`, `temp.gd`,
+  `zombieFINAL.gd`, anything with `copy`, `old`, `v2`.
+
+---
+
+## 7. Code rules
+
+### GDScript
+
+- Tabs for indentation. Static types everywhere: `var speed: float`, `-> void`.
+- `@export` for every tunable number (speeds, distances, timings). No magic numbers.
+- `@onready var _x: Type = $Path` for node references. Private members start with `_`.
+- A `##` doc comment at the top of every script: what it does, and any node
+  layout it expects.
+- Input always goes through **named actions** in the Input Map
+  (`move_forward`, `jump`, ...). Never check raw keycodes in gameplay code.
+- Signals for "something happened"; direct calls for "do this now".
+  Prefer composition (child nodes) over deep inheritance.
+
+### Architecture
+
+- **Time is centralized.** When day/night arrives, exactly one manager owns
+  the clock. Every other system reads from it or listens to its signals. No
+  system keeps its own clock or timer for "time of day".
+- **Multiplayer-aware, not multiplayer-built.** Each entity reads its input in
+  one place (see `PlayerController._read_move_input()` and `_wants_jump()`),
+  so networking can later feed network input there for remote players.
+  Game state changes should go through clear functions, not be poked
+  directly from many places. **Don't add networking code** before the
+  multiplayer-foundation step.
+- **Don't rewrite or delete working systems** without stating why in the PR.
+- **One concern per change.** Don't modify unrelated files in the same PR.
+- Scenes are text (`.tscn`). Keep them tidy: no orphan nodes, no leftover
+  debug nodes, meaningful node names.
+
+---
+
+## 8. Testing — the definition of done
+
+Every change runs **all** of this before a PR, and CI runs it again on the PR.
+
+### 8.1 The runner
+
+`tests/run_tests.sh` runs, in order:
+
+1. **import project:** headless import; catches broken resources.
+2. **load main scene:** runs the game headless for 60 frames; catches
+   script and scene errors.
+3. **player movement test:** `tests/test_player_movement.gd`, headless.
+4. **camera playtest:** `tests/playtest_camera.gd`, in a real window, with
+   screenshots saved to `qa_output/`. One check, captured-mouse routing,
+   prints `SKIPPED` locally (a real mouse leaks into captured input) and
+   runs in CI, where `HW_NO_REAL_MOUSE=1`.
+
+The runner fails if **any** step exits non-zero **or** prints `SCRIPT ERROR`,
+`ERROR:`, `Parse Error` or `Failed to load`. Godot often exits 0 even after a
+script error, which is why the log scan exists. **Never remove it.**
+
+### 8.2 Writing a test
+
+- A test is a `SceneTree` script. It loads the **real** scene, drives it with
+  the **real** input actions (`Input.action_press`) or real input events
+  (`Input.parse_input_event`), waits real physics frames, and asserts on the
+  result. It prints `PASS <name>  (<measured values>)` or `FAIL ...`,
+  ends with `RESULT:`, and exits with the number of failures.
+- Always print the **measured values**, not just pass/fail, so a reader can
+  judge whether the check meant anything.
+- Every new feature adds checks. Every bug fix adds a check that would have
+  caught the bug.
+
+### 8.3 Rules against false positives (read these twice)
+
+1. **Prove a check can fail.** For every new check, break the thing it guards
+   (disable the collision, remove the action, comment out the line), run the
+   test, and **watch it FAIL**. Then restore. A check you haven't seen fail
+   is unproven. Real example from this repo: "wall blocks movement" passed
+   at z=4.37, which is just how far the player got in 4 seconds. It would
+   have passed with no wall. Fixed by asserting the player stops *at the wall
+   face* (5.2 < z < 5.5) and walking long enough that a missing wall carries
+   the player far past it (proven: z=12.37 without the wall).
+2. **Assert the reason, not just the exit code.** A crash and a detected
+   failure both exit non-zero. A traceback is not a pass and not a "test
+   flake"; read it.
+3. **Bounds on both sides.** "z < 5.8" passes for any value below it, including
+   "never moved". Assert a range that only the correct behaviour lands in.
+4. **Isolate from the real world.** Windowed tests capture the mouse; real
+   mouse movement during the run injects input. Release the mouse
+   (`MOUSE_MODE_VISIBLE`) as soon as the mouse checks finish, and don't
+   touch the mouse while a playtest runs. Real example: real mouse jitter
+   turned the camera mid-test, so the player walked *around* the wall.
+5. **Read the artifact, not the description.** "Screenshot saved" is a claim.
+   Open the PNG and look at it. "Test passed" is a claim. Read the PASS lines
+   and their numbers.
+6. **State exclusions by name.** If a check is skipped (for example
+   `--headless-only`), the output must say `SKIPPED`, and the report must
+   list it. A silent gap and a skipped check look identical in a green result.
+7. **One instance means look for all.** If a bug shows up in one place, check
+   every other place of the same kind before calling it fixed.
+8. **Never claim** something was tested, a screenshot was inspected,
+   multiplayer works, or performance is fine unless that actually happened
+   in this change.
+
+---
+
+## 9. The agent team
+
+Work is done by one **lead** (the main Claude Code session) plus three
+specialist agents in `.claude/agents/`:
+
+| Agent | Role | Model | One line |
+|---|---|---|---|
+| **Warden** | Test runner | Haiku | Runs the full suite, reports every PASS/FAIL with numbers. Nothing merges without its pass. |
+| **Scout** | Playtester | Sonnet | Plays the game trying to break it, in one fast headless run. |
+| **Hawkeye** | Visual QA | Sonnet | Opens real screenshots and reports anything that looks wrong. |
+
+Names are short; each agent file's `description` line says exactly what it does. Start lean: specialists are added only
+when a system is big enough to own (multiplayer, zombie AI, ...).
+
+### 9.1 Lead (main session)
+
+- Plans the change, keeps it small, writes the code, writes the tests.
+- Proves new checks can fail (8.3 rule 1).
+- Dispatches the specialists after the change is built; the three can run in
+  parallel because they don't edit the project.
+- Reconciles their reports. A specialist's report is evidence, not a verdict:
+  if a report says PASS but quotes no measured values, treat it as unproven.
+- Owns the git workflow (section 10).
+
+### 9.2 Warden: test runner (`warden`)
+
+- **Job:** run `tests/run_tests.sh`, report exact results.
+- **Model:** Haiku, because it's mechanical.
+- **Must report:** every step's name and result; every `PASS`/`FAIL` line with
+  its measured values; any `SKIPPED` step; the final exit code.
+- **Must not:** edit any file; re-run until green and report only the green
+  run (report **every** run); summarize a failure as "flaky" without
+  evidence; call a run passing if any step printed an error.
+
+### 9.3 Scout: playtester (`scout`)
+
+- **Job:** play the game like a player trying to break it. Writes **one**
+  throwaway scenario script outside the repo using `tests/support/playtest_kit.gd`,
+  runs every scenario in a **single** headless Godot launch, and follows a fixed
+  checklist plus 2–4 scenarios aimed at the new feature.
+- **Model:** Sonnet.
+- **Budget:** at most 3 Godot launches and about 5 minutes. On-time partial
+  beats late complete.
+- **Must report:** each finding with measured numbers and a repro, an
+  `EXERCISED` list, a `NOT TESTED` list, and launches used.
+- **Must not:** edit project files (propose fixes, don't make them); report a
+  problem it didn't reproduce; report "everything works" without listing
+  exactly what was exercised.
+
+### 9.4 Hawkeye: visual QA (`hawkeye`)
+
+- **Job:** render the game and **look at the images**. Use the screenshots
+  the camera playtest saves to `qa_output/`, and render more if needed
+  (`godot --path . --write-movie <dir>/frame.png --fixed-fps 30 --quit-after 45`).
+- **Model:** Sonnet (needs to read images).
+- **Checks:** clipping, floating or sunken objects, missing or pink textures,
+  bad lighting or shadows, camera inside geometry, character not visible,
+  UI overlap, anything that looks broken or ugly.
+- **Report format, one per problem:**
+
+  ```text
+  SCREENSHOT QA
+  Image: qa_output/04_against_wall.png
+  Problem: Camera clips through house wall.
+  Severity: Low / Medium / High
+  Location: Player camera / house scene
+  Suggested fix: ...
+  ```
+
+- **Must not:** describe an image it didn't open; edit project files; report
+  "looks fine" without listing which images it inspected and what each shows.
+
+### 9.5 Dispatching agents efficiently (lead's rules)
+
+Agents start with **zero context**. A vague brief makes them explore, which is
+slow and expensive. Every dispatch includes:
+
+1. **What changed:** the exact files and a one-line summary of the feature.
+2. **What to focus on:** the 2–4 risky behaviours of this change.
+3. **Constraints:** headless or windowed, output folder, what not to touch.
+4. **Budget:** launches and minutes (Scout: 3 launches / 5 min;
+   Warden: 1 suite run; Hawkeye: inspect the given images, render at
+   most once).
+5. **"Read your agent file first"**, which holds the format and rules, so
+   the brief doesn't repeat them.
+
+Scheduling:
+
+- **Only one windowed Godot at a time.** Windowed runs grab the mouse, so two
+  of them steer each other. Order: Warden (windowed, produces the
+  screenshots) → Hawkeye (reads those screenshots). Scout runs headless,
+  in parallel with both.
+- Pick the cheapest model that can do the job: Haiku for mechanical runs,
+  Sonnet for judgement and images. The lead's model is never used for routine runs.
+- Small changes (docs, a constant tweak) need only Warden, not all three.
+
+### 9.6 Agents to add as the game grows
+
+Add a specialist **when its system exists and is big enough to own**, never
+before. Each new agent gets a short name and a file in `.claude/agents/<name>.md`
+written to the same standard: a `description` that starts with its role,
+job, model, budget, exact report format, must-nots.
+
+| Agent | Add when | Owns |
+|---|---|---|
+| **Sage** (`sage`), code reviewer | Next feature PR (step 4+) | Bugs, architecture, Godot best practices, multiplayer authority. Asks "does this work?" and "will this cause problems later?" |
+| **Mason** (`mason`), world builder | Small village (step 5) | Terrain, buildings, lighting, scene organisation |
+| **Ghoul** (`ghoul`), zombie AI | Basic zombie (step 9) | Spawning, navigation, detection, day/night behaviour |
+| **Pulse** (`pulse`), performance tester | Village + zombies exist | Frame time, draw calls, measured numbers per scene |
+| **Relay** (`relay`), multiplayer | Multiplayer foundation (step 16) | Networking, sync, authority; tests with 2+ real instances |
+| **Atlas** (`atlas`), researcher | Any time a technical choice is unclear | Godot APIs, plugins, licensing. Recommends; never edits |
+
+---
+
+## 10. Git and PR workflow (every change)
+
+Branch protection doesn't require PRs on this repo, but **every change goes
+through a PR anyway.** No direct pushes to `master`.
+
+1. Start from an up-to-date `master`: `git switch master && git pull`.
+2. Create a branch: `feature/<short-name>`, `fix/<short-name>`, or `chore/<short-name>`.
+3. Build the change, write and prove the tests, run `tests/run_tests.sh`, and
+   dispatch the specialist agents. Fix everything they find.
+4. Review the diff: no unrelated files, nothing from `.gitignore` forced in,
+   no secrets.
+5. Commit with a descriptive message (`Add third-person player controller`,
+   `Fix camera collision`). Never `update`, `stuff`, `final2`.
+6. Push and open a PR to `master`. The PR body lists what changed, the files
+   changed, what was tested (with real numbers), the result, known issues,
+   and the next step.
+7. Wait for the **Tests** CI check on the PR.
+   - **Passes:** merge into `master`, then delete the branch (remote and local).
+   - **Fails:** read the CI log, fix it **on the same branch**, push a new
+     commit, and wait again. The same PR updates in place. **Never open a
+     new PR for a fix, never force-push, never merge a red PR.** Never "fix" CI
+     by weakening or deleting a check; fix the cause.
+   - Every failure teaches something: add it to **Lessons learned**
+     (section 14) and to the affected agent's file **in the same PR**.
+
+CI differs from a dev machine: **no GPU** (OpenGL compatibility renderer),
+**no sound card** (`--audio-driver Dummy`), **no real mouse** (`HW_NO_REAL_MOUSE=1`),
+and a virtual display (Xvfb). Any new windowed test must work under all
+four. These are passed through `GODOT_FLAGS` in `.github/workflows/tests.yml`.
+8. After merging: `git switch master && git pull`.
+
+Git identity: personal account **`poncema4`** only. Pushes go through the
+`github-personal` SSH alias.
+
+---
+
+## 11. What never goes in git
+
+`.gitignore` covers these; never force-add them (`git add -f`):
+
+- **Secrets:** `.env` files, keys, tokens, signing certificates, keystores.
+- **`export_presets.cfg`:** Godot can store keystore passwords in it in plain text.
+- **Steamworks** credentials and SDK/content-builder config.
+- **Build output:** `.pck`, `.exe`, `.x86_64`, `.apk` and so on. Builds ship
+  through Steam or itch, never git.
+- **Caches and local state:** `.godot/`, `qa_output/`, `.cursor/`, `.vscode/`,
+  `.claude/settings.local.json`.
+
+If you ever see a secret staged or committed, stop and tell Marco. A secret
+pushed to this **public** repo must be treated as leaked and rotated, even
+after it's deleted.
+
+---
+
+## 12. Reporting a change
+
+```text
+WHAT CHANGED
+FILES CHANGED
+WHAT WAS TESTED   (real numbers, and which checks were proven to fail)
+RESULT
+KNOWN ISSUES      (including anything not tested, by name)
+NEXT RECOMMENDED STEP
+```
+
+---
+
+## 13. Development order
+
+1. Architecture + AGENTS.md ✅
+2. Third-person player ✅
+3. Third-person camera ✅
+4. Small 3D environment
+5. Small village
+6. Basic interaction
+7. Day/night system
+8. Sleep system
+9. Basic zombie
+10. Zombie AI
+11. Basic combat
+12. Building
+13. Inventory
+14. Animals
+15. NPCs
+16. Multiplayer foundation
+17. Voice chat
+18. TV/social systems
+19. Steam integration
+
+The order can change for a real architectural reason. Never skip testing to
+reach later features faster.
+
+**Not now:** advanced zombies, voice chat, full multiplayer, Steam, complex
+NPCs, a large world, complex crafting, a big inventory, multiple zombie types.
+
+---
+
+## 14. Lessons learned (append, never delete)
+
+Every mistake, false positive and CI failure gets one entry: what happened,
+the cause, and the rule that prevents it. Agents read this before working.
+
+| # | What happened | Cause | Rule now |
+|---|---|---|---|
+| 1 | "Wall blocks movement" passed at z=4.37 with **no wall** | One-sided bound (`z < 5.8`) that "never moved far" also satisfies | Two-sided bounds; prove every check fails when its feature is broken (8.3 rules 1 and 3) |
+| 2 | The camera turned by itself mid-test; the player walked around the wall | Real mouse movement leaks into a captured-mouse test | Free the mouse right after loading; test look math via `apply_look()`; captured routing only with `HW_NO_REAL_MOUSE=1` (8.3 rule 4) |
+| 3 | Look sensitivity was 0.9× at 1280×720 | `InputEventMouseMotion.relative` is scaled by the window's stretch factor | Use `screen_relative` for mouse look; the CI check fails if it's scaled |
+| 4 | Scout took ~6.5 minutes and didn't finish the checklist | Open-ended brief, one Godot launch per scenario, setup rebuilt each time | `PlaytestKit`, one script per run, 3-launch / 5-minute budget, specific briefs (9.5) |
+| 5 | PR #1's first CI run failed with every check passing | No sound card on the runner: ALSA printed `ERROR: ... ERR_CANT_OPEN`, which the log scan correctly flagged | CI runs Godot with `--audio-driver Dummy`; new windowed tests must run without audio hardware |
+
