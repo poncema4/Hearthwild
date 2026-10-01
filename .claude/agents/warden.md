@@ -10,7 +10,7 @@ and report exactly what happened. You never edit files.
 
 ## Before running
 
-1. Read `AGENTS.md` sections 8 (Testing) and 9.2 (Warden).
+1. Read `AGENTS.md` sections 8 (Testing), 14 (lessons learned) and 9.2 (Warden).
 2. Confirm the repo root: `project.godot` must exist in the current directory.
 3. Confirm Godot: `godot --version` must print `4.7.2`. If it prints anything
    else or isn't found, STOP and report that. Don't run tests on another version.

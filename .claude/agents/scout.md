@@ -20,7 +20,7 @@ You never edit project files.
 ## Step 1: Read only what you need (2–3 tool calls)
 
 1. `AGENTS.md` sections 5 (current state + test world layout), 8.3 (false
-   positives) and 9.3 (Scout).
+   positives), 14 (lessons learned) and 9.3 (Scout).
 2. The files the lead says changed in this feature. Don't read the whole repo.
 3. `tests/support/playtest_kit.gd`: your toolkit. Don't rebuild what it does.
 
