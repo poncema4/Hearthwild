@@ -349,8 +349,17 @@ through a PR anyway.** No direct pushes to `master`.
    and the next step.
 7. Wait for the **Tests** CI check on the PR.
    - **Passes:** merge into `master`, then delete the branch (remote and local).
-   - **Fails:** read the CI log, fix on the same branch, push, wait again.
-     Never merge a red PR. Never "fix" CI by weakening or deleting a check.
+   - **Fails:** read the CI log, fix it **on the same branch**, push a new
+     commit, and wait again. The same PR updates in place. **Never open a
+     new PR for a fix, never force-push, never merge a red PR.** Never "fix" CI
+     by weakening or deleting a check; fix the cause.
+   - Every failure teaches something: add it to **Lessons learned**
+     (section 14) and to the affected agent's file **in the same PR**.
+
+CI differs from a dev machine: **no GPU** (OpenGL compatibility renderer),
+**no sound card** (`--audio-driver Dummy`), **no real mouse** (`HW_NO_REAL_MOUSE=1`),
+and a virtual display (Xvfb). Any new windowed test must work under all
+four. These are passed through `GODOT_FLAGS` in `.github/workflows/tests.yml`.
 8. After merging: `git switch master && git pull`.
 
 Git identity: personal account **`poncema4`** only. Pushes go through the
@@ -416,3 +425,19 @@ reach later features faster.
 
 **Not now:** advanced zombies, voice chat, full multiplayer, Steam, complex
 NPCs, a large world, complex crafting, a big inventory, multiple zombie types.
+
+---
+
+## 14. Lessons learned (append, never delete)
+
+Every mistake, false positive and CI failure gets one entry: what happened,
+the cause, and the rule that prevents it. Agents read this before working.
+
+| # | What happened | Cause | Rule now |
+|---|---|---|---|
+| 1 | "Wall blocks movement" passed at z=4.37 with **no wall** | One-sided bound (`z < 5.8`) that "never moved far" also satisfies | Two-sided bounds; prove every check fails when its feature is broken (8.3 rules 1 and 3) |
+| 2 | The camera turned by itself mid-test; the player walked around the wall | Real mouse movement leaks into a captured-mouse test | Free the mouse right after loading; test look math via `apply_look()`; captured routing only with `HW_NO_REAL_MOUSE=1` (8.3 rule 4) |
+| 3 | Look sensitivity was 0.9× at 1280×720 | `InputEventMouseMotion.relative` is scaled by the window's stretch factor | Use `screen_relative` for mouse look; the CI check fails if it's scaled |
+| 4 | Scout took ~6.5 minutes and didn't finish the checklist | Open-ended brief, one Godot launch per scenario, setup rebuilt each time | `PlaytestKit`, one script per run, 3-launch / 5-minute budget, specific briefs (9.5) |
+| 5 | PR #1's first CI run failed with every check passing | No sound card on the runner: ALSA printed `ERROR: ... ERR_CANT_OPEN`, which the log scan correctly flagged | CI runs Godot with `--audio-driver Dummy`; new windowed tests must run without audio hardware |
+

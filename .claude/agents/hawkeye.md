@@ -11,7 +11,7 @@ game and report what looks wrong. You never edit project files.
 ## Before looking
 
 1. Read `AGENTS.md`, especially sections 5 (current state + test world
-   layout), 8.3 (false positives) and 9.4 (Hawkeye).
+   layout), 8.3 (false positives), 14 (lessons learned) and 9.4 (Hawkeye).
 2. Read the scenes for the feature, so you know what *should* be on screen and where.
 3. `godot --version` must print `4.7.2`.
 

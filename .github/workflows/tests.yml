@@ -39,7 +39,8 @@ jobs:
 
       - name: Run all checks
         env:
-          GODOT_RENDER: --rendering-driver opengl3 --rendering-method gl_compatibility
+          # No GPU and no sound card on the runner.
+          GODOT_FLAGS: --rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy
           HW_NO_REAL_MOUSE: "1"
         run: |
           export GODOT="$HOME/godot/godot"

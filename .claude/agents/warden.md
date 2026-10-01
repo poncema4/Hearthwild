@@ -52,6 +52,14 @@ SCREENSHOTS
 VERDICT: PASS / FAIL
 ```
 
+## Known environment errors (not game bugs, but still failures)
+
+- `ALSA lib ... ERR_CANT_OPEN`: no sound card. Fix: run with
+  `GODOT_FLAGS="--audio-driver Dummy"`. Report it, and note the fix; don't call it flaky.
+- Display or Vulkan errors with no GPU: use
+  `--rendering-driver opengl3 --rendering-method gl_compatibility`.
+- Read `AGENTS.md` section 14 (Lessons learned) for the full list.
+
 ## Rules
 
 - VERDICT is PASS **only** if the exit code is 0, every step is OK, and no

@@ -6,8 +6,9 @@
 #
 # Env:
 #   GODOT          Godot binary (default: godot)
-#   GODOT_RENDER   extra render flags for the windowed playtest
-#                  (CI uses: --rendering-driver opengl3 --rendering-method gl_compatibility)
+#   GODOT_FLAGS    extra flags for the windowed playtest. CI has no GPU and no
+#                  sound card, so it uses: --rendering-driver opengl3
+#                  --rendering-method gl_compatibility --audio-driver Dummy
 #   QA_OUTPUT      screenshot folder (default: qa_output/)
 #
 # Exit code is non-zero if ANY check fails. A check that didn't run is a failure.
@@ -16,7 +17,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 GODOT="${GODOT:-godot}"
-GODOT_RENDER="${GODOT_RENDER:-}"
+GODOT_FLAGS="${GODOT_FLAGS:-}"
 QA_OUTPUT="${QA_OUTPUT:-$PWD/qa_output}"
 HEADLESS_ONLY=0
 [[ "${1:-}" == "--headless-only" ]] && HEADLESS_ONLY=1
@@ -51,7 +52,7 @@ run_step "player movement test" "$GODOT" --headless --path . --script res://test
 
 if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
-	run_step "camera playtest" "$GODOT" --path . --resolution 1280x720 $GODOT_RENDER \
+	run_step "camera playtest" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtest_camera.gd -- "$QA_OUTPUT"
 else
 	echo
