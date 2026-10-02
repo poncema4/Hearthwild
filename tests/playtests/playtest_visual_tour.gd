@@ -19,7 +19,7 @@ const SHOTS := {
 	"environment/spawn_west": ["Spawn clearing looking west.", "Trees at hill base, rocks, pleasant meadow."],
 	"environment/pond_shore": ["Standing at the pond shore looking at the water.", "Round pond with a smooth sandy ring, no square corners, no hard sand edge."],
 	"environment/hill_rim_view": ["On the hill rim (0, 44) looking back over the meadow.", "Wide valley below, grass in the foreground, rocks, big soft tree shadows."],
-	"environment/overview": ["Camera at max zoom and -60 deg pitch above the spawn.", "Even grass and flowers, a tree and a pine at the corners, a sliver of pond."],
+	"environment/overview": ["Camera at max zoom and -60 deg pitch, standing at (-8, 6) and looking toward the village.", "Grass and flowers, the dirt path from the spawn running toward the village, and the first cottage roof or wall at the top of the frame."],
 	"nature/tree_round_close": ["Close-up of the nearest round tree; player body hidden.", "The tree is the subject: brown trunk, layered green canopy, grass and rocks around."],
 	"nature/tree_pine_close": ["Close-up of the nearest pine; player body hidden.", "Pine is the subject: warm brown trunk, rich green tiers, shaded underside is fine."],
 	"nature/rock_close": ["Close-up of the nearest rock; player body hidden.", "Grey rock sits on the ground (no floating), flowers nearby."],
@@ -66,7 +66,8 @@ func _environment() -> void:
 	await _frame(Vector3(0, NAN, 44), Vector3.FORWARD, 5.0, -18.0)
 	await _take("environment", "hill_rim_view")
 
-	await _frame(Vector3(0, NAN, 0), Vector3(1, 0, -1).normalized(), kit.camera_rig.max_distance, kit.camera_rig.min_pitch_degrees)
+	# Looks toward the village (centre about (-20, 14)); the dirt path leads the eye there.
+	await _frame(Vector3(-8, NAN, 6), Vector3(-12, 0, 8).normalized(), kit.camera_rig.max_distance, kit.camera_rig.min_pitch_degrees)
 	await _take("environment", "overview")
 
 

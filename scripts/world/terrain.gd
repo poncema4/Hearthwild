@@ -46,6 +46,32 @@ signal rebuilt
 	set(value):
 		spawn_flat_radius = value
 		_rebuild()
+## Centre of the village (the plaza). The village node places itself here.
+@export var village_center: Vector2 = Vector2(-20, 14):
+	set(value):
+		village_center = value
+		_rebuild()
+## Inside this radius the ground is perfectly flat (height 0) so buildings sit true.
+@export var village_flat_radius: float = 14.0:
+	set(value):
+		village_flat_radius = value
+		_rebuild()
+## Over this many metres beyond the flat radius the ground blends back into the hills.
+@export var village_blend: float = 8.0:
+	set(value):
+		village_blend = value
+		_rebuild()
+## The cobbled plaza at the village centre.
+@export var plaza_radius: float = 4.5:
+	set(value):
+		plaza_radius = value
+		_rebuild()
+## Dirt paths, each a polyline of world (x, z) points. Paths are coloured into the
+## ground (not flattened) and kept clear of trees and rocks.
+@export var path_lines: Array[PackedVector2Array] = []:
+	set(value):
+		path_lines = value
+		_rebuild()
 @export var pond_center: Vector2 = Vector2(16, -12):
 	set(value):
 		pond_center = value
@@ -68,6 +94,8 @@ const GRASS_LOW := Color(0.40, 0.62, 0.27)
 const GRASS_HIGH := Color(0.55, 0.70, 0.30)
 const DIRT := Color(0.52, 0.42, 0.30)
 const SAND := Color(0.80, 0.74, 0.55)
+const COBBLE := Color(0.72, 0.70, 0.66)
+const PATH_DIRT := Color(0.63, 0.51, 0.37)
 
 var _rebuild_queued := false
 var _noise: FastNoiseLite
@@ -97,7 +125,27 @@ func height_at(x: float, z: float) -> float:
 	# Pond: a smooth bowl, with the hills flattened around it.
 	var pond_t := 1.0 - smoothstep(0.0, pond_radius, Vector2(x, z).distance_to(pond_center))
 	h = lerpf(h, -pond_depth, pond_t * pond_t * (3.0 - 2.0 * pond_t))
+
+	# Village: perfectly flat inside the flat radius, blending out into the hills.
+	var village_t := 1.0 - smoothstep(village_flat_radius, village_flat_radius + village_blend,
+			Vector2(x, z).distance_to(village_center))
+	h = lerpf(h, 0.0, village_t)
 	return h
+
+
+## Distance (m) from (x, z) to the nearest path line, or 1e9 if there are none.
+func path_distance(x: float, z: float) -> float:
+	var best := 1e9
+	var p := Vector2(x, z)
+	for line in path_lines:
+		for i in range(line.size() - 1):
+			best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, line[i], line[i + 1])))
+	return best
+
+
+## True if (x, z) is inside the village's flat zone grown by `margin` metres.
+func in_village(x: float, z: float, margin: float = 0.0) -> bool:
+	return Vector2(x, z).distance_to(village_center) < village_flat_radius + margin
 
 
 ## The ground colour at a world position (grass, sand, mud), for tests and
@@ -233,4 +281,10 @@ func _ground_color(x: float, z: float, h: float) -> Color:
 	var sand := (1.0 - smoothstep(water_level + 0.1, water_level + 1.0, h)) * near_pond
 	var mud := (1.0 - smoothstep(water_level - 1.2, water_level + 0.1, h)) * near_pond
 	color = color.lerp(SAND, sand)
-	return color.lerp(DIRT, mud * 0.6)
+	color = color.lerp(DIRT, mud * 0.6)
+
+	# Cobbled plaza and dirt paths, with soft edges.
+	var plaza := 1.0 - smoothstep(plaza_radius - 0.6, plaza_radius + 0.2, Vector2(x, z).distance_to(village_center))
+	color = color.lerp(COBBLE.lightened(variation * 0.5), plaza)
+	var path := 1.0 - smoothstep(1.1, 1.9, path_distance(x, z))
+	return color.lerp(PATH_DIRT.lightened(variation), path * 0.9)

@@ -80,6 +80,8 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | World scene (the one main world) | Done | `scenes/world/world.tscn` |
 | Meadow terrain (hills, hill ring, spawn clearing, pond) | Done | `scripts/world/terrain.gd` |
 | Nature (trees, rocks, grass, flowers) | Done | `scripts/world/nature_scatter.gd`, `scenes/world/nature/` |
+| Village: flat zone + plaza + dirt paths (terrain), 3 cottages, well, lamp posts, benches, notice board, fence | Done | `scripts/world/{village,house,village_props}.gd`, `terrain.gd` (`path_lines`, `in_village`), `world.tscn` (`Village`) |
+| Village tests (flat ground, doors walkable, walls/roofs/props solid, nature keeps out, path walkable) + 7 village screenshots | Done | `tests/functional/test_village.gd`, `tests/playtests/playtest_village.gd` |
 | Day lighting (sun, sky, fog, SSAO, glow) | Done | `scenes/world/world.tscn` (WorldEnvironment, Sun) |
 | Boundary walls + fall-out respawn | Done | `world.tscn` (Boundary), `player_controller.gd` |
 | Third-person player (walk, sprint, jump, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
@@ -109,6 +111,9 @@ the real world, so what Marco sees in the editor is exactly what's tested.
 | Pond | centre (16, −12), radius 8, water surface y = −0.6 |
 | Hill ring | starts rising at 65% of the way to the edge, 14 m high at the edge |
 | Boundary walls | inner faces at x = ±58 and z = ±58 (`Boundary` node) |
+| Village | centre (−20, 14); flat (y = 0) within 14 m, blends into the hills over the next 8 m; plaza radius 4.5 m (`Terrain.village_center` / `village_flat_radius` / `plaza_radius`) |
+| Cottages | 3 houses, 6 × 5 m, walls 2.8 m, door 1.4 × 2.2 m facing the plaza (`House.*` constants); at offsets (−9,−2), (9,−1), (0,−10) from the village centre |
+| Paths | `Terrain.path_lines` in `world.tscn`: main path (0,0) → (−6,2) → (−12,6.5) → (−16,9.5) → (−20,14), plus one link from each door to the plaza. Nature keeps 2.6 m off every path |
 | Respawn | falling below y = −25 returns the player to spawn |
 | Trees / rocks | 90 trees (round + pine), 45 rocks: `Nature.get_trees()` / `get_rocks()` |
 
@@ -223,13 +228,21 @@ Every change runs **all** of this before a PR, and CI runs it again on the PR.
    (slope-aware); trees and rocks sit on the ground; no sand away from the pond.
 6. **movement feel test:** `tests/functional/test_movement_feel.gd`, headless. Measures walk/sprint
    start, stop, 180 turn, strafe reversal and jump in frames and metres against the bands in 8.5.
-7. **camera playtest:** `tests/playtests/playtest_camera.gd`, rendered, screenshots in
+7. **village test:** `tests/functional/test_village.gd`, headless. Flat ground under every house corner,
+   props grounded and solid at knee height, houses 7+ m apart and facing the plaza, door bigger than the
+   player's capsule, no tree or rock in the village or on a path, a ray from above hits each roof, the real
+   player walks IN through each door and CANNOT walk through a side wall, and the main path is walked
+   segment by segment from the spawn to the plaza. 12 negative controls recorded in lessons 36 and 39.
+8. **camera playtest:** `tests/playtests/playtest_camera.gd`, rendered, screenshots in
    `qa_output/camera/<date_time>/`.
-8. **visual tour:** `tests/playtests/playtest_visual_tour.gd`, rendered; 15 screenshots into
+9. **visual tour:** `tests/playtests/playtest_visual_tour.gd`, rendered; 15 screenshots into
    `qa_output/{environment,nature,player}/<date_time>/`, each checked by `kit.check_rendered()`
    (fails on black, blown-out or flat single-colour images).
-9. **movement playtest:** `tests/playtests/playtest_movement.gd`, rendered; 5 filmstrips (contact
+10. **movement playtest:** `tests/playtests/playtest_movement.gd`, rendered; 5 filmstrips (contact
    sheets) into `qa_output/movement/<date_time>/` (see 8.4).
+11. **village playtest:** `tests/playtests/playtest_village.gd`, rendered; 7 screenshots into
+   `qa_output/village/<date_time>/` (path from the spawn, plaza, a cottage front and interior, a back wall,
+   well and lamps, notice board), each checked by `kit.check_rendered()`.
 
 After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
 result) and regenerates `qa_output/INDEX.md`.
@@ -299,7 +312,7 @@ script error, which is why the log scan exists. **Never remove it.**
 
 - **Folders are named ONLY by the date and time of the run:** `qa_output/<topic>/<YYYY-MM-DD_HH-MM-SS>/`.
   Never a label like `final2` or `polish` (lesson 16). Files are `<NN>_<name>.png`. Topics: `camera`,
-  `environment`, `nature`, `player`, `movement` (add new ones as systems appear: `village`, ...).
+  `environment`, `nature`, `player`, `movement`, `village` (add new ones as systems appear: `zombies`, ...).
 - **Every run folder has a `manifest.json`:** per image, `what` it shows, `expect` what a correct frame
   looks like, and `changed_vs_previous` (fraction of pixels that differ from the same image in the previous
   run; `null` = new image). Filmstrips also carry `samples`, one per thumbnail: `index`/`row`/`col` (which
@@ -387,7 +400,7 @@ The goal is near-zero false positives at low token cost. These rules are in ever
 
 - Plans the change, keeps it small, writes the code, writes the tests.
 - Proves new checks can fail (8.3 rule 1).
-- Dispatches the specialists after the change is built; the four can run in
+- Dispatches the specialists after the change is built; the specialists can run in
   parallel because they don't edit the project.
 - Reconciles their reports. A specialist's report is evidence, not a verdict:
   if a report says PASS but quotes no measured values, treat it as unproven.
@@ -441,6 +454,21 @@ The goal is near-zero false positives at low token cost. These rules are in ever
 - **Must not:** edit files; report style preferences as bugs; make findings without evidence; report
   intentional behaviour.
 
+### 9.5a Mason: world and layout reviewer (`mason`)
+
+- **Job:** measure whether the world is built correctly and can't trap the player: flat footprints, door
+  scale vs the capsule, solid walls/roofs/props, clear doorways, pockets a player could enter but not leave,
+  roof/ledge reach vs the 1.3 m jump, nature kept out of the village, connected paths. Evidence is always a
+  ray cast or a short headless probe, never "looks close".
+- **Model:** Sonnet. **Budget:** about 10 minutes: the village test once plus at most 2 probe scripts in /tmp.
+- **Run when:** a change touches terrain, village, buildings, props, paths or nature placement (a Hawkeye
+  look plus a Mason measurement is the pair for any layout change).
+- **Must report:** the 9.0 contract plus REVIEWED / NOT REVIEWED (what it measured), and a SHIP / FIX FIRST
+  verdict. **Must not:** edit files, judge art or colour (Hawkeye), or re-report what `test_village.gd`
+  already proves unless it shows the check cannot fail.
+- **Not yet calibrated** (section 9.8): its first calibration plants a missing wall collider, a 0.6 m door
+  and a prop jammed against a wall (a pocket), plus controls.
+
 ### 9.6 Dispatching agents efficiently (lead's rules)
 
 Agents start with **zero context**. A vague brief makes them explore, which is
@@ -457,7 +485,7 @@ slow and expensive. Every dispatch includes:
 
 Scheduling:
 
-- **With Xvfb, all four run in parallel**: each rendered run gets its own
+- **With Xvfb, all of them run in parallel**: each rendered run gets its own
   invisible display (`xvfb-run -a`), so they can't steer each other. Give
   Hawkeye the screenshots from the lead's own suite run, so it doesn't have to
   wait for Warden. **Without Xvfb**, only one windowed Godot at a time
@@ -472,6 +500,7 @@ Scheduling:
   | Visual only (colours, lighting, models, layout) | yes | no | yes (changed images) | no |
   | Controls, physics, gameplay logic | yes | yes (targeted) | if visible | yes |
   | A new system (village, zombie ...) | yes | yes | yes | yes + that system's specialist |
+  | Terrain, buildings, props, paths, nature placement | yes | no (the village test walks it) | yes (changed images) | yes + Mason |
   | Agents, docs, test tooling | yes | no | no | yes |
   | Pre-release or risky | all | all | FULL REVIEW | all |
 
@@ -493,7 +522,7 @@ job, model, budget, exact report format, must-nots.
 
 | Agent | Add when | Owns |
 |---|---|---|
-| **Mason** (`mason`), world builder | Small village (step 5), when there are buildings to place | Terrain, buildings, lighting, scene organisation |
+| **Mason** (`mason`), world and layout reviewer | **Added with the village (step 5)**, see 9.5a | Terrain, buildings, props, paths, can-the-player-get-stuck |
 | **Ghoul** (`ghoul`), zombie AI | Basic zombie (step 9) | Spawning, navigation, detection, day/night behaviour |
 | **Pulse** (`pulse`), performance tester | Village + zombies exist | Frame time, draw calls, measured numbers per scene |
 | **Relay** (`relay`), multiplayer | Multiplayer foundation (step 16) | Networking, sync, authority; tests with 2+ real instances |
@@ -511,6 +540,7 @@ recall**. When an agent misses or over-reports, fix its file and re-run. Record 
 | Date | Agent | Planted | Found | Controls | False positives | Notes |
 |---|---|---|---|---|---|---|
 | 2026-10-02 | Hawkeye | 4 (magenta patch, near-black rectangle, washed-out frame, flat-green "camera inside terrain") | 4 | 4 (rock close-up, pond shore, player front, tree close-up: all contain intentional quirks) | **0** | Recall 100%. Correctly DISMISSED the capsule, cream nose, rock-near-tree perspective and tree shadows with the INTENTIONAL.md reason. Whole-frame defects were confirmed with statistics (mean colour, saturation) instead of a crop. 81k tokens for 8 images (mostly reading its docs). **Limit:** the defects were large and obvious; the next calibration must plant SUBTLE ones (a 20x20 px seam, an 8% brightness shift) to measure the real edge. |
+| 2026-10-02 | Mason | not yet calibrated (first real run on the village: found 1 Low, the dirt links stopped 1.5 m short of the doorsteps, plus 0 false positives on 6 dismissed items) | n/a | n/a | n/a | **Plan:** plant a missing wall collider, a 0.6 m door and a prop jammed 0.5 m from a wall (a pocket), with unmodified controls; target 0 false positives, 90% recall |
 
 ---
 
@@ -598,7 +628,7 @@ NEXT RECOMMENDED STEP
 2. Third-person player ✅
 3. Third-person camera ✅
 4. Small 3D environment ✅ (meadow, nature, lighting)
-5. Small village
+5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths)
 6. Basic interaction
 7. Day/night system
 8. Sleep system
@@ -666,6 +696,12 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 32 | The "jump_arc" filmstrip never contained a jump (Sage, reproduced 3 times); nothing flagged it | `kit.tap` held a key for ONE physics frame, but `physics_frame` fires BEFORE nodes process that frame, so the press was released before the player saw `just_pressed`. It only showed in the real-time windowed run | `tap` holds 2 frames. A strip/sheet/scenario must assert it contains the thing it claims to show (here: max y > 1.0 and a sample airborne). Negative control: tap of 1 frame fails with "max y 0.00" |
 | 33 | `t` was still one frame per interval too high, and the self-check could not see it (Sage measured it) | After the last `await physics_frame` the game is frozen before that frame runs, so N awaits ran N-1 frames; the check only bounded speed from ABOVE, and an overstated `t` only lowers implied speed | Await `every + 1` frames and count `every`. A consistency check needs BOTH directions: where speed is steady, distance/dt must match the reported speed within 5% (steady = same speed and heading; `t` stored to 0.1 ms; controls: 1.5x clock -> 34% mismatch, old off-by-one -> 11.8%) |
 | 34 | A corrupt OLD manifest failed every later rendered step (found by testing the runner's failure path) | The kit read the previous manifest with `JSON.parse_string`, which PRINTS an `ERROR:` line; the log scan counts that as a failure. Same class as lesson 31 (corrupt old PNG) | Code that reads old artefacts uses parsers that return errors instead of printing them (`JSON.new().parse()`), and tolerates corrupt, partial and legacy files. Test the failure path itself, not only the happy path |
+| 35 | The overview screenshot failed `check_rendered` (contrast 0.030 against a limit of 0.03) after the village paths appeared, though the picture was fine | The old overview was flat meadow, always borderline (a Python recompute of every old run showed it sat just above the line); any change could tip it | Don't lower a threshold that exists to catch flat renders. Reframe the shot to something that carries real variety (the overview now looks at the village). When a borderline check flips, recompute the same statistic on the old images to see whether it was ever safe |
+| 36 | All 4 "path segment" checks failed though the path was walkable (the player ended 3-5 m PAST each end point) | The test held forward for a fixed time, so it overshot; a trace of positions showed 4.00 m/s all the way | Walk in short bursts until within range, with a frame cap (a blockage shows up as running out of frames, which the negative control proved: a fence wall across the path fails segment 1 after 174 of 172 frames). Trace positions before touching the world. All 6 village controls fail as intended: door 0.5 m (4 fails), no house collision (6), flat zone 6 m (4), props without collision (1 fail, plus Jolt leak errors the log scan also counts), nature ignoring the village (1), fence wall on the path (2) |
+| 37 | The "no sand away from the pond" check flagged village cobble and path dirt as sand | Both are pale warm colours, nearer SAND than GRASS in colour distance | State exclusions by name and keep them narrow: the village zone and 2 m either side of a path (`test_terrain.gd`). Anything else sandy still fails |
+| 38 | The first "doorway" screenshot showed the player in the door from OUTSIDE, not the room (my own review before dispatch caught it) | The camera sits behind the player, so a player in the doorway is seen from outside | For an interior shot put the player INSIDE and the camera 1-3 m outside the door (`house1_interior`). Look at every new shot before dispatching Hawkeye: a wrong framing wastes a ~100k-token round |
+| 39 | Sage proved by mutation that three advertised checks could not fail: an INVERTED roof passed (the roof check only said `y > wall height`), one wall losing its collider passed (only the left wall was ever walked at; my "no collision" control removed ALL collision at once), and moving a house without its dirt link passed (nothing tied them) | My controls broke whole features, so they only proved the check could fail in the case I imagined; bounds were one-sided; a doc claimed "the test checks it" with no test | Controls must be as fine-grained as the thing that can regress: one wall, one prop kind, one house. Geometry gets two-sided bounds AND a shape check (ridge higher than both sides by 0.6 m). Every cross-file coupling (house position, door link) gets its own assertion. Never write "the test checks it" without naming the check. 12 controls now: door 0.5 m, door height 1.5 m, all collision off, back wall alone, right wall alone, inverted roof, flat zone 6 m, props without collision, nature ignoring the village, fence wall on the path, house moved without its link, two lamps missing. All fail as intended |
+| 40 | Hawkeye found a z-fighting door jamb (trim inner face on the same plane as the wall end face; stripes in the Compatibility renderer), a V notch at the roof ridge, and Sage found a roof floating 0.18 m above the walls and a left window whose glass faced INTO the house | Coplanar faces; slabs meeting at their centre lines; the roof slope was measured from the eave tip instead of the wall top; the window normal used one yaw for both sides | Visual-only trim never shares a plane with another face: inset 2 cm. Compute slopes from the line through the support point (wall top), not the overhang tip. Mirrored parts (left/right) are built from the sign, then BOTH sides are looked at. Static frames only hint at z-fighting: compare the Compatibility renderer, where it is worse |
 
 ### 14.2 What worked (keep doing)
 
@@ -694,4 +730,6 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **A reviewer proving a suspicion with a run** (Sage broke the feature in a /tmp copy and watched the check pass) | A proven finding can't be argued away, and it found the one check that couldn't fail |
 | **Pausing the game while capturing frames** | Filmstrips become deterministic: the same thumbnails and `t` on every machine, so "changed vs previous" is meaningful |
 | **Clean-copy CI checks** (copy to /tmp without `.git`/`.godot`) | Settles "will CI do X?" in 30 seconds |
-
+| **Scripted negative controls with a byte-exact restore** (copy the file aside, patch it, run, copy it back, assert the content is identical) | Six controls ran in one command and could not leave a break behind; no stash, reset or checkout needed |
+| **Tracing positions per step before touching the world** (lesson 36) | The path was fine and the test was wrong; found in one 10-second run |
+| **Reading the screenshots myself before dispatching Hawkeye** | Caught a wrong framing (lesson 38) and an odd olive strip (lintel underside lit by the sky's green ground colour) that is now in INTENTIONAL.md |

@@ -140,6 +140,13 @@ LAUNCHES USED: <n> / 3
 VERDICT: PASS / ISSUES FOUND
 ```
 
+## Walking to a point (lesson 36)
+
+To reach a target (a door, the plaza), walk in short bursts (3 frames) until within ~1.8 m or a frame cap,
+then report where you stopped. Never hold forward for a fixed time: you overshoot and the "failure" is yours.
+In the village, `Village.houses`, `House.door_outside()`, `House.is_inside()` and `kit.village` give exact
+targets; the path is `Terrain.path_lines`.
+
 ## Triage your own findings BEFORE reporting (lesson 18)
 
 Most "failures" in your scenarios are mistakes in the scenarios. For every FAIL,

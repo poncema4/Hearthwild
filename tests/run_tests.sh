@@ -71,6 +71,7 @@ run_step "editor load" "$GODOT" --headless --path . -e --quit-after 300
 run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_player_movement.gd
 run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_terrain.gd
 run_step "movement feel test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_movement_feel.gd
+run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_village.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
 # (CI runs this whole script under xvfb-run and sets HW_NO_REAL_MOUSE=1).
@@ -90,6 +91,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "movement playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_movement.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "village playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_village.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else
@@ -97,6 +101,7 @@ else
 	echo "=== camera playtest: SKIPPED (--headless-only)"
 	echo "=== visual tour: SKIPPED (--headless-only)"
 	echo "=== movement playtest: SKIPPED (--headless-only)"
+	echo "=== village playtest: SKIPPED (--headless-only)"
 	echo "=== qa index: NOT regenerated (--headless-only)"
 fi
 

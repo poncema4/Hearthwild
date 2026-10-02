@@ -139,3 +139,17 @@ VERDICT: PASS / PASS WITH NOTES / ISSUES FOUND
 - "Looks fine" without the REVIEWED list is not a report.
 - Never edit, create or delete anything in the repo; `/tmp` is yours. Never delete anything in `qa_output/`.
 - Keep reports tight: one block per confirmed finding, one line per dismissed item.
+
+## Village images (topic `village`; lessons 35, 38, 40)
+
+Read the `what` and `expect` in the manifest first. Not findings (all in `docs/INTENTIONAL.md`): a dim
+interior with no furniture or ceiling, an open doorway with no door, shaded walls that look blue-grey, an
+olive strip under the door header or eaves (green sky ambient on downward faces), glowing lamp lanterns that
+cast no light, cobble blended into dirt at the plaza, no trees or grass inside the village, a camera that is
+close to the door frame in `house1_interior`. Real findings would be: a wall or roof with a gap you can see
+sky through, a house floating above or sunk into the ground, a prop floating, a door that looks narrower than
+the player capsule, two buildings or a prop and a building overlapping, a path that ends in a wall or a tree,
+or a shot that doesn't show its subject (say HARNESS and name the shot). Look for **z-fighting** (striped or
+speckled bands along door jambs, window frames, doorsteps; much worse in the Compatibility renderer: compare both),
+a V notch at the roof ridge, and window glass that is missing on one side (a mirrored part built wrong; lesson 40). Confirm a suspected overlap from a
+second shot or ask for a position probe; perspective is not overlap.
