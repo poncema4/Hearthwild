@@ -43,10 +43,9 @@ func _run() -> void:
 	rig.rotation.y = 0.0
 	pitch.rotation.x = deg_to_rad(-15.0)
 	await kit.frames(3)
-	var body_mesh := kit.player.get_node("Body/BodyMesh") as MeshInstance3D
-	var body_material := body_mesh.get_surface_override_material(0) as StandardMaterial3D
-	kit.check("player fully visible at normal camera distance", body_material.albedo_color.a > 0.99,
-		"alpha=%.2f, arm %.1f m" % [body_material.albedo_color.a, arm.get_hit_length()])
+	var model := kit.player.get_node("Body/Model") as AnimalModel
+	kit.check("player fully visible at normal camera distance", model.get_alpha() > 0.99,
+		"alpha=%.2f, arm %.1f m" % [model.get_alpha(), arm.get_hit_length()])
 	await _screenshot("spawn")
 
 	# Look math, exact: 200 px right turns the camera right by 200 * sensitivity.
@@ -140,8 +139,8 @@ func _run() -> void:
 	# player, so the body must have faded away (it filled a third of the
 	# screen before this existed).
 	await kit.frames(3)
-	kit.check("player fades when the camera is squeezed in", body_material.albedo_color.a < 0.1,
-		"alpha=%.2f at arm length %.2f m" % [body_material.albedo_color.a, arm.get_hit_length()])
+	kit.check("player fades when the camera is squeezed in", model.get_alpha() < 0.1,
+		"alpha=%.2f at arm length %.2f m" % [model.get_alpha(), arm.get_hit_length()])
 	var wall_image := await _screenshot("against_wall")
 	# What the player actually SEES (lesson 14): the same frame with the body
 	# hidden outright must look the same, i.e. the faded body no longer covers

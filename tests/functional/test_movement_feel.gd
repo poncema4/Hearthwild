@@ -73,22 +73,94 @@ func _run() -> void:
 	kit.check("jump apex is 1.0-1.5 m", apex >= 1.0 and apex <= 1.5, "apex %.2f m" % apex)
 	kit.check("jump airtime is 0.7-1.2 s", air >= 42 and air <= 72, "%d frames (%.2f s)" % [air, air / 60.0])
 
-	# 7. Holding jump doesn't bunny-hop (needs a fresh press each time).
-	# Count the TAKEOFFS over time (floor -> air transitions). Asserting only that
-	# the player is on the floor at the end passes with bunny-hopping too, since
-	# any hopper is back on the ground eventually (Sage proved it; lesson 27).
+	# 7. Holding Space hops again on every landing (the player asked for continuous jumps),
+	# but never faster than the natural airtime and never a double jump. Count the TAKEOFFS
+	# over time (floor -> air transitions): an end-state check passes for almost anything (lesson 27).
 	await _reset(kit)
 	Input.action_press("jump")
-	var takeoffs := 0
+	var takeoff_frames: Array[int] = []
 	var was_on_floor := true
-	for i in 200:
+	for i in 300:
 		await kit.physics_frames(1)
 		var on_floor := kit.player.is_on_floor()
 		if was_on_floor and not on_floor:
-			takeoffs += 1
+			takeoff_frames.append(i)
 		was_on_floor = on_floor
 	Input.action_release("jump")
-	kit.check("holding jump gives exactly one hop, not a bunny hop", takeoffs == 1, "%d takeoffs in 200 frames" % takeoffs)
+	var min_gap := 999
+	for k in range(1, takeoff_frames.size()):
+		min_gap = mini(min_gap, takeoff_frames[k] - takeoff_frames[k - 1])
+	kit.check("holding Space keeps hopping: 4-5 takeoffs in 300 frames", takeoff_frames.size() >= 4 and takeoff_frames.size() <= 5,
+			"%d takeoffs at frames %s" % [takeoff_frames.size(), takeoff_frames])
+	kit.check("held hops are never faster than the airtime (no double jump): gaps of at least 55 frames", min_gap >= 55, "closest gap %d frames" % min_gap)
+
+	# 8. A single tap is still exactly one hop.
+	await _reset(kit)
+	await kit.tap("jump")
+	var tap_takeoffs := 1
+	was_on_floor = false
+	for i in 200:
+		await kit.physics_frames(1)
+		var on_floor_now := kit.player.is_on_floor()
+		if was_on_floor and not on_floor_now:
+			tap_takeoffs += 1
+		was_on_floor = on_floor_now
+	kit.check("a single tap is exactly one hop", tap_takeoffs == 1, "%d takeoffs" % tap_takeoffs)
+
+	# 8b. Coyote time: a jump pressed a moment after leaving the ground still works
+	# (running off a bump or downhill must never eat the jump).
+	# Lifted 0.9 m (well above the 0.5 m floor snap, which would otherwise pull the player back down and
+	# fake a pass: Sage proved it), so only the coyote window can allow the jump. Both bounds: 2 frames
+	# after leaving the ground works; 0.25 s later (15 frames, still airborne) does not.
+	for delay in [2, 15]:
+		await _reset(kit)
+		kit.player.global_position += Vector3(0, 0.9, 0)
+		await kit.physics_frames(delay)
+		var airborne := not kit.player.is_on_floor()
+		Input.action_press("jump")
+		var best_vy := -99.0
+		for i in 3:
+			await kit.physics_frames(1)
+			best_vy = maxf(best_vy, kit.player.velocity.y)
+		Input.action_release("jump")
+		if delay == 2:
+			kit.check("a jump pressed 2 frames after leaving the ground still works (coyote time)", airborne and best_vy > 3.0,
+					"airborne=%s, best upward speed %.2f m/s" % [airborne, best_vy])
+		else:
+			kit.check("a jump pressed 15 frames (0.25 s) after leaving the ground does NOT work (no air jump)", airborne and best_vy < 1.0,
+					"airborne=%s, best upward speed %.2f m/s" % [airborne, best_vy])
+
+	# 9. Sprint is continuous: holding Shift keeps full speed (with or without jumping) on
+	# an open lane (south of the spawn: nothing solid for 28 m), and letting go ends it.
+	for jumping in [false, true]:
+		await _reset(kit)
+		kit.face(Vector3.BACK)
+		Input.action_press("sprint")
+		Input.action_press("move_forward")
+		if jumping:
+			Input.action_press("jump")
+		var slowest := 99.0
+		var air_hops := 0
+		var was_floor := true
+		for i in 240:
+			await kit.physics_frames(1)
+			if i > 40:
+				slowest = minf(slowest, kit.horizontal_speed())
+			var floor_now := kit.player.is_on_floor()
+			if was_floor and not floor_now:
+				air_hops += 1
+			was_floor = floor_now
+		var label := "while jumping" if jumping else "on foot"
+		kit.check("holding Shift keeps sprinting %s: never under 6.5 m/s for 4 s" % label, slowest >= 6.5, "slowest %.2f m/s" % slowest)
+		if not jumping:
+			kit.check("running on foot never hops off the ground by itself (floor snap)", air_hops == 0, "%d times left the ground" % air_hops)
+		Input.action_release("jump")
+		Input.action_release("sprint")
+		await kit.physics_frames(40)
+		if not jumping:
+			kit.check("letting go of Shift ends the sprint (back to walk speed 4 m/s)", kit.horizontal_speed() < 4.3 and kit.horizontal_speed() > 3.5,
+					"%.2f m/s 40 frames after release" % kit.horizontal_speed())
+		Input.action_release("move_forward")
 
 	kit.finish()
 

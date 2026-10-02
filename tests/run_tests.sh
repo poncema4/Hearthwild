@@ -61,6 +61,7 @@ run_step() {
 
 "$GODOT" --version || { echo "Godot not found ($GODOT)"; exit 1; }
 
+run_step "repo check" python3 tests/tools/check_repo.py
 run_step "import project" "$GODOT" --headless --path . --import
 run_step "load main scene" "$GODOT" --headless --path . --quit-after 60
 # @tool scripts (terrain, nature) also run inside the editor; open the
@@ -72,6 +73,10 @@ run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --sc
 run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_terrain.gd
 run_step "movement feel test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_movement_feel.gd
 run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_village.gd
+run_step "interaction test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_interaction.gd
+run_step "character test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_character.gd
+run_step "soak test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_soak.gd
+run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
 # (CI runs this whole script under xvfb-run and sets HW_NO_REAL_MOUSE=1).
@@ -94,6 +99,12 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "village playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_village.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "character playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_character.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "animation playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_animation.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else
@@ -102,6 +113,8 @@ else
 	echo "=== visual tour: SKIPPED (--headless-only)"
 	echo "=== movement playtest: SKIPPED (--headless-only)"
 	echo "=== village playtest: SKIPPED (--headless-only)"
+	echo "=== character playtest: SKIPPED (--headless-only)"
+	echo "=== animation playtest: SKIPPED (--headless-only)"
 	echo "=== qa index: NOT regenerated (--headless-only)"
 fi
 

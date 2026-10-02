@@ -14,8 +14,8 @@ var _pitch: Node3D
 ## What each screenshot shows and what a correct frame looks like (goes into manifest.json).
 const SHOTS := {
 	"environment/spawn_north": ["Spawn clearing looking north (-Z), player from behind.", "Meadow, trees on hills, bright and soft, soft shadows."],
-	"environment/spawn_east": ["Spawn clearing looking east.", "Hills and trees; the cream nose sphere visible; no dark bands."],
-	"environment/spawn_south": ["Spawn clearing looking south, player seen from the front.", "Cream nose visible; long soft shadow; hills lit, not murky."],
+	"environment/spawn_east": ["Spawn clearing looking east.", "Hills and trees; the dog's side or face visible; no dark bands."],
+	"environment/spawn_south": ["Spawn clearing looking south, player seen from the front.", "The dog's face visible; long soft shadow; hills lit, not murky."],
 	"environment/spawn_west": ["Spawn clearing looking west.", "Trees at hill base, rocks, pleasant meadow."],
 	"environment/pond_shore": ["Standing at the pond shore looking at the water.", "Round pond with a smooth sandy ring, no square corners, no hard sand edge."],
 	"environment/hill_rim_view": ["On the hill rim (0, 44) looking back over the meadow.", "Wide valley below, grass in the foreground, rocks, big soft tree shadows."],
@@ -24,10 +24,10 @@ const SHOTS := {
 	"nature/tree_pine_close": ["Close-up of the nearest pine; player body hidden.", "Pine is the subject: warm brown trunk, rich green tiers, shaded underside is fine."],
 	"nature/rock_close": ["Close-up of the nearest rock; player body hidden.", "Grey rock sits on the ground (no floating), flowers nearby."],
 	"nature/grass_and_flowers_low": ["Very low camera in the grass near (6, 6).", "Deep green blades, pink/blue/yellow flowers, not dark, not pale or ghostly."],
-	"player/behind": ["Player from behind at (-3, 4), default camera.", "Capsule grounded with a shadow; trees and hills behind."],
-	"player/front": ["Player seen from the front.", "Cream nose sphere on the front; shadow; nothing clipping."],
-	"player/side": ["Player in profile.", "Nose sphere at the side, grounded, shadow."],
-	"player/zoomed_in": ["Camera at minimum zoom (1.5 m).", "Capsule large in frame, soft shading, no clipping into the camera."],
+	"player/behind": ["The dog from behind at (-3, 4), default camera.", "Dog grounded with a shadow, curled tail with a cream tip, two ears; trees and hills behind."],
+	"player/front": ["The dog seen from the front.", "Face with two shiny eyes, cream muzzle and dark nose; shadow; nothing clipping."],
+	"player/side": ["The dog in profile.", "Muzzle in front of the face, floppy ear at the side, grounded, shadow."],
+	"player/zoomed_in": ["Camera at minimum zoom (1.5 m).", "The dog large in frame, soft shading, no clipping into the camera."],
 }
 
 

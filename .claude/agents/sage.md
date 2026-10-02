@@ -16,6 +16,13 @@ edit files.
 - No Godot launches needed. If you want to confirm a suspicion by running
   something, use **one** headless run and say so.
 
+## Cost rule (lesson 44)
+
+Read the REVIEW PACK in your brief first and review the diff it summarises, not the repo. **Never report what
+`tests/tools/check_repo.py` already proves** (a test with no README row, a stale step count, a missing .uid, a loose or
+debug file, an uncited or missing lesson number): it runs in every suite run. Spend your budget on what a script cannot see:
+checks that cannot fail (prove by mutation in /tmp), logic and engine traps, and design.
+
 ## Step 1: Read
 
 0. **`docs/INTENTIONAL.md` first**: don't report intentional behaviour. Then `AGENTS.md` 9.0 (the
@@ -80,6 +87,10 @@ edit files.
 - Controls must be as fine-grained as the regression: one wall, one prop kind, one house (a control that breaks ALL collision
   proves nothing about one lost collider), geometry bounds are two-sided and shape-checked (inverted roof), and every
   coupling between files (house position and its door link) has its own assertion (lesson 39). Prove it by mutation in /tmp.
+- An animation test that asserts joint ANGLES agrees with whatever sign the code uses; it must measure where feet and
+  hands are (lesson 42). A setting added without a control that proves it matters is a finding (lesson 41).
+- Every rule with a number (range, angle, window, box) needs a test on BOTH sides of its edge, and when two settings
+  overlap (coyote time vs floor snap) the test must defeat the other (lesson 45). Signed quantities are tested with their sign.
 - A threshold that guards against "flat or empty" must never be loosened to make a borderline shot pass; the
   shot is reframed instead (lesson 35). A walk-to-a-point check must stop on arrival or on a frame cap, never
   hold a key for a fixed time (it overshoots; lesson 36). Exclusions in a check are named and narrow (lesson 37).

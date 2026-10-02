@@ -10,7 +10,9 @@ extends SceneTree
 const SHOTS := {
 	"village/path_from_spawn": ["Standing near the spawn (-3, 1.5) looking along the dirt path toward the village.", "A soft brown dirt path through the grass leading away to the north-west; no trees ON the path; roofs may show in the distance."],
 	"village/plaza_wide": ["Standing at (-9, 7.5) looking at the plaza from the south-east.", "Three cottages around a plaza with a well in the middle, lamp posts, a bench and dirt paths to each door; pale cobble patches blend into the dirt (intentional)."],
-	"village/house1_front": ["In front of the first cottage (cream walls, red roof), looking at its door.", "Door opening is dark and clearly wider than the player; two windows; gabled roof with a ridge; chimney; doorstep."],
+	"village/house1_front": ["In front of the first cottage (cream walls, red roof), looking at its door.", "A closed brown door leaf with a gold knob fills the doorway, clearly wider than the player; two windows; gabled roof with a ridge; chimney; doorstep."],
+	"village/house1_prompt": ["Standing 1.6 m from the first cottage's CLOSED door, facing it.", "The brown door leaf fills the doorway; a dark panel at the bottom of the screen reads [E] Open door with a cream E key badge. The dog stands in front of the door."],
+	"village/house1_door_open": ["The same spot after pressing E: the door has swung open.", "The door leaf is swung inward (it no longer fills the doorway); the doorway is clear; the prompt reads Close door."],
 	"village/house1_interior": ["Player standing inside the first cottage facing the back wall; the camera is 3 m behind, just outside the door.", "Seen through the doorway: a plain room with a wooden floor, plain walls and the player facing the back wall. The room is dim because the roof shades it (intentional)."],
 	"village/house3_back": ["Behind the third cottage (pink walls, brown roof), looking at its back wall.", "Solid back wall with a roof overhang and the chimney; the ground is flat and grass reaches the wall."],
 	"village/well_and_lamps": ["Standing at (-12, 20) looking at the well in the plaza.", "Stone well with a small red roof, lamp posts with a warm glowing lantern, a bench, cobble ground that blends into grass."],
@@ -44,6 +46,16 @@ func _run() -> void:
 	var outside := house1.door_outside(5.0)
 	await _frame(Vector3(outside.x, NAN, outside.z), toward_door, 4.0, -10.0)
 	await _take("house1_front")
+
+	# A closed door, the prompt, then the door opened with the real key.
+	var near := house1.door_outside(1.6)
+	await _frame(Vector3(near.x, NAN, near.z), toward_door, 3.0, -8.0)
+	(kit.player.get_node("Body") as Node3D).rotation.y = atan2(-toward_door.x, -toward_door.z)
+	await kit.physics_frames(6)
+	await _take("house1_prompt")
+	await kit.tap("interact")
+	await kit.physics_frames(50)
+	await _take("house1_door_open")
 
 	var inside := house1.to_global(Vector3(0, 0, 0.5))
 	await _frame(Vector3(inside.x, NAN, inside.z), toward_door, 3.0, -8.0)

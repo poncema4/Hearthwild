@@ -58,7 +58,7 @@ lines = [
     "",
     "**Layout:** `qa_output/<topic>/<YYYY-MM-DD_HH-MM-SS>/<NN>_<name>.png` plus a `manifest.json` in each run",
     "folder. The folder name is ONLY the date and time of the run. Topics: camera, environment, nature,",
-    "player, movement, village. Nothing here is ever deleted. `run_meta/<date_time>.json` records the git branch,",
+    "player, movement, village, character, animation. Nothing here is ever deleted. `run_meta/<date_time>.json` records the git branch,",
     "commit, renderer and result of each run.",
     "",
     "**How to review:** read the newest run below. Open every image marked **REVIEW** (new, or more than",

@@ -67,7 +67,13 @@ func _build() -> void:
 			_place(VillageProps.lamp_post(), Vector2(sign_x * 3.9, sign_z * 3.9), 0.0)
 	_place(VillageProps.bench(), Vector2(0, 6), 180.0)
 	_place(VillageProps.bench(), Vector2(-6, 5), 90.0)
-	_place(VillageProps.notice_board(), Vector2(3.2, -6.5), 0.0)
+	var board := _place(VillageProps.notice_board(), Vector2(3.2, -6.5), 0.0)
+	var reader := Interactable.new()
+	reader.name = "ReadBoard"
+	reader.prompt_text = "Read the notice board"
+	reader.message = "Welcome to Hearthwild!\nDoors open with E. More coming: animals, outfits, night time..."
+	reader.position = Vector3(0, 0.9, 0.7)
+	board.add_child(reader)
 	for x in [4.0, 6.0, 8.0]:
 		_place(VillageProps.fence(), Vector2(x, 9), 0.0)
 
@@ -76,9 +82,10 @@ func _at(offset: Vector2) -> Vector3:
 	return center() + Vector3(offset.x, 0.0, offset.y)
 
 
-func _place(prop: Node3D, offset: Vector2, yaw_degrees: float) -> void:
+func _place(prop: Node3D, offset: Vector2, yaw_degrees: float) -> Node3D:
 	prop.set_meta("kind", String(prop.name))  # Godot renames duplicate siblings; tests count by this
 	prop.position = _at(offset)
 	prop.rotation_degrees.y = yaw_degrees
 	_generated.add_child(prop)
 	props.append(prop)
+	return prop
