@@ -32,10 +32,11 @@ a finding (a renderer feature the Compatibility renderer lacks), never "flaky".
 
 ## Verify the run actually covered everything
 
-The runner must print **all 9 steps**: import project, load main scene, editor load, player movement
-test, terrain test, movement feel test, camera playtest, visual tour, movement playtest. A missing step
+The runner must print **all 11 steps**: import project, load main scene, editor load, player movement
+test, terrain test, movement feel test, village test, camera playtest, visual tour, movement playtest,
+village playtest. A missing step
 is a **FAIL** ("a check that didn't run is a failure"). Also check:
-- No `SKIPPED` line you didn't expect. Quote every one. (With `--headless-only` the runner prints three
+- No `SKIPPED` line you didn't expect. Quote every one. (With `--headless-only` the runner prints four
   SKIPPED lines for the rendered steps plus "qa index: NOT regenerated"; anything else missing is a gap.)
 - Each test printed its own `RESULT:` line; the final line is `ALL CHECKS PASSED` (exit code 0).
 - `qa_output/INDEX.md` was regenerated (newest run listed with result PASS) and say how many images it
@@ -58,6 +59,8 @@ Never silently retry, and never report only the green run. Report every run you 
 - Display / Vulkan errors with no GPU: `--rendering-driver opengl3 --rendering-method gl_compatibility`.
 - `Failed to correctly scale body` (Jolt): a collider has non-uniform scale (lesson 7).
 - A rendered check finding nothing / "no input delivered": injected input needs idle frames (lesson 9).
+- `rendered` check failing with contrast just under 0.03 on a flat scene: a borderline check, not a dead renderer (lesson 35). Report the numbers; never suggest lowering the threshold.
+- A village path-walk failing with the player far PAST the end point is a test-design overshoot (lesson 36), not a blocked path: report where the player stopped.
 
 ## Report (exactly this shape; repeat the block for the CI-mode run)
 
@@ -66,16 +69,18 @@ TEST RUN  <date_time>
 Renderer: Forward+ / Compatibility      Godot: <version line>
 Command: <exact>                        Exit code: <n>
 
-STEPS (9 expected)
+STEPS (11 expected)
 - import project: OK / FAILED (<first error line>)
 - load main scene: ...
 - editor load: ...
 - player movement test: <n> PASS, <n> FAIL
 - terrain test: <n> PASS, <n> FAIL
 - movement feel test: <n> PASS, <n> FAIL
+- village test: <n> PASS, <n> FAIL
 - camera playtest: <n> PASS, <n> FAIL / SKIPPED
 - visual tour: <n> PASS, <n> FAIL / SKIPPED
 - movement playtest: <n> PASS, <n> FAIL / SKIPPED
+- village playtest: <n> PASS, <n> FAIL / SKIPPED
 
 SKIPPED CHECKS: <every SKIPPED line verbatim, or "none">
 FAILURES: <every FAIL/ERROR line verbatim with its measured values, or "none">
@@ -86,7 +91,7 @@ VERDICT: PASS / FAIL
 
 ## Rules
 
-- VERDICT is PASS only if the exit code is 0, all 9 steps ran, none are skipped, and no step printed an
+- VERDICT is PASS only if the exit code is 0, all 11 steps ran, none are skipped, and no step printed an
   error. Otherwise FAIL (or "PASS (rendered steps SKIPPED)").
 - Quote failures verbatim; never paraphrase, shorten or interpret them. Never say "flaky" without two
   differing runs on identical code.

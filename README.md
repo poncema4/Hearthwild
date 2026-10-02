@@ -15,10 +15,11 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | **Meadow world** | A 120 × 120 m valley with rolling hills, a ring of taller hills around the edge, a pond, and a flat clearing where you spawn |
 | **Nature** | 90 trees (round and pine), 45 rocks, thousands of grass tufts and wildflowers, in a soft low-poly style |
 | **Daytime lighting** | Warm sun with shadows, soft sky, gentle fog for depth, ambient occlusion and glow |
+| **Village** | A flat village green at the north-west with a cobble plaza, a well, three cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
 | **Third-person player** | Walk, sprint, jump; trees, rocks and walls are solid; fall out of the world and you respawn |
 | **Camera** | Orbit with the mouse, zoom with the wheel; pulls in so it never clips through walls, and your character fades out if the camera gets too close |
 
-Next up (see the development order in `AGENTS.md`): a small village.
+Next up (see the development order in `AGENTS.md`): basic interaction (open a door, talk, pick things up).
 
 ## Running it
 
@@ -41,7 +42,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (9 steps, about 2 minutes)
+tests/run_tests.sh                 # everything (11 steps, about 3 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 
@@ -67,6 +68,7 @@ use low (dispatch matrix in `AGENTS.md` 9.6).
 | **Scout** | Plays the game trying to break it |
 | **Hawkeye** | Reviews the screenshots and movement filmstrips that changed |
 | **Sage** | Reviews the code, organization and docs before it merges |
+| **Mason** | Measures the world: flat foundations, door sizes, solid walls, paths, "can the player get stuck?" |
 
 Every mistake found while building something is written into `AGENTS.md` (section 14) and the relevant
 agent's file in the same pull request, so it can't happen twice.

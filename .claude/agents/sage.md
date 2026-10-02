@@ -77,6 +77,12 @@ edit files.
 - Code that reads OLD artefacts (previous screenshots, manifests, run_meta) must tolerate corrupt, partial
   or legacy ones without printing `ERROR:` (the runner's log scan would fail every later run; lessons 31, 34). Test the FAILURE path of any new
   tooling (a corrupt file, a missing step), not only the happy path.
+- Controls must be as fine-grained as the regression: one wall, one prop kind, one house (a control that breaks ALL collision
+  proves nothing about one lost collider), geometry bounds are two-sided and shape-checked (inverted roof), and every
+  coupling between files (house position and its door link) has its own assertion (lesson 39). Prove it by mutation in /tmp.
+- A threshold that guards against "flat or empty" must never be loosened to make a borderline shot pass; the
+  shot is reframed instead (lesson 35). A walk-to-a-point check must stop on arrival or on a frame cap, never
+  hold a key for a fixed time (it overshoots; lesson 36). Exclusions in a check are named and narrow (lesson 37).
 - A sheet/strip/scenario must assert it contains what it claims (a jump strip with a jump; lesson 32), and
   a consistency check must be two-sided (lesson 33). Prove each by breaking the thing and running once.
 

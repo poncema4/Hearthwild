@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/world/terrain.gd" id="1_terrain"]
 [ext_resource type="Script" path="res://scripts/world/nature_scatter.gd" id="2_scatter"]
+[ext_resource type="Script" path="res://scripts/world/village.gd" id="4_village"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_day"]
@@ -59,9 +60,13 @@ directional_shadow_max_distance = 110.0
 
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("1_terrain")
+path_lines = Array[PackedVector2Array]([PackedVector2Array(0, 0, -6, 2, -12, 6.5, -16, 9.5, -20, 14), PackedVector2Array(-25.6, 12, -20, 14), PackedVector2Array(-14.4, 13, -20, 14), PackedVector2Array(-20, 7.4, -20, 14)])
 
 [node name="Nature" type="Node3D" parent="."]
 script = ExtResource("2_scatter")
+
+[node name="Village" type="Node3D" parent="."]
+script = ExtResource("4_village")
 
 [node name="Boundary" type="StaticBody3D" parent="."]
 

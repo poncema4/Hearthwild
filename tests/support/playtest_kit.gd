@@ -30,6 +30,7 @@ var camera_rig: ThirdPersonCamera
 var spring_arm: SpringArm3D
 var terrain: Terrain
 var nature: NatureScatter
+var village: Village
 var failures := 0
 
 
@@ -46,6 +47,7 @@ func load_world(settle_frames: int = 60) -> void:
 	spring_arm = camera_rig.get_node("Pitch/SpringArm3D")
 	terrain = world.get_node("Terrain")
 	nature = world.get_node("Nature")
+	village = world.get_node("Village")
 	await physics_frames(settle_frames)
 
 

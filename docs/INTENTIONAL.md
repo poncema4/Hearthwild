@@ -20,6 +20,13 @@ include the numbers, so an agent can tell "intended" from "broken" by measuring.
 | Terrain is not flat away from spawn | Flat within ~4.5 m of the origin, gentle within 9 m, rolling hills beyond, 14 m rim | Meadow valley design |
 | The jump strip's first thumbnail is at take-off, not standing still | The filmstrip samples at exact frame intervals after the key press, so the first thumbnail of `jump_arc` is already rising (y about 0.1) | Deterministic sampling; the last thumbnail is back on the floor |
 | A tree can briefly hide the player | The camera sits over the right shoulder behind a solid tree: as the player passes, a canopy can cover them for a frame or two. Not clipping: the whole cone renders and the player is intact behind it | Over-the-shoulder camera + solid trees; occlusion handling is a later feature |
+| The village ground is perfectly flat and pale | Flat (y = 0) within 14 m of (-20, 14), blending into the hills over 8 m; plaza within 4.5 m is pale cobble mixed with dirt where the 4 paths converge | Buildings need flat foundations; paths are dirt-coloured ground, not separate meshes |
+| No trees, rocks, grass or flowers in the village or on a path | Nothing within 1.5 m of the flat zone or 2.6 m of a path | Keeps buildings and walkways clear |
+| Cottages have an open doorway, no door leaf, no furniture, no ceiling light | Door 1.4 x 2.2 m; the room is dim (the roof shades it); floor is a flat wooden slab | Placeholder; interiors and doors come with basic interaction (step 6) |
+| Indoors, the camera arm shortens and the body may fade | The doorway is only 1.4 m wide, so the arm hits the door frame; same rule as at walls | Standard camera squeeze (see "Player body fades near walls") |
+| Faces that point down look dark olive green (lintel and eave undersides) | The sky's ground colour is green (0.30, 0.40, 0.28) and drives ambient light for downward faces | Sky/ambient settings; not a texture bug |
+| Shaded wall faces look blue-grey | Walls in shadow are lit only by ambient sky light (blue); sunlit faces are cream/pink | Placeholder materials + sky ambient |
+| Lamp posts glow but give no light | Emissive lantern only, no light node | Daytime world; real lamp lights come with day/night (step 7) |
 | The mouse is captured at start | Esc frees it, left-click captures again | Standard third-person control |
 | Movement feel numbers | Walk 4 m/s, sprint 7 m/s; 90% speed in ~8 / ~13 frames; stop in ~8 frames; 180 turn ~13 frames; jump apex ~1.3 m, airtime ~1.07 s | Measured by `tests/functional/test_movement_feel.gd` (bands in AGENTS.md 8.5) |
 

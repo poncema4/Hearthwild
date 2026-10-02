@@ -92,6 +92,9 @@ func _run() -> void:
 			var is_sandy := _distance(c, Terrain.SAND) < _distance(c, Terrain.GRASS_LOW) \
 					and _distance(c, Terrain.SAND) < _distance(c, Terrain.GRASS_HIGH)
 			if is_sandy:
+				# Village cobble and path dirt are pale and warm too; they are not pond sand.
+				if terrain.in_village(x, z, 0.0) or terrain.path_distance(x, z) < 2.0:
+					continue
 				if Vector2(x, z).distance_to(terrain.pond_center) > far:
 					stray += 1
 				else:

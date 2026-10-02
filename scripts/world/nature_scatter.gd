@@ -238,6 +238,9 @@ func _random_spot(extent: float) -> Vector3:
 func _is_open_ground(spot: Vector3, clearing: float, max_slope: float = 0.8) -> bool:
 	if Vector2(spot.x, spot.z).length() < clearing:
 		return false
+	# Keep the village and the paths to it clear of everything.
+	if _terrain.in_village(spot.x, spot.z, 1.5) or _terrain.path_distance(spot.x, spot.z) < 2.6:
+		return false
 	if spot.y < _terrain.water_level + 0.25:
 		return false
 	var pond_distance := Vector2(spot.x, spot.z).distance_to(_terrain.pond_center)
