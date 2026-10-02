@@ -1,7 +1,7 @@
 extends SceneTree
 ## Functional test: third-person player movement in the real world scene.
 ## Presses the real input actions and checks physics results.
-## Run: godot --headless --path . --script res://tests/test_player_movement.gd
+## Run: godot --headless --path . --script res://tests/functional/test_player_movement.gd
 ## Exit code = number of failures (0 = all pass).
 
 

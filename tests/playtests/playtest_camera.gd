@@ -3,11 +3,25 @@ extends SceneTree
 ## screenshots for visual QA. Needs rendering (not --headless); the test
 ## runner puts it on an invisible virtual display when Xvfb is installed.
 ##
-## Run: godot --path . --script res://tests/playtest_camera.gd -- [<qa_output dir> [<run stamp>]]
+## Run: godot --path . --script res://tests/playtests/playtest_camera.gd -- [<qa_output dir> [<run stamp>]]
 ## Screenshots go to <qa_output>/camera/<run stamp>/ (gitignored, never deleted).
 ## Exit code = number of failures (0 = all pass).
 
 var kit: PlaytestKit
+
+## What each screenshot shows and what a correct frame looks like (goes into manifest.json).
+const SHOTS := {
+	"spawn": ["Spawn: player from behind on the flat clearing, default camera (4 m arm, -15 deg pitch).",
+		"Upright capsule with a shadow, round tree and pines ahead, hills and sky; nothing clipping."],
+	"toward_pond": ["Camera turned toward the pond (north-east), default distance.",
+		"Meadow with trees; the pond may be out of frame; no clipping."],
+	"toward_forest": ["Camera turned west toward the forest edge.",
+		"Soft shadows on hills; trees on the slope; bright foreground; hill shading not gloomy."],
+	"overview": ["Camera zoomed out to 8 m at -60 deg pitch (near top-down).",
+		"Player small in the clearing, grass and flowers around, rocks/trees at the edges; no black patches."],
+	"against_wall": ["Player backed into the east boundary wall; the camera arm is squeezed to ~0.2 m.",
+		"The player's body has faded out; the whole valley, pond and trees are visible; nothing covers the view."],
+}
 
 
 func _initialize() -> void:
@@ -161,6 +175,6 @@ func _wheel(button: MouseButton, clicks: int) -> void:
 
 
 func _screenshot(label: String) -> Image:
-	var image := await kit.shot("camera", label)
+	var image := await kit.shot("camera", label, SHOTS[label][0], SHOTS[label][1])
 	kit.check_rendered("camera/" + label, image)
 	return image

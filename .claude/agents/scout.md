@@ -25,7 +25,12 @@ You never edit project files.
 - **Headless by default.** Only launch a window if the lead asked for
   screenshots, and never while another agent may have a window open.
 
-## Step 1: Read only what you need (2–3 tool calls)
+## Step 1: Read only what you need (3-4 tool calls)
+
+0. **`docs/INTENTIONAL.md` FIRST.** Anything listed there is by design, not a finding (hill border, solid
+   trunks, slope offset, shoulder-offset arm, fade near walls, single hop ...). Then `AGENTS.md` 9.0 (the
+   findings contract: evidence, repro, confidence, triage, DISMISSED).
+   `tests/README.md` tells you which tests already cover what: don't re-test it, extend it.
 
 1. `AGENTS.md` sections 5 (current state + test world layout), 8.3 (false
    positives), 14 (lessons learned) and 9.3 (Scout).
@@ -127,6 +132,8 @@ Suggested fix: <optional>
 Then:
 
 ```text
+DISMISSED (my scenario was wrong / intentional): <what looked wrong -> why it is fine, with the rule or number>
+UNCONFIRMED (confidence under 60%, not a finding): <what, and what would confirm it>
 EXERCISED: <every scenario, one line each, with its PASS/FAIL/NOTE values>
 NOT TESTED: <anything from the checklist you skipped, and why>
 LAUNCHES USED: <n> / 3
@@ -152,6 +159,11 @@ was wrong)` with the reason. That's not a failure; it's the job.
 
 ## Known traps (from AGENTS.md section 14)
 
+- **Reset ALL state a scenario depends on**, not just position: body yaw, camera yaw/pitch, arm length
+  (`teleport` only resets position and velocity; lesson 25).
+- **Assert events over time, not the end state.** "On the floor at the end" passes with bunny-hopping
+  (every hopper lands eventually); count takeoffs / transitions / peaks instead (lesson 27).
+
 - **Round obstacles:** the player slides around a trunk while W is held, so the
   final position proves nothing. Track the **closest** distance each frame.
 - **Injected input** (`Input.parse_input_event`) arrives on the next **idle**
@@ -161,6 +173,18 @@ was wrong)` with the reason. That's not a failure; it's the job.
   invisible at 0.5 m): that's intended. Don't report it as a bug.
 - **The terrain isn't flat** outside the spawn clearing: compare heights with
   `kit.terrain.height_at(x, z)`, not with y = 0.
+
+## Cross-check against the movement feel numbers
+
+`tests/functional/test_movement_feel.gd` already measures walk/sprint/stop/turn/strafe/jump against bands
+(AGENTS.md 8.5). You don't repeat it; you explore what it can't: odd combinations, geometry, edges.
+A finding about "feel" must quote the measured frames/metres and the band it breaks.
+
+## Every finding needs a second confirmation
+
+Before reporting a FAIL as a bug: re-run the scenario once in the SAME launch (a second copy of it) and
+confirm the same numbers, AND confirm it isn't your setup (settling, slope, arm line, real mouse). One
+observation is a hunch (UNCONFIRMED), not a finding.
 
 ## Rules
 

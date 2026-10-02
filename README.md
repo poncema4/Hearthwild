@@ -41,28 +41,42 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything
+tests/run_tests.sh                 # everything (9 steps, about 2 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 
-- Headless checks run with `--fixed-fps 60`, so the whole suite takes about a minute.
-- With **Xvfb** installed (`sudo apt install xvfb`), rendered checks run on an
-  invisible virtual display: no windows pop up. `HW_SHOW_WINDOW=1` shows them.
-- Every run saves screenshots, organised by topic and run time:
-  `qa_output/<camera|environment|nature|player>/<date_time>/`. Old runs are kept.
-- The same checks run on every pull request via GitHub Actions.
+- `tests/README.md` is the map of every test file. Headless number tests live in `tests/functional/`,
+  rendered screenshot tests in `tests/playtests/`.
+- Headless checks run with `--fixed-fps 60`. With **Xvfb** installed (`sudo apt install xvfb`) rendered
+  checks run on an invisible virtual display, so no windows pop up (`HW_SHOW_WINDOW=1` shows them).
+- Every run saves screenshots as `qa_output/<topic>/<YYYY-MM-DD_HH-MM-SS>/`, with a `manifest.json` per run
+  and an index at `qa_output/INDEX.md` that says which images changed and need review. Movement is saved
+  as **filmstrips** (one image, thumbnails in time order). Old runs are never deleted.
+- The same checks run on every pull request via GitHub Actions (in the OpenGL Compatibility renderer).
 
 ## The AI agent team
 
-Changes are built by a lead AI session and checked by four agents in
-`.claude/agents/`:
+Changes are built by a lead AI session and checked by specialist agents in `.claude/agents/`. Each agent
+has a detailed protocol aimed at near-zero false positives (it must confirm a finding a second way, check
+`docs/INTENTIONAL.md`, and list what it dismissed). Only the agents a change needs are run, to keep token
+use low (dispatch matrix in `AGENTS.md` 9.6).
 
 | Agent | Job |
 |---|---|
-| **Warden** | Runs the full test suite and reports every result |
+| **Warden** | Runs the full test suite in both renderers and reports every result |
 | **Scout** | Plays the game trying to break it |
-| **Hawkeye** | Inspects every screenshot for visual problems |
-| **Sage** | Reviews the code before it merges |
+| **Hawkeye** | Reviews the screenshots and movement filmstrips that changed |
+| **Sage** | Reviews the code, organization and docs before it merges |
+
+Every mistake found while building something is written into `AGENTS.md` (section 14) and the relevant
+agent's file in the same pull request, so it can't happen twice.
+
+## Project layout
+
+`scenes/world/world.tscn` is the one main world. `scripts/`, `scenes/`, `tests/` (with `functional/`,
+`playtests/`, `support/`, `tools/`) and `docs/` each hold one kind of thing; the full tree is in
+`AGENTS.md` section 6. `docs/VISION.md` is where the game is headed; `docs/INTENTIONAL.md` lists what is
+by design (not a bug).
 
 ## Contributing
 

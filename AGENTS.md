@@ -84,8 +84,11 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Boundary walls + fall-out respawn | Done | `world.tscn` (Boundary), `player_controller.gd` |
 | Third-person player (walk, sprint, jump, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
 | Third-person camera (orbit, pitch clamp, zoom, wall collision, player fades when the camera is squeezed in) | Done | `scripts/player/third_person_camera.gd` |
-| Visual tour (15 screenshots; with the camera playtest, 20 per run; each auto-checked) | Done | `tests/playtest_visual_tour.gd` |
-| Terrain tests (collision alignment, placement, sand, determinism) | Done | `tests/test_terrain.gd` |
+| Visual tour (15 screenshots; with the camera playtest, 20 per run; each auto-checked) | Done | `tests/playtests/playtest_visual_tour.gd` |
+| Terrain tests (collision alignment, placement, sand, determinism) | Done | `tests/functional/test_terrain.gd` |
+| Movement feel test (accel, stop, turn, strafe, jump bands; spec in 8.5) | Done | `tests/functional/test_movement_feel.gd` |
+| Movement filmstrips + screenshot manifests + `qa_output/INDEX.md` (date-only folders, changed-vs-previous) | Done | `tests/playtests/playtest_movement.gd`, `tests/support/playtest_kit.gd`, `tests/tools/make_qa_index.py` |
+| Intentional-behaviour list, PR template with lessons gate, findings contract, dispatch matrix | Done | `docs/INTENTIONAL.md`, `.github/pull_request_template.md`, AGENTS.md 9.0 / 9.6 |
 | Automated tests + CI | Done | `tests/`, `.github/workflows/tests.yml` |
 | Playtest kit (shared helpers for scenario scripts) | Done | `tests/support/playtest_kit.gd` |
 | Everything else | Not started | — |
@@ -133,23 +136,35 @@ Create a folder **only** when the first file that belongs in it is created.
 
 ```text
 scenes/world/world.tscn   THE main world. Everything connects to it.
-scenes/world/<part>/      pieces the world uses (nature/: trees, rocks ...)
-scenes/<area>/      .tscn scenes: player, zombies, npcs, buildings, ui ...
-scripts/<area>/     .gd scripts, mirroring scenes/<area>/
-assets/<kind>/      models, textures, materials, audio, fonts (real assets only)
-systems/<name>/     cross-cutting systems: day_night, saving, networking ...
-tests/              automated tests, the runner, and tests/support/ helpers
-docs/               design documents (docs/VISION.md: the game's north star)
-qa_output/          screenshots: <topic>/<run stamp>/NN_name.png (gitignored, never deleted)
-.claude/agents/     AI agent definitions (section 9)
-.github/workflows/  CI
+scenes/world/<part>/      pieces the world uses (nature/: trees, rocks; village/ ...)
+scenes/<area>/            .tscn scenes: player, zombies, npcs, ui ...
+scripts/<area>/           .gd scripts, mirroring scenes/<area>/
+assets/<kind>/            models, textures, materials, audio, fonts (real assets only)
+systems/<name>/           cross-cutting systems: day_night, saving, networking ...
+tests/                    run_tests.sh + README.md (the map). ONLY these subfolders:
+  functional/             headless tests that assert numbers: test_<thing>.gd
+  playtests/              rendered screenshot tests: playtest_<thing>.gd
+  support/                playtest_kit.gd (shared helpers)
+  tools/                  scripts the tests use (make_qa_index.py)
+docs/                     VISION.md (north star), INTENTIONAL.md (NOT bugs: agents read first)
+qa_output/                INDEX.md, run_meta/<stamp>.json, RENAMED.md (local note), and
+                          <topic>/<YYYY-MM-DD_HH-MM-SS>/NN_name.png + manifest.json (gitignored, never deleted)
+.claude/agents/           AI agent definitions (section 9)
+.github/                  workflows/ (CI) and pull_request_template.md
 ```
+
+**No loose files.** Every file lives in the folder for its purpose; the repo root holds only
+`project.godot`, `icon.svg` (+ Godot's generated `icon.svg.import`), `README.md`, `AGENTS.md` and the
+git/editor dotfiles. Anyone (human or
+agent) should find anything from this tree and `tests/README.md` without listing folders or searching;
+that keeps reading cheap. A new test adds one row to `tests/README.md`; a new doc adds one line to this
+section. Orphan files (unused scenes, scripts, resources) are findings for Sage.
 
 - Files and folders: `snake_case` — `player_controller.gd`, `day_night_manager.gd`.
 - Nodes: `PascalCase` — `CameraRig`, `SpringArm3D`, `TestWall`.
 - `class_name` in `PascalCase` for any script other code refers to by type.
-- Tests: `test_<thing>.gd` for headless checks, `playtest_<thing>.gd` for
-  windowed checks that need rendering or screenshots.
+- Tests: `tests/functional/test_<thing>.gd` for headless checks that assert numbers,
+  `tests/playtests/playtest_<thing>.gd` for rendered checks that save screenshots.
 - **Banned names:** `test2.gd`, `final.gd`, `new.gd`, `stuff.gd`, `temp.gd`,
   `zombieFINAL.gd`, anything with `copy`, `old`, `v2`.
 
@@ -201,16 +216,23 @@ Every change runs **all** of this before a PR, and CI runs it again on the PR.
 3. **editor load:** opens the editor headless. `@tool` scripts run only in
    the editor, so errors there are invisible to step 2 (proven: a planted
    editor-only error passes step 2 and fails here).
-4. **player movement test:** `tests/test_player_movement.gd`, headless.
-5. **terrain test:** `tests/test_terrain.gd`, headless. A ray grid proves the
+4. **player movement test:** `tests/functional/test_player_movement.gd`, headless.
+5. **terrain test:** `tests/functional/test_terrain.gd`, headless. A ray grid proves the
    collision matches the visible ground (120 points, worst error 0.000 m);
    players dropped on hills, the rim and the pond bed rest where predicted
    (slope-aware); trees and rocks sit on the ground; no sand away from the pond.
-6. **camera playtest:** `tests/playtest_camera.gd`, rendered, screenshots in
-   `qa_output/camera/<run stamp>/`.
-7. **visual tour:** `tests/playtest_visual_tour.gd`, rendered; 15 screenshots
-   into `qa_output/{environment,nature,player}/<run stamp>/`, each checked by
-   `kit.check_rendered()` (fails on black, blown-out or flat single-colour images).
+6. **movement feel test:** `tests/functional/test_movement_feel.gd`, headless. Measures walk/sprint
+   start, stop, 180 turn, strafe reversal and jump in frames and metres against the bands in 8.5.
+7. **camera playtest:** `tests/playtests/playtest_camera.gd`, rendered, screenshots in
+   `qa_output/camera/<date_time>/`.
+8. **visual tour:** `tests/playtests/playtest_visual_tour.gd`, rendered; 15 screenshots into
+   `qa_output/{environment,nature,player}/<date_time>/`, each checked by `kit.check_rendered()`
+   (fails on black, blown-out or flat single-colour images).
+9. **movement playtest:** `tests/playtests/playtest_movement.gd`, rendered; 5 filmstrips (contact
+   sheets) into `qa_output/movement/<date_time>/` (see 8.4).
+
+After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
+result) and regenerates `qa_output/INDEX.md`.
 
 **Speed: headless runs use `--fixed-fps 60`.** Without it Godot runs in real
 time (60 physics frames = 1 real second), so a long scenario takes minutes.
@@ -223,8 +245,7 @@ interfere and every check runs. `HW_SHOW_WINDOW=1` shows the window instead.
 Without Xvfb, rendered steps open a real window and the captured-mouse check
 prints `SKIPPED`.
 
-**Screenshots are never deleted.** Each run writes to a new stamped folder
-under each topic, so agents can compare against earlier runs.
+**Screenshots are never deleted.** See 8.4 for how they are named and indexed.
 
 The runner fails if **any** step exits non-zero **or** prints `SCRIPT ERROR`,
 `ERROR:`, `Parse Error` or `Failed to load`. Godot often exits 0 even after a
@@ -274,12 +295,55 @@ script error, which is why the log scan exists. **Never remove it.**
    multiplayer works, or performance is fine unless that actually happened
    in this change.
 
+### 8.4 Screenshots and the QA index
+
+- **Folders are named ONLY by the date and time of the run:** `qa_output/<topic>/<YYYY-MM-DD_HH-MM-SS>/`.
+  Never a label like `final2` or `polish` (lesson 16). Files are `<NN>_<name>.png`. Topics: `camera`,
+  `environment`, `nature`, `player`, `movement` (add new ones as systems appear: `village`, ...).
+- **Every run folder has a `manifest.json`:** per image, `what` it shows, `expect` what a correct frame
+  looks like, and `changed_vs_previous` (fraction of pixels that differ from the same image in the previous
+  run; `null` = new image). Filmstrips also carry `samples`, one per thumbnail: `index`/`row`/`col` (which
+  thumbnail), `t` (game seconds: the frames the game really ran, counted by the harness, which freezes the game while capturing), `pos`, `speed` (the player's
+  ACTUAL horizontal velocity in m/s), `on_floor`, `cam_dist` (camera arm length) and `body_yaw_deg`. The
+  first thumbnail is taken before any input (standing still, t = 0).
+- **Change detection:** `changed_vs_previous` compares a 160x90 luminance thumbnail with the same-named
+  image from the newest earlier run **with the same renderer** (the manifest records it); "unchanged"
+  means under 0.2% of pixels differ, not byte-identical (use `md5sum` for that). A fresh folder or CI
+  artifact has no history, so everything there is "new". `RUN_STAMP` is validated as `YYYY-MM-DD_HH-MM-SS`.
+- **Filmstrip capture is deterministic:** the game is frozen while each frame is grabbed, so thumbnails
+  are exactly `every` game frames apart on every machine and `t` counts only frames the game really ran.
+- **The index never hides a failure:** the newest run comes from `run_meta` (it exists even if a step
+  crashed), a missing topic shows as **MISSING**, a failed run gets a **WARNING**, and an unreadable
+  manifest fails the runner step "qa index".
+- **`qa_output/INDEX.md` is the table of contents** (regenerated by `tests/tools/make_qa_index.py`): the
+  newest run, with each image marked **REVIEW** (new or changed) or unchanged, and a table of all runs with
+  branch, commit and result. Reviewers read the index, then only the REVIEW images (token saving).
+- Add a screenshot: `await kit.shot(topic, name, what, expect)` (or `kit.filmstrip(...)`), and add its
+  description. Never delete or overwrite old runs. The folder is gitignored.
+- A **filmstrip** is ONE image: thumbnails read left to right, top to bottom = time. It lets Hawkeye judge
+  movement (smoothness, turning, jumping, camera follow) from a picture plus the manifest numbers.
+
+### 8.5 Movement feel spec (the bands `test_movement_feel.gd` enforces)
+
+| Move | Measured now | Band | Meaning of a failure |
+|---|---|---|---|
+| Walk start to 90% speed | 8 frames (0.13 s) | 2-24 frames | under 2: instant snap; over 24: sluggish |
+| Sprint start to 90% speed | 13 frames (0.22 s) | 3-30 frames | same |
+| Walking stop (frames) / slide | 8 frames / 0.23 m | 3-20 frames / under 0.6 m | under 3: an instant halt; over 20: icy |
+| 180 degree turn (body within 10 deg) | 13 frames (0.22 s) | 6-30 frames | spinning too fast or lagging |
+| Strafe reversal | 9 frames | 3-30 frames | same |
+| Jump apex / airtime | 1.32 m / 1.07 s | 1.0-1.5 m / 0.7-1.2 s | floaty or heavy jump |
+| Holding jump (takeoffs counted over 200 frames) | 1 | exactly 1 | bunny hopping (proven: 4 takeoffs when broken) |
+
+When you tune the feel on purpose, change the band **in the same PR**, say why, and update
+`docs/INTENTIONAL.md`. The test exists so feel changes are deliberate, not accidental.
+
 ---
 
 ## 9. The agent team
 
-Work is done by one **lead** (the main Claude Code session) plus four
-specialist agents in `.claude/agents/`:
+Work is done by one **lead** (the main Claude Code session) plus specialist
+agents in `.claude/agents/`:
 
 | Agent | Role | Model | One line |
 |---|---|---|---|
@@ -290,6 +354,34 @@ specialist agents in `.claude/agents/`:
 
 Names are short; each agent file's `description` line says exactly what it does. Start lean: specialists are added only
 when a system is big enough to own (multiplayer, zombie AI, ...).
+
+### 9.0 The findings contract (every agent follows this)
+
+The goal is near-zero false positives at low token cost. These rules are in every agent file too.
+
+1. **Read order (cheap first):** `docs/INTENTIONAL.md` (what is NOT a bug) -> your agent file -> the lead's
+   brief -> only the files you need. Don't read the whole repo.
+2. **A finding needs all of:** evidence (a quoted line, a measured number, or an image path + region),
+   a way to reproduce it (command, script or crop), a severity from the rubric, a confidence, and a line
+   saying why it is not intentional (you checked `INTENTIONAL.md` and section 14).
+3. **Triage before reporting (the false-positive protocol):** (a) reproduce it a second, independent way
+   (re-run, crop the image, different input); (b) rule out your own setup (settling after a teleport,
+   slope offset, the camera's shoulder offset, a real mouse, renderer differences); (c) check
+   `INTENTIONAL.md` and the lessons; (d) check it isn't already a known issue. Fail any step: it goes in
+   **DISMISSED**, not FINDINGS.
+4. **Severity rubric:** **High** = crash, script error, broken core loop, data loss, security, or the game
+   unplayable. **Medium** = wrong behaviour or look a player will notice; a test that can't fail on a core
+   system. **Low** = polish, cosmetic, placeholder. **Nit** = taste. Add the tag **HARNESS** when the
+   defect is in the test tooling or its data (a wrong label, a bad manifest), not in the game.
+5. **Report sections, always:** CONFIRMED FINDINGS, DISMISSED (what looked wrong and why it isn't),
+   UNCONFIRMED (under 60% confidence: not findings, the lead decides), what you EXERCISED/REVIEWED,
+   what you did NOT test, budget used, VERDICT. An empty DISMISSED section on a big review is a smell.
+6. **Never:** claim something you didn't see or run; use "probably"/"seems" without a confidence level;
+   edit the repo (agents are read-only; `/tmp` is yours); pad the report.
+7. **Budgets are hard.** At the budget, stop and send a partial report with NOT TESTED. A late complete
+   report is worse than an on-time partial one. A missing report is **not** a pass.
+8. **When you were wrong or the lead overrules you:** the lead records it in section 14 and your agent
+   file in the same PR, so you don't repeat it.
 
 ### 9.1 Lead (main session)
 
@@ -328,36 +420,26 @@ when a system is big enough to own (multiplayer, zombie AI, ...).
 
 ### 9.4 Hawkeye: visual QA (`hawkeye`)
 
-- **Job:** **look at the images**. Use the run's screenshots in
-  `qa_output/<topic>/<run stamp>/` (the lead gives the stamp), compare with
-  the previous run's folder when useful, and render more only if needed.
-- **Model:** Sonnet (needs to read images).
-- **Checks:** clipping, floating or sunken objects, missing or pink textures,
-  bad lighting or shadows, camera inside geometry, character not visible,
-  UI overlap, anything that looks broken or ugly.
-- **Report format, one per problem:**
-
-  ```text
-  SCREENSHOT QA
-  Image: qa_output/camera/2026-10-01_18-55-58/05_against_wall.png
-  Problem: Camera clips through house wall.
-  Severity: Low / Medium / High
-  Location: Player camera / house scene
-  Suggested fix: ...
-  ```
-
-- **Must not:** describe an image it didn't open; edit project files; report
-  "looks fine" without listing which images it inspected and what each shows.
+- **Job:** review the screenshots and movement filmstrips that CHANGED since the previous run (read
+  `qa_output/INDEX.md`; skip unchanged images), confirm every suspected artefact with a **pixel crop**
+  (PIL) before reporting it, and judge movement from filmstrips plus their `samples` numbers.
+- **Model:** Sonnet (needs to read images). **Budget:** under ~12 image reads for a normal change; no Godot.
+- **Must report:** CONFIRMED FINDINGS (image, region, crop evidence, previous run had it?, severity,
+  confidence, why not intentional), DISMISSED, UNCONFIRMED, REVIEWED (one line per image), NOT REVIEWED.
+- **Must not:** report from a glance without a crop; describe an image it didn't open; edit files; trust a
+  described baseline without `md5sum`; report anything listed in `docs/INTENTIONAL.md`.
 
 ### 9.5 Sage: code reviewer (`sage`)
 
-- **Job:** review the branch's full diff (committed, uncommitted and
-  untracked) before merge, against AGENTS.md sections 7, 8.3 and 14.
-- **Model:** Sonnet. **Budget:** about 10 minutes, no Godot launches needed.
-- **Must report:** each finding with severity, `file:line`, quoted evidence and
-  a concrete failure; a `REVIEWED` / `NOT REVIEWED` list; a verdict.
-- **Must not:** edit files; report style preferences as bugs; make vague
-  findings without evidence.
+- **Job:** review the branch's diff (committed, uncommitted, untracked) before merge against AGENTS.md
+  sections 7, 8.3 and 14: bugs, rule breaks, tests that can't fail, **organization** (no loose files, right
+  folders, names), the **lessons gate** (section 10), and docs shipped with code.
+- **Model:** Sonnet. **Budget:** about 10 minutes, no Godot launches needed (one headless run to confirm a
+  suspicion is fine).
+- **Must report:** each finding with severity, `file:line`, quoted evidence, concrete failure and
+  confidence; DISMISSED; UNCONFIRMED; REVIEWED / NOT REVIEWED; a verdict.
+- **Must not:** edit files; report style preferences as bugs; make findings without evidence; report
+  intentional behaviour.
 
 ### 9.6 Dispatching agents efficiently (lead's rules)
 
@@ -382,7 +464,25 @@ Scheduling:
   (real windows grab the mouse).
 - Pick the cheapest model that can do the job: Haiku for mechanical runs,
   Sonnet for judgement and images. The lead's model is never used for routine runs.
-- Small changes (docs, a constant tweak) need only Warden and Sage.
+- **Dispatch matrix: send only the agents the change needs.**
+
+  | Change | Warden | Scout | Hawkeye | Sage |
+  |---|---|---|---|---|
+  | Docs, comments, constants | yes | no | no | no (lead checks) |
+  | Visual only (colours, lighting, models, layout) | yes | no | yes (changed images) | no |
+  | Controls, physics, gameplay logic | yes | yes (targeted) | if visible | yes |
+  | A new system (village, zombie ...) | yes | yes | yes | yes + that system's specialist |
+  | Agents, docs, test tooling | yes | no | no | yes |
+  | Pre-release or risky | all | all | FULL REVIEW | all |
+
+- **Before dispatching Sage, run the lessons gate yourself** (the PR template checklist: lessons in section 14 AND
+  in the agent files, INTENTIONAL.md, README, state table). Sage will find it, and a round costs ~100k tokens (lesson 30).
+- **Sage also runs on any PR that touches `AGENTS.md` section 14 or `.claude/agents/`** (it enforces the
+  lessons gate), whatever the change type.
+- **Token costs (measured on PR #2):** Warden ~55-65k, Scout ~90-130k, Hawkeye ~105k for 20 images
+  (~3-5k per image read), Sage ~130k. So: Hawkeye changed-only (5-10 images, ~30-50k); don't dispatch what
+  a test already covers; one round per PR where possible; after a fix re-run **only the agent whose
+  finding it was**, plus Warden; give a diff stat in the brief so agents don't explore.
 
 ### 9.7 Agents to add as the game grows
 
@@ -399,6 +499,19 @@ job, model, budget, exact report format, must-nots.
 | **Relay** (`relay`), multiplayer | Multiplayer foundation (step 16) | Networking, sync, authority; tests with 2+ real instances |
 | **Atlas** (`atlas`), researcher | Any time a technical choice is unclear | Godot APIs, plugins, licensing. Recommends; never edits |
 
+### 9.8 Calibrating the agents (planted defects)
+
+To measure an agent's false-positive and miss rate instead of guessing: make a temp copy with **known
+defects planted** plus unmodified **controls** (Hawkeye: images with a magenta patch, a crushed-dark
+region, a camera-inside-geometry crop; Scout: a disabled collision; Sage: a diff with a planted bug and a
+test that cannot fail), run the agent with its normal brief, and score **recall** (planted found) and
+**false positives** (findings on the controls). Target: **0 false positives on controls, at least 90%
+recall**. When an agent misses or over-reports, fix its file and re-run. Record each calibration here:
+
+| Date | Agent | Planted | Found | Controls | False positives | Notes |
+|---|---|---|---|---|---|---|
+| 2026-10-02 | Hawkeye | 4 (magenta patch, near-black rectangle, washed-out frame, flat-green "camera inside terrain") | 4 | 4 (rock close-up, pond shore, player front, tree close-up: all contain intentional quirks) | **0** | Recall 100%. Correctly DISMISSED the capsule, cream nose, rock-near-tree perspective and tree shadows with the INTENTIONAL.md reason. Whole-frame defects were confirmed with statistics (mean colour, saturation) instead of a crop. 81k tokens for 8 images (mostly reading its docs). **Limit:** the defects were large and obvious; the next calibration must plant SUBTLE ones (a 20x20 px seam, an 8% brightness shift) to measure the real edge. |
+
 ---
 
 ## 10. Git and PR workflow (every change)
@@ -411,14 +524,15 @@ through a PR anyway.** No direct pushes to `master`.
 3. Build the change, write and prove the tests, run `tests/run_tests.sh` **in
    both renderers** (normal, and CI mode:
    `GODOT_FLAGS="--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy" QA_OUTPUT=/tmp/hw_ci tests/run_tests.sh`),
-   and dispatch the specialist agents. Fix everything they find.
+   and dispatch **only the agents the change needs** (matrix in 9.6). Fix everything they find, or
+   record it in `docs/INTENTIONAL.md` / section 5 known issues.
 4. Review the diff: no unrelated files, nothing from `.gitignore` forced in,
    no secrets.
 5. Commit with a descriptive message (`Add third-person player controller`,
    `Fix camera collision`). Never `update`, `stuff`, `final2`.
-6. Push and open a PR to `master`. The PR body lists what changed, the files
-   changed, what was tested (with real numbers), the result, known issues,
-   and the next step.
+6. Push and open a PR to `master` using the template in
+   `.github/pull_request_template.md` (what changed, bugs found and fixed, what was
+   tested with real numbers, the **lessons gate**, known issues, next step).
 7. Wait for the **Tests** CI check on the PR.
    - **Passes:** merge into `master`, then delete the branch (remote and local).
    - **Fails:** read the CI log, fix it **on the same branch**, push a new
@@ -427,6 +541,14 @@ through a PR anyway.** No direct pushes to `master`.
      by weakening or deleting a check; fix the cause.
    - Every failure teaches something: add it to **Lessons learned**
      (section 14) and to the affected agent's file **in the same PR**.
+
+**The lessons gate (Marco's standing rule; Sage enforces it).** Before a PR merges, if **anything** went
+wrong while building it (a CI failure, a failing check, an agent finding, a false positive, a mistake of the
+lead's), then in **this same PR**: (1) the lesson is a row in section 14.1 (what happened, cause, rule);
+(2) the agent file(s) that should have known are updated so it can't happen again (`.claude/agents/<name>.md`);
+(3) `docs/INTENTIONAL.md` is updated if a new behaviour turned out to be intended; (4) good patterns go in
+14.2. If nothing went wrong, the PR says "no failures". Goal: each mistake happens once, and the agents'
+false-positive rate trends to zero.
 
 CI differs from a dev machine: **no GPU** (OpenGL compatibility renderer),
 **no sound card** (`--audio-driver Dummy`), **no real mouse** (`HW_NO_REAL_MOUSE=1`),
@@ -533,6 +655,17 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 21 | Sage guessed (60% confidence) that CI's editor-load step wouldn't catch errors on a fresh checkout | Untested suspicion | CI-only behaviour is tested on a clean copy in /tmp (no `.git`, no `.godot`), not guessed. Checked: it does catch a planted error |
 | 22 | Two tests couldn't catch a misaligned terrain collision, and the fade test measured a value the camera had just set (Sage) | The spawn is flat, and the fade check read a property instead of the screen | Test at non-flat points with a ray grid and slope-aware player drops; compare real pixels. Proven by negative controls: transposed heightmap → 1.527 m error, fade off → 31.9% of pixels differ |
 | 23 | PR #2's first CI run failed: the camera fade did nothing in CI, though it worked and passed locally | CI uses the OpenGL **Compatibility** renderer, which ignores `GeometryInstance3D.transparency`. The property-based check passed everywhere (the property was set); only the pixel comparison (added after Sage called the first check circular) saw the capsule still on screen | Fade with **material alpha**, which every renderer supports. Run the suite in **both** renderers before every PR: `GODOT_FLAGS="--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy" tests/run_tests.sh`. Prefer features the Compatibility renderer supports, or assert on pixels |
+| 24 | The new movement filmstrips came out black and the runner failed | `Image.blit_rect` needs identical pixel formats; frames are RGB8, I created the sheet as RGBA8. Caught by `check_rendered` and the log scan (the checks working as designed) | Build composite images in the source images' own format (`thumbs[0].get_format()`). New image-producing code gets a negative control, or at least a run, before anything else |
+| 25 | Filmstrips weren't comparable: a sheet started with the body still turned from the previous sheet | `teleport()` resets position and velocity, not the Body node's rotation | Every sheet/scenario resets ALL state it depends on (body yaw, camera yaw/pitch, arm length), not just position |
+| 26 | The filmstrip `t` labels didn't match the movement (Hawkeye): a walk strip labelled 1 s covered ~1.6 s | `t` was the loop's nominal interval, but capturing a frame costs extra physics frames, so real spacing was larger | Time labels count the frames the game REALLY ran (the harness freezes the game while capturing and counts them itself), never the loop's nominal interval, a wall clock, or `Engine.get_physics_frames()` (it keeps ticking while paused). Manifests carry actual values, reviewers check pos-delta / dt against speed, and the harness self-checks both directions (lessons 32, 33) |
+| 27 | The "holding jump gives one hop" check could not fail: it passed with bunny-hopping enabled (Sage proved it with a run) | It asserted only the END state (on the floor after 260 frames); any hopper is back on the ground by then | Assert events over time: count takeoffs (floor to air transitions) and require exactly 1. Negative control: 4 takeoffs when broken |
+| 28 | The "walking stops" band had no lower bound, though the spec promised "not abrupt" | A band without both bounds can't catch the failure on the missing side | Every band has both bounds, and each bound must match what the spec says it guards. A promise in AGENTS.md 8.5 with no check enforcing it is a finding |
+| 29 | The QA index could hide a crashed step behind an older green run; it compared across renderers; "unchanged" was described as pixel-identical; CI dropped manifests and the index; a broken index was swallowed by `|| true` | Latest run came only from manifests (written at the end of a successful step); no renderer in the manifest; wording overstated; narrow artifact glob | Latest run from `run_meta`; MISSING / WARNING / "problems" sections; same-renderer comparison; honest wording (under 0.2% changed); CI uploads `qa_output/**`; index failure fails the runner |
+| 30 | This PR broke its own lessons gate: lessons 24 and 25 were in AGENTS.md but in no agent file (Sage caught it) | I added the lessons last and didn't re-check the gate before dispatching | Run the gate checklist (PR template) BEFORE dispatching Sage. Lessons 24-29 are now in the agent files that should know them |
+| 31 | A truncated old screenshot would fail every later run (Sage's 30%-confidence suspicion; confirmed by a 3-minute test) | `Image.load_from_file` on a corrupt PNG prints `ERROR:` lines, and the runner's log scan correctly counts them as a failed step | Check a PNG ends with its `IEND` chunk before loading it; skip incomplete files. **Cheap tests settle UNCONFIRMED findings**: plant the corrupt file, run once |
+| 32 | The "jump_arc" filmstrip never contained a jump (Sage, reproduced 3 times); nothing flagged it | `kit.tap` held a key for ONE physics frame, but `physics_frame` fires BEFORE nodes process that frame, so the press was released before the player saw `just_pressed`. It only showed in the real-time windowed run | `tap` holds 2 frames. A strip/sheet/scenario must assert it contains the thing it claims to show (here: max y > 1.0 and a sample airborne). Negative control: tap of 1 frame fails with "max y 0.00" |
+| 33 | `t` was still one frame per interval too high, and the self-check could not see it (Sage measured it) | After the last `await physics_frame` the game is frozen before that frame runs, so N awaits ran N-1 frames; the check only bounded speed from ABOVE, and an overstated `t` only lowers implied speed | Await `every + 1` frames and count `every`. A consistency check needs BOTH directions: where speed is steady, distance/dt must match the reported speed within 5% (steady = same speed and heading; `t` stored to 0.1 ms; controls: 1.5x clock -> 34% mismatch, old off-by-one -> 11.8%) |
+| 34 | A corrupt OLD manifest failed every later rendered step (found by testing the runner's failure path) | The kit read the previous manifest with `JSON.parse_string`, which PRINTS an `ERROR:` line; the log scan counts that as a failure. Same class as lesson 31 (corrupt old PNG) | Code that reads old artefacts uses parsers that return errors instead of printing them (`JSON.new().parse()`), and tolerates corrupt, partial and legacy files. Test the failure path itself, not only the happy path |
 
 ### 14.2 What worked (keep doing)
 
@@ -552,5 +685,13 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **A ray grid against the physics world** | One check proves the collision matches the mesh at 120 points, with no sliding or settling to confuse it |
 | **Comparing real pixels** (frame vs the same frame with the body hidden) | Tests what the player sees, not an internal value (lesson 22). It also caught the Compatibility-renderer bug that every property check missed (lesson 23) |
 | **Reproducing a CI failure locally with CI's own flags** | Found the cause in one run, before changing anything |
+| **`docs/INTENTIONAL.md` read first by every agent** | Turns "is this a bug?" into a lookup with numbers; Hawkeye dismissed every intentional quirk correctly in calibration |
+| **Manifest + INDEX with changed-vs-previous** | Reviewers open only new/changed images; unchanged ones cost zero tokens |
+| **Calibrating agents with planted defects** (section 9.8) | Measures recall and false positives instead of hoping: Hawkeye 4/4, 0 false alarms |
+| **A one-page `tests/README.md` map and no loose files** | Humans and agents find things without listing folders, which saves tokens |
+| **Numbers beside the pictures** (manifest samples) | Hawkeye caught a wrong time axis the images alone could never show (lesson 26) |
+| **Asking an agent for protocol feedback on its first use of a new format** | Hawkeye's 9 suggestions made the filmstrip format clearer for every future review |
+| **A reviewer proving a suspicion with a run** (Sage broke the feature in a /tmp copy and watched the check pass) | A proven finding can't be argued away, and it found the one check that couldn't fail |
+| **Pausing the game while capturing frames** | Filmstrips become deterministic: the same thumbnails and `t` on every machine, so "changed vs previous" is meaningful |
 | **Clean-copy CI checks** (copy to /tmp without `.git`/`.godot`) | Settles "will CI do X?" in 30 seconds |
 
