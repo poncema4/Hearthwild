@@ -11,6 +11,14 @@ You never edit project files.
 
 ## Budget (hard limits)
 
+- **ALWAYS pass `--fixed-fps 60`** to headless Godot. Without it Godot runs in
+  real time (60 physics frames = 1 second) and a normal scenario script takes
+  minutes; with it, seconds. Same simulation (AGENTS.md lesson 19).
+- **Never pipe Godot's output through `tail` or `head`.** You see nothing until it
+  exits, and you may report before it finishes. Write to a file
+  (`> /tmp/hw_playtest/out.txt 2>&1`), wait for the process to exit, then read the
+  file. **Never report a run that hasn't finished** (lesson 20).
+
 - **At most 3 Godot launches** in total. Each launch runs ALL your scenarios.
 - **About 5 minutes** of wall time. If you hit either limit, stop and report
   what you have. An on-time partial report beats a late complete one.
@@ -52,10 +60,13 @@ func _run() -> void:
 	kit.finish()
 ```
 
-Kit API: `load_world()`, `teleport(pos)`, `hold([actions], frames)`, `tap(action)`,
-`physics_frames(n)`, `horizontal_speed()`, `where()`, `check(name, ok, detail)`,
-`note(name, detail)`, `screenshot(path)` (windowed only), `finish()`, plus
-`kit.player`, `kit.camera_rig`, `kit.spring_arm`, `kit.world`.
+Kit API: `load_world()`, `teleport(pos)` (y = NAN drops onto the ground),
+`face(direction)`, `hold([actions], frames)`, `tap(action)`, `frames(n)` (idle
+frames: use after injected input), `physics_frames(n)`,
+`horizontal_speed()`, `where()`, `check(name, ok, detail)`,
+`note(name, detail)`, `shot(topic, name)` (rendered runs only), `finish()`, plus
+`kit.player`, `kit.camera_rig`, `kit.spring_arm`, `kit.world`, `kit.terrain`
+(`height_at(x, z)`, `pond_center`, `water_level`), `kit.nature`.
 
 - **`teleport()` before each scenario** so one scenario can't break the next.
 - 60 physics frames = 1 second. Keep scenarios short (≤ 4 seconds each).
@@ -70,7 +81,7 @@ Kit API: `load_world()`, `teleport(pos)`, `hold([actions], frames)`, `tap(action
 Run it:
 
 ```bash
-godot --headless --path /home/poncema4/apps/personal/Hearthwild --script /tmp/hw_playtest/scenarios.gd
+godot --headless --path /home/poncema4/apps/personal/Hearthwild --fixed-fps 60 --script /tmp/hw_playtest/scenarios.gd > /tmp/hw_playtest/out.txt 2>&1
 ```
 
 If the script has an error, fix the script and re-run (that counts as a launch).
@@ -81,14 +92,19 @@ Player and movement (current features):
 1. Diagonal walk and diagonal sprint are not faster than straight (speed ≤ walk/sprint speed).
 2. Opposite keys together (W+S, A+D): the player doesn't move.
 3. Jump while sprinting: rises, travels, lands (`on_floor` true afterwards).
-4. Jump against the TestWall and into a crate side: no getting stuck in
-   geometry, and the player ends on the floor.
-5. Stand on a crate (teleport above it, let it land): ends on top (y ≈ 1.0).
-6. Walk off the 60 × 60 m ground edge (teleport to (29, 0.1, 0), walk +X):
-   note what happens. There's no respawn yet, so falling forever is a known gap;
-   report it as a NOTE, not a bug, unless the feature you're testing is respawn.
-7. Camera arm against a crate and the TestWall: `get_hit_length()` shrinks below
-   `spring_length`.
+4. Jump against a tree trunk and a rock (`kit.nature.get_trees()` /
+   `get_rocks()`): no getting stuck in geometry; the player ends on the floor.
+5. Stand on a big rock (teleport above it, let it land): ends on top, on_floor.
+6. Walk into a boundary wall (inner faces at x/z = ±58; teleport to
+   (50, NAN, 0), `kit.face(Vector3.RIGHT)`, hold W): stops at about x = 57.6.
+   Try a corner too (both walls).
+7. Fall out of the world (teleport to y = −60): respawns at spawn.
+8. Climb the hill ring (walk outward from (0, NAN, 35)): note how high the
+   player gets and whether any slope traps them.
+9. Wade into the pond (centre (16, −12)): the player walks on the pond bed
+   (there's no swimming yet), no falling through.
+10. Camera arm against a tree, a rock and a boundary wall: `get_hit_length()`
+    shrinks below `spring_length`.
 
 Then add **2–4 scenarios aimed at whatever the new feature changed.** Read its
 code for clamps, thresholds, `is_on_floor` checks and divisions: that's where
@@ -116,6 +132,35 @@ NOT TESTED: <anything from the checklist you skipped, and why>
 LAUNCHES USED: <n> / 3
 VERDICT: PASS / ISSUES FOUND
 ```
+
+## Triage your own findings BEFORE reporting (lesson 18)
+
+Most "failures" in your scenarios are mistakes in the scenarios. For every FAIL,
+ask these first, and re-run a smaller script if unsure:
+- **Slope:** a capsule resting on a slope sits higher than `height_at` under its
+  centre by `0.4 * (sqrt(1 + gradient²) - 1)` (up to ~0.16 m on the hill ring).
+  Use that, not a flat 0.1 tolerance.
+- **Settling:** after `teleport` the player may still be falling. Wait, then
+  measure; and measure **horizontal** movement (`Vector2(x, z)`) for "didn't move".
+- **Camera arm:** it's offset 0.5 m to the camera's right (shoulder). An obstacle
+  must be on the **arm's** line, not the player's.
+- **Stopped dead (speed 0):** check for a tree or rock head-on at that spot
+  (`kit.nature.get_trees()`), and the slope gradient there (the hill ring is
+  steeper than 1.0 = 45° in places, which the player can't climb: by design).
+Report only what survives triage; list the rest under `DISMISSED (my scenario
+was wrong)` with the reason. That's not a failure; it's the job.
+
+## Known traps (from AGENTS.md section 14)
+
+- **Round obstacles:** the player slides around a trunk while W is held, so the
+  final position proves nothing. Track the **closest** distance each frame.
+- **Injected input** (`Input.parse_input_event`) arrives on the next **idle**
+  frame: wait `kit.frames(2)`, not `physics_frames`.
+- **One-sided bounds** pass when nothing happened. Use ranges.
+- **The player body fades** when the camera arm is shorter than 1.2 m (fully
+  invisible at 0.5 m): that's intended. Don't report it as a bug.
+- **The terrain isn't flat** outside the spawn clearing: compare heights with
+  `kit.terrain.height_at(x, z)`, not with y = 0.
 
 ## Rules
 

@@ -8,6 +8,10 @@ extends Node3D
 ## The SpringArm3D pulls the camera in when something is between it and the
 ## player, which stops the camera clipping through walls. The mouse wheel
 ## changes the arm length (zoom). Esc frees the mouse, a click captures it.
+##
+## When the arm is squeezed short (backed into a wall or tree), the camera
+## ends up almost inside the player. The player's body then fades out so it
+## never fills the screen.
 
 @export var mouse_sensitivity: float = 0.003
 @export var min_pitch_degrees: float = -60.0
@@ -15,16 +19,37 @@ extends Node3D
 @export var min_distance: float = 1.5
 @export var max_distance: float = 8.0
 @export var zoom_step: float = 0.5
+## Camera pulled in closer than this (metres along the arm): the body starts to fade.
+@export var fade_start_distance: float = 1.2
+## At or closer than this the body is fully invisible.
+@export var fade_end_distance: float = 0.5
 
 @onready var _pitch: Node3D = $Pitch
 @onready var _spring_arm: SpringArm3D = $Pitch/SpringArm3D
+
+var _body_meshes: Array[GeometryInstance3D] = []
+var _last_fade := 0.0
 
 
 func _ready() -> void:
 	# The rig is a sibling of the player's Body mesh, so turning the
 	# character never drags the camera. Don't let the arm hit the player.
 	_spring_arm.add_excluded_object(get_parent().get_rid())
+	var body := get_parent().get_node_or_null("Body")
+	if body:
+		for child in body.get_children():
+			if child is GeometryInstance3D:
+				_body_meshes.append(child)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _process(_delta: float) -> void:
+	var fade := 1.0 - smoothstep(fade_end_distance, fade_start_distance, _spring_arm.get_hit_length())
+	if is_equal_approx(fade, _last_fade):
+		return
+	_last_fade = fade
+	for mesh in _body_meshes:
+		mesh.transparency = fade
 
 
 func _unhandled_input(event: InputEvent) -> void:

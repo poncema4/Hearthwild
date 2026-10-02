@@ -51,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qa-screenshots
-          path: qa_output/*.png
+          path: qa_output/**/*.png
           if-no-files-found: warn

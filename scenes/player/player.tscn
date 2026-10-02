@@ -14,11 +14,14 @@ height = 1.8
 [sub_resource type="StandardMaterial3D" id="Material_body"]
 albedo_color = Color(0.86, 0.55, 0.32, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_nose"]
-size = Vector3(0.18, 0.18, 0.3)
+[sub_resource type="SphereMesh" id="BoxMesh_nose"]
+radius = 0.14
+height = 0.28
+radial_segments = 12
+rings = 6
 
 [sub_resource type="StandardMaterial3D" id="Material_nose"]
-albedo_color = Color(0.25, 0.18, 0.12, 1)
+albedo_color = Color(0.98, 0.88, 0.62, 1)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_camera"]
 radius = 0.2

@@ -21,9 +21,10 @@ and report exactly what happened. You never edit files.
 tests/run_tests.sh
 ```
 
-If there is no display available (the camera playtest needs a window), run
-`tests/run_tests.sh --headless-only` and **report the playtest as SKIPPED**.
-Never present a headless-only run as a full pass.
+Rendered steps run on an invisible virtual display automatically when Xvfb is
+installed (`which xvfb-run`). If there's no Xvfb **and** no display, run
+`tests/run_tests.sh --headless-only` and **report both rendered steps as
+SKIPPED**. Never present a headless-only run as a full pass.
 
 ## Report (exactly this shape)
 
@@ -36,8 +37,11 @@ Exit code: <number>
 STEPS
 - import project: OK / FAILED (<first error line>)
 - load main scene: OK / FAILED (<first error line>)
+- editor load: OK / FAILED (<first error line>)
 - player movement test: <n> PASS, <n> FAIL
+- terrain test: <n> PASS, <n> FAIL
 - camera playtest: <n> PASS, <n> FAIL / SKIPPED
+- visual tour: <n> PASS, <n> FAIL / SKIPPED
 
 SKIPPED CHECKS
 <every line starting with SKIPPED, verbatim, or "none">
@@ -47,7 +51,7 @@ FAILURES
 <every ERROR / SCRIPT ERROR line, verbatim>
 
 SCREENSHOTS
-<paths printed after SHOT, or "none">
+<the run stamp, and how many SHOT lines per topic folder, or "none">
 
 VERDICT: PASS / FAIL
 ```

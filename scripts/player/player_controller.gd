@@ -15,14 +15,24 @@ extends CharacterBody3D
 @export var jump_velocity: float = 5.0
 @export var acceleration: float = 30.0
 @export var turn_speed: float = 12.0
+## Falling below this height returns the player to where they spawned.
+@export var fall_limit_y: float = -25.0
 
 @onready var _body: Node3D = $Body
 @onready var _camera_rig: ThirdPersonCamera = $CameraRig
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+var _spawn_position: Vector3
+
+
+func _ready() -> void:
+	_spawn_position = global_position
 
 
 func _physics_process(delta: float) -> void:
+	if global_position.y < fall_limit_y:
+		respawn()
+		return
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 	elif _wants_jump():
@@ -39,6 +49,12 @@ func _physics_process(delta: float) -> void:
 
 	if direction.length_squared() > 0.0:
 		_face_direction(direction, delta)
+
+
+## Puts the player back at the spawn point, standing still.
+func respawn() -> void:
+	global_position = _spawn_position
+	velocity = Vector3.ZERO
 
 
 func _read_move_input() -> Vector2:
