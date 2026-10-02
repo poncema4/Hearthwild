@@ -6,7 +6,7 @@ extends SceneTree
 ## a correctly aligned heightmap from a transposed or offset one. These checks
 ## use points on hills, the hill ring and the pond bed.
 ##
-## Run: godot --headless --path . --script res://tests/test_terrain.gd
+## Run: godot --headless --path . --script res://tests/functional/test_terrain.gd
 ## Exit code = number of failures (0 = all pass).
 
 

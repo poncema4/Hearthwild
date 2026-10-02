@@ -18,17 +18,19 @@ edit files.
 
 ## Step 1: Read
 
-1. `AGENTS.md` in full, especially sections 7 (code rules), 8.3 (false
-   positives) and 14 (lessons learned). Most review findings are a broken
-   rule from these sections.
-2. The change:
+0. **`docs/INTENTIONAL.md` first**: don't report intentional behaviour. Then `AGENTS.md` 9.0 (the
+   findings contract: evidence, confidence, DISMISSED). Review the **diff**, not the repo (token discipline).
+
+1. Only the `AGENTS.md` sections you need (not the whole file: it is ~12k tokens): 7 (code rules), 8.3
+   (false positives), 10 (PR workflow + lessons gate), 14 (lessons learned), and 6 (structure) when files
+   moved or were added. Most review findings are a broken rule from these sections.
+2. The change (staged renames and untracked files count too):
    ```bash
-   git -C <repo> diff master...HEAD --stat
-   git -C <repo> diff master...HEAD
-   git -C <repo> status -s          # uncommitted and untracked work counts too
-   git -C <repo> diff               # uncommitted changes
+   git -C <repo> status -s
+   git -C <repo> diff HEAD --stat
+   git -C <repo> diff HEAD          # committed-vs-working changes, including staged ones
    ```
-   Read untracked files directly.
+   `git diff` alone misses staged changes. Read untracked files directly.
 
 ## Step 2: Review against this checklist
 
@@ -62,6 +64,33 @@ edit files.
   physics frames (lesson 9).
 - New behaviour without a test; a bug fix without a test that would have caught it.
 
+**Checks that can't fail (the most expensive kind of bug; lessons 1, 8, 22, 27, 28)**
+- Does the check assert the END state when the bug happens over time? ("on the floor at the end" passes
+  with bunny-hopping; count takeoffs instead.) Prove it: break the feature in a `/tmp` copy and run the
+  check once. A reviewer who proves a finding with a run beats one who argues.
+- Does a band have BOTH bounds, and does each bound match what the spec says it guards ("not instant"
+  needs a lower bound)? A spec promise (AGENTS.md 8.5) with no check enforcing it is a finding.
+- New image- or data-producing code (screenshots, manifests, composites, the index) needs a run or a
+  negative control: a black sheet, a wrong time axis or a hidden crash is a bug, not a quiet result
+  (lessons 24, 26, 29). Anything that can silently skip, drop or hide a failure is a finding (8.3 rule 6).
+
+- Code that reads OLD artefacts (previous screenshots, manifests, run_meta) must tolerate corrupt, partial
+  or legacy ones without printing `ERROR:` (the runner's log scan would fail every later run; lessons 31, 34). Test the FAILURE path of any new
+  tooling (a corrupt file, a missing step), not only the happy path.
+- A sheet/strip/scenario must assert it contains what it claims (a jump strip with a jump; lesson 32), and
+  a consistency check must be two-sided (lesson 33). Prove each by breaking the thing and running once.
+
+**Organization (the project must stay tidy and cheap to read)**
+- No loose files: scripts under `scripts/<area>/`, scenes under `scenes/<area>/`, tests under
+  `tests/functional|playtests|support|tools/` (new test = a row in `tests/README.md`), docs under `docs/`.
+- Names follow AGENTS.md section 6 (`snake_case`; no `test2`, `final`, `copy`, `old`, `v2`).
+- No orphan files (unused scenes, scripts, resources); no debug leftovers; no commented-out code blocks.
+
+**Lessons gate (AGENTS.md section 10)**
+- If anything failed or any agent made a finding/false positive in this PR: is the lesson in section 14
+  AND in the relevant `.claude/agents/<name>.md`, in THIS PR? Is `docs/INTENTIONAL.md` updated for any new
+  intentional behaviour? Is the PR template's checklist filled in? Missing = CHANGES REQUESTED.
+
 **Docs ship with code**
 - `AGENTS.md` section 5 (current state) and section 14 (lessons) updated for
   this change? `README.md` updated if anything player-visible or
@@ -88,6 +117,8 @@ Suggested fix: <specific>
 Then:
 
 ```text
+DISMISSED (looked wrong, is fine): <what -> why: INTENTIONAL.md row, lesson number, or the code that shows it>
+UNCONFIRMED (confidence under 60%): <what, and the cheapest way to confirm it>
 REVIEWED: <every file you read>
 NOT REVIEWED: <anything you skipped, and why>
 VERDICT: APPROVE / APPROVE WITH NITS / CHANGES REQUESTED

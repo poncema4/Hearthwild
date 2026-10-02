@@ -28,6 +28,12 @@ QA_OUTPUT="${QA_OUTPUT:-$PWD/qa_output}"
 # One stamp per run, so all of this run's screenshots share a folder name:
 # qa_output/<topic>/<RUN_STAMP>/. Old runs are kept, never deleted.
 RUN_STAMP="${RUN_STAMP:-$(date +%Y-%m-%d_%H-%M-%S)}"
+# The stamp is ONLY a date and time (never a label): folders sort by name, and
+# the screenshot index and "previous run" lookups rely on that (lesson 16).
+if [[ ! "$RUN_STAMP" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}$ ]]; then
+	echo "RUN_STAMP must be YYYY-MM-DD_HH-MM-SS (date and time only, no labels); got: $RUN_STAMP"
+	exit 1
+fi
 HEADLESS_ONLY=0
 [[ "${1:-}" == "--headless-only" ]] && HEADLESS_ONLY=1
 
@@ -62,8 +68,9 @@ run_step "load main scene" "$GODOT" --headless --path . --quit-after 60
 run_step "editor load" "$GODOT" --headless --path . -e --quit-after 300
 # --fixed-fps 60 turns off real-time sync: the same 60 steps per game second,
 # but as fast as the machine can go (13.7 s -> 0.8 s for the movement test).
-run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/test_player_movement.gd
-run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/test_terrain.gd
+run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_player_movement.gd
+run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_terrain.gd
+run_step "movement feel test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_movement_feel.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
 # (CI runs this whole script under xvfb-run and sets HW_NO_REAL_MOUSE=1).
@@ -76,17 +83,61 @@ fi
 if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "camera playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
-		--script res://tests/playtest_camera.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+		--script res://tests/playtests/playtest_camera.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	# shellcheck disable=SC2086
 	run_step "visual tour" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
-		--script res://tests/playtest_visual_tour.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+		--script res://tests/playtests/playtest_visual_tour.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "movement playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_movement.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
-	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/"
+	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else
 	echo
 	echo "=== camera playtest: SKIPPED (--headless-only)"
 	echo "=== visual tour: SKIPPED (--headless-only)"
+	echo "=== movement playtest: SKIPPED (--headless-only)"
+	echo "=== qa index: NOT regenerated (--headless-only)"
 fi
+
+# Record what this run was (branch, commit, renderer, result) and rebuild the
+# screenshot index. Skipped for --headless-only (no screenshots were taken).
+write_run_meta() {
+	[[ $HEADLESS_ONLY -eq 1 ]] && return 0
+	if ! command -v python3 >/dev/null; then
+		echo "=== qa index: SKIPPED (python3 not found; no run_meta or INDEX.md written)"
+		return 0
+	fi
+	mkdir -p "$QA_OUTPUT/run_meta"
+	local renderer="Forward+"
+	[[ "$GODOT_FLAGS" == *gl_compatibility* ]] && renderer="Compatibility"
+	python3 - "$QA_OUTPUT" "$RUN_STAMP" "$renderer" "${failed[*]:-}" <<'PY'
+import json, os, subprocess, sys
+base, stamp, renderer, failed = sys.argv[1:5]
+def git(*a):
+    try:
+        return subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
+    except Exception:
+        return ""
+meta = {"run": stamp, "branch": git("branch", "--show-current") or os.environ.get("GITHUB_REF_NAME", ""),
+        "commit": git("rev-parse", "--short", "HEAD"), "dirty": bool(git("status", "--porcelain")),
+        "renderer": renderer, "result": "FAIL: " + failed if failed else "PASS"}
+open(os.path.join(base, "run_meta", stamp + ".json"), "w").write(json.dumps(meta, indent=2))
+PY
+	# A broken index (unreadable manifest) is a real failure, not something to hide.
+	if ! python3 tests/tools/make_qa_index.py "$QA_OUTPUT"; then
+		failed+=("qa index")
+		# run_meta was written before the index ran: record the real result now.
+		python3 - "$QA_OUTPUT/run_meta/$RUN_STAMP.json" "${failed[*]}" <<'PY2'
+import json, sys
+path, failed = sys.argv[1:3]
+meta = json.load(open(path)); meta["result"] = "FAIL: " + failed
+open(path, "w").write(json.dumps(meta, indent=2))
+PY2
+		python3 tests/tools/make_qa_index.py "$QA_OUTPUT" >/dev/null 2>&1 || true
+	fi
+}
+write_run_meta
 
 echo
 if [[ ${#failed[@]} -eq 0 ]]; then

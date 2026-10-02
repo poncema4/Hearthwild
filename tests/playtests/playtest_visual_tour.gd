@@ -4,12 +4,31 @@ extends SceneTree
 ## blown-out or flat single-colour image (failed render, camera inside
 ## geometry, empty scene) fails the test.
 ##
-## Run: godot --path . --script res://tests/playtest_visual_tour.gd -- [<qa_output dir> [<run stamp>]]
+## Run: godot --path . --script res://tests/playtests/playtest_visual_tour.gd -- [<qa_output dir> [<run stamp>]]
 ## Shots: <qa_output>/{environment,nature,player}/<run stamp>/ (never deleted).
 ## Exit code = number of failures (0 = all pass).
 
 var kit: PlaytestKit
 var _pitch: Node3D
+
+## What each screenshot shows and what a correct frame looks like (goes into manifest.json).
+const SHOTS := {
+	"environment/spawn_north": ["Spawn clearing looking north (-Z), player from behind.", "Meadow, trees on hills, bright and soft, soft shadows."],
+	"environment/spawn_east": ["Spawn clearing looking east.", "Hills and trees; the cream nose sphere visible; no dark bands."],
+	"environment/spawn_south": ["Spawn clearing looking south, player seen from the front.", "Cream nose visible; long soft shadow; hills lit, not murky."],
+	"environment/spawn_west": ["Spawn clearing looking west.", "Trees at hill base, rocks, pleasant meadow."],
+	"environment/pond_shore": ["Standing at the pond shore looking at the water.", "Round pond with a smooth sandy ring, no square corners, no hard sand edge."],
+	"environment/hill_rim_view": ["On the hill rim (0, 44) looking back over the meadow.", "Wide valley below, grass in the foreground, rocks, big soft tree shadows."],
+	"environment/overview": ["Camera at max zoom and -60 deg pitch above the spawn.", "Even grass and flowers, a tree and a pine at the corners, a sliver of pond."],
+	"nature/tree_round_close": ["Close-up of the nearest round tree; player body hidden.", "The tree is the subject: brown trunk, layered green canopy, grass and rocks around."],
+	"nature/tree_pine_close": ["Close-up of the nearest pine; player body hidden.", "Pine is the subject: warm brown trunk, rich green tiers, shaded underside is fine."],
+	"nature/rock_close": ["Close-up of the nearest rock; player body hidden.", "Grey rock sits on the ground (no floating), flowers nearby."],
+	"nature/grass_and_flowers_low": ["Very low camera in the grass near (6, 6).", "Deep green blades, pink/blue/yellow flowers, not dark, not pale or ghostly."],
+	"player/behind": ["Player from behind at (-3, 4), default camera.", "Capsule grounded with a shadow; trees and hills behind."],
+	"player/front": ["Player seen from the front.", "Cream nose sphere on the front; shadow; nothing clipping."],
+	"player/side": ["Player in profile.", "Nose sphere at the side, grounded, shadow."],
+	"player/zoomed_in": ["Camera at minimum zoom (1.5 m).", "Capsule large in frame, soft shading, no clipping into the camera."],
+}
 
 
 func _initialize() -> void:
@@ -110,7 +129,8 @@ func _look_at_from(target: Vector3, back: float, distance: float, pitch_degrees:
 
 
 func _take(topic: String, name: String) -> void:
-	kit.check_rendered(topic + "/" + name, await kit.shot(topic, name))
+	var info: Array = SHOTS.get(topic + "/" + name, ["", ""])
+	kit.check_rendered(topic + "/" + name, await kit.shot(topic, name, info[0], info[1]))
 
 
 func _nearest_of_kind(nodes: Array[Node3D], kind: String) -> Node3D:
