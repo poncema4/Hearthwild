@@ -25,9 +25,10 @@ func _run() -> void:
 
 	_check_layout(kit, terrain, village)
 	_check_nature_keeps_out(kit, terrain)
-	_check_solid(kit, village, space)
+	await _check_solid(kit, village, space)
 	await _check_doors(kit, village)
 	await _check_walls_block(kit, village)
+	await _check_wall_slide(kit, village)
 	await _check_path(kit, terrain)
 	_check_door_links(kit, terrain, village)
 	kit.finish()
@@ -117,7 +118,7 @@ func _check_nature_keeps_out(kit: PlaytestKit, terrain: Terrain) -> void:
 
 
 ## Roofs and props are solid: rays from above and from the side hit them.
-func _check_solid(kit: PlaytestKit, village: Village, space: PhysicsDirectSpaceState3D) -> void:
+func _check_solid(kit: PlaytestKit, village: Village, space: PhysicsDirectSpaceState3D) -> void:  # coroutine
 	for house in village.houses:
 		# The roof is a gable: highest at the ridge (x = 0), lower toward the eaves. Two-sided
 		# bounds (an inverted roof used to pass a one-sided check, lesson 39).
@@ -130,7 +131,16 @@ func _check_solid(kit: PlaytestKit, village: Village, space: PhysicsDirectSpaceS
 				ridge_y > top - 0.1 and ridge_y < top + 0.5 and ridge_y - left_y > 0.6 and ridge_y - right_y > 0.6,
 				"ridge y=%.2f (expect %.1f to %.1f), 2 m left y=%.2f, 2 m right y=%.2f" % [ridge_y, top - 0.1, top + 0.5, left_y, right_y])
 
-		# The doorway is clear at knee, waist and head-plus-slack height.
+		# Closed (the default) the leaf is solid: a ray through the doorway at waist height hits it.
+		var closed_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
+				house.to_global(Vector3(0, 1.0, House.DEPTH * 0.5 + 1.0)), house.to_global(Vector3(0, 1.0, House.DEPTH * 0.5 - 1.5))))
+		kit.check("%s: the closed door is solid" % house.name,
+				not house.door.is_open and not closed_hit.is_empty() and house.door.is_ancestor_of(closed_hit["collider"]),
+				"door open=%s, ray hit=%s" % [house.door.is_open, "the door" if not closed_hit.is_empty() and house.door.is_ancestor_of(closed_hit["collider"]) else str(closed_hit.get("collider"))])
+
+		# Open, the doorway is clear at knee, waist and head-plus-slack height.
+		house.door.open_instantly()
+		await kit.physics_frames(2)  # the physics server picks up the moved leaf one step later
 		var blocked := 0
 		for y in [0.3, 1.0, 2.0]:
 			var a := house.to_global(Vector3(0, y, House.DEPTH * 0.5 + 1.0))
@@ -153,14 +163,27 @@ func _check_solid(kit: PlaytestKit, village: Village, space: PhysicsDirectSpaceS
 func _check_doors(kit: PlaytestKit, village: Village) -> void:
 	for house in village.houses:
 		var start := house.door_outside(2.5)
-		await kit.teleport(Vector3(start.x, NAN, start.z), 20)
 		var inward := (house.interior_center() - start)
 		inward.y = 0.0
+
+		# Closed: the player walks at the door and stays outside.
+		house.door.close_instantly()
+		await kit.teleport(Vector3(start.x, NAN, start.z), 20)
+		kit.face(inward.normalized())
+		await kit.hold(["move_forward"], 100)
+		var closed_local := house.to_local(kit.player.global_position)
+		kit.check("%s: a CLOSED door stops the player outside" % house.name,
+				not house.is_inside(kit.player.global_position) and closed_local.z > House.DEPTH * 0.5,
+				"ended at local z=%.2f (door line at %.2f)" % [closed_local.z, House.DEPTH * 0.5])
+
+		# Open: the same walk ends inside.
+		house.door.open_instantly()
+		await kit.teleport(Vector3(start.x, NAN, start.z), 20)
 		kit.face(inward.normalized())
 		await kit.hold(["move_forward"], 100)
 		await kit.physics_frames(10)
 		var p := kit.player.global_position
-		kit.check("%s: walking in through the door ends inside" % house.name, house.is_inside(p) and kit.player.is_on_floor(),
+		kit.check("%s: walking in through the OPEN door ends inside" % house.name, house.is_inside(p) and kit.player.is_on_floor(),
 				"%s, inside=%s" % [kit.where(), house.is_inside(p)])
 
 
@@ -190,6 +213,22 @@ func _check_walls_block(kit: PlaytestKit, village: Village) -> void:
 			kit.check("%s: walking at the %s does not get through" % [house.name, wall[0]],
 					depth >= wall[4] and not house.is_inside(kit.player.global_position),
 					"ended at local %s, distance from centre %.2f (outer face at %.2f)" % [local.snapped(Vector3(0.01, 0.01, 0.01)), depth, wall[4]])
+
+
+## Walking into a wall at a shallow angle slides along it instead of sticking.
+func _check_wall_slide(kit: PlaytestKit, village: Village) -> void:
+	var house := village.houses[0]
+	var half_w := House.WIDTH * 0.5
+	var start := house.to_global(Vector3(-half_w - 2.0, 0, -1.0))
+	await kit.teleport(Vector3(start.x, NAN, start.z), 20)
+	# Almost straight into the wall (+X): only 5 degrees toward +Z along it. Godot's default
+	# `wall_min_slide_angle` (15 degrees) makes such a near-head-on walk stick.
+	var direction := (house.global_transform.basis * Vector3(cos(deg_to_rad(5.0)), 0, sin(deg_to_rad(5.0)))).normalized()
+	kit.face(direction)
+	await kit.hold(["move_forward"], 90)
+	var local := house.to_local(kit.player.global_position)
+	kit.check("walking almost head-on into a wall slides along it (at least 0.3 m) instead of sticking",
+			local.z - (-1.0) > 0.3 and local.x < -half_w, "slid %.2f m along the wall, local x %.2f" % [local.z + 1.0, local.x])
 
 
 ## Y of the roof surface straight above a point `local_x` metres to the side of the house centre.

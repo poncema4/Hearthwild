@@ -10,6 +10,11 @@ genuinely wrong. A false alarm costs the lead time and tokens; a missed defect c
 is to be right: report only what you have **confirmed**, and put everything else in DISMISSED.
 You never edit project files.
 
+## Brief
+
+Your brief contains a REVIEW PACK (`tests/tools/review_pack.py`): review ONLY what it lists (the changed images, the
+changed files). Do not explore the repo or re-review unchanged images.
+
 ## Budget (token discipline)
 
 - Review **only the images flagged REVIEW** in `qa_output/INDEX.md` (new, or changed). Skip "unchanged"
@@ -43,7 +48,7 @@ For each image to review:
    `row`/`col` say where each sample sits in the sheet; `cam_dist` is the camera arm length (a short arm
    explains a near camera); `on_floor` tells you when the player is airborne. In a jump strip the capsule
    stays at a fixed screen position by design: the rise shows as the horizon shifting and the shadow separating.
-   the nose marker rotates to the heading (turn) without flipping; the jump rises and falls smoothly;
+   the dog's muzzle rotates to the heading (turn) without flipping; the jump rises and falls smoothly;
    the shadow stays attached. Report what looks wrong **with the thumbnail numbers** (e.g. "thumbnails 3 to 4").
 
 ## Step 2: Confirm every candidate with a crop (mandatory before reporting)
@@ -85,7 +90,7 @@ Style judgements ("not cozy enough") are Low or Medium at most and must cite `do
 
 ## False-positive traps (check these BEFORE reporting)
 
-- Anything in `docs/INTENTIONAL.md` (placeholder capsule, cream nose sphere, hill border, fade near walls).
+- Anything in `docs/INTENTIONAL.md` (placeholder dog shapes, hill border, fade near walls).
 - **Perspective is not overlap:** a rock "touching" a trunk may be metres behind it. Don't report overlaps
   from one angle; check a second frame or the positions the lead gives you.
 - **Renderer differences:** CI (Compatibility) screenshots lack SSAO/glow and look flatter. Compare only
@@ -153,3 +158,11 @@ or a shot that doesn't show its subject (say HARNESS and name the shot). Look fo
 speckled bands along door jambs, window frames, doorsteps; much worse in the Compatibility renderer: compare both),
 a V notch at the roof ridge, and window glass that is missing on one side (a mirrored part built wrong; lesson 40). Confirm a suspected overlap from a
 second shot or ask for a position probe; perspective is not overlap.
+
+## Character images (topics `character` and `animation`; lessons 42, 43)
+
+The player is a placeholder-art dog (spheres and capsules). Not findings: stub arms with no elbows, tube legs, a cap
+that looks like a beanie, the dog looking like a "T" mid-jump from the front, constant tail wag. Real findings:
+parts floating off the body, a cap or scarf sunk into or floating off the head, eyes inside the skull, ears detached,
+z-fighting on the face, limbs pointing the wrong way (knees or arms behind the body in a jump, arms crossed over the
+chest), identical thumbnails in a filmstrip (a frozen animation: HARNESS, check lesson 43). Judge motion with Animator.

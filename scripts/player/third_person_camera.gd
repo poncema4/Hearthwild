@@ -29,24 +29,16 @@ extends Node3D
 @onready var _pitch: Node3D = $Pitch
 @onready var _spring_arm: SpringArm3D = $Pitch/SpringArm3D
 
-var _body_materials: Array[StandardMaterial3D] = []
+var _model: AnimalModel
 var _last_fade := 0.0
 
 
 func _ready() -> void:
-	# The rig is a sibling of the player's Body mesh, so turning the
+	# The rig is a sibling of the player's Body, so turning the
 	# character never drags the camera. Don't let the arm hit the player.
 	_spring_arm.add_excluded_object(get_parent().get_rid())
-	var body := get_parent().get_node_or_null("Body")
-	if body:
-		for child in body.get_children():
-			var mesh := child as MeshInstance3D
-			var material := mesh.get_surface_override_material(0) as StandardMaterial3D if mesh else null
-			if material:
-				# A private copy, so fading never touches a shared resource.
-				material = material.duplicate() as StandardMaterial3D
-				mesh.set_surface_override_material(0, material)
-				_body_materials.append(material)
+	# The model owns the body and outfit materials and fades them all together.
+	_model = get_parent().get_node_or_null("Body/Model") as AnimalModel
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -55,9 +47,8 @@ func _process(_delta: float) -> void:
 	if is_equal_approx(fade, _last_fade):
 		return
 	_last_fade = fade
-	for material in _body_materials:
-		material.albedo_color.a = 1.0 - fade
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if fade > 0.001 else BaseMaterial3D.TRANSPARENCY_DISABLED
+	if _model:
+		_model.set_fade(fade)
 
 
 func _unhandled_input(event: InputEvent) -> void:

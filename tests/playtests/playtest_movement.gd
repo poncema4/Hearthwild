@@ -40,7 +40,7 @@ func _run() -> void:
 	await kit.hold(["move_forward"], 40)
 	await _sheet("turn_180", ["move_back"], 40, 8,
 		"Walking forward at full speed (thumbnail 1), then reversing direction with S (6 thumbnails).",
-		"The camera stays behind-and-above; the capsule's nose marker swings around to the new heading within about 0.25 s, with no flip or spin; the player keeps moving, then travels the other way.", 3)
+		"The camera stays behind-and-above; the dog's body (muzzle first) swings around to the new heading within about 0.25 s, with no flip or spin; the player keeps moving, then travels the other way.", 3)
 
 	await _start(rig, pitch)
 	await kit.tap("jump")

@@ -84,7 +84,10 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Village tests (flat ground, doors walkable, walls/roofs/props solid, nature keeps out, path walkable) + 7 village screenshots | Done | `tests/functional/test_village.gd`, `tests/playtests/playtest_village.gd` |
 | Day lighting (sun, sky, fog, SSAO, glow) | Done | `scenes/world/world.tscn` (WorldEnvironment, Sun) |
 | Boundary walls + fall-out respawn | Done | `world.tscn` (Boundary), `player_controller.gd` |
-| Third-person player (walk, sprint, jump, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
+| Third-person player (walk, hold-Shift sprint, hold-Space repeat jumps, coyote time, floor snap, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
+| Player character: cute bipedal dog from an `AnimalSpecies` (colours, ears, tail, snout), animated in code (idle wag/blink/breathe, walk and sprint cycles with foot lift, jump pose), 5 outfit sockets + placeholder cap and scarf | Done | `scripts/player/{animal_model,animal_species,outfits}.gd` |
+| Interaction: E key, prompt/message HUD, hinged doors with collision on the cottages, readable notice board | Done | `scripts/interaction/{interactable,door,interactor}.gd`, `scripts/ui/interaction_prompt.gd` |
+| Tests for them: interaction, character, animation (geometry of feet and hands, smoothness, skating) + character and animation screenshot/filmstrip playtests | Done | `tests/functional/test_{interaction,character,animation}.gd`, `tests/playtests/playtest_{character,animation}.gd` |
 | Third-person camera (orbit, pitch clamp, zoom, wall collision, player fades when the camera is squeezed in) | Done | `scripts/player/third_person_camera.gd` |
 | Visual tour (15 screenshots; with the camera playtest, 20 per run; each auto-checked) | Done | `tests/playtests/playtest_visual_tour.gd` |
 | Terrain tests (collision alignment, placement, sand, determinism) | Done | `tests/functional/test_terrain.gd` |
@@ -244,6 +247,12 @@ Every change runs **all** of this before a PR, and CI runs it again on the PR.
    `qa_output/village/<date_time>/` (path from the spawn, plaza, a cottage front and interior, a back wall,
    well and lamps, notice board), each checked by `kit.check_rendered()`.
 
+**Step 6 added five more steps (16 in all):** interaction test, character test and animation test (headless, run
+right after the village test), and the character and animation playtests (rendered, run last). Interaction test:
+prompt text, facing and range rules, E opens and closes the door, a door won't close on a player in the doorway,
+the notice board message. Character test: parts, size, grounding, big head, fadeable materials, species
+variety, outfits sit on sockets and fade. Animation test: see lesson 42.
+
 After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
 result) and regenerates `qa_output/INDEX.md`.
 
@@ -346,7 +355,7 @@ script error, which is why the log scan exists. **Never remove it.**
 | 180 degree turn (body within 10 deg) | 13 frames (0.22 s) | 6-30 frames | spinning too fast or lagging |
 | Strafe reversal | 9 frames | 3-30 frames | same |
 | Jump apex / airtime | 1.32 m / 1.07 s | 1.0-1.5 m / 0.7-1.2 s | floaty or heavy jump |
-| Holding jump (takeoffs counted over 200 frames) | 1 | exactly 1 | bunny hopping (proven: 4 takeoffs when broken) |
+| Holding Space (takeoffs counted over 300 frames) | 5 (frames 0, 63, 126, 189, 252) | 4 to 5, gaps of at least 55 frames | no repeat (1 takeoff) or a double jump (gaps under 55); a single tap must stay exactly 1 hop |
 
 When you tune the feel on purpose, change the band **in the same PR**, say why, and update
 `docs/INTENTIONAL.md`. The test exists so feel changes are deliberate, not accidental.
@@ -469,6 +478,17 @@ The goal is near-zero false positives at low token cost. These rules are in ever
 - **Not yet calibrated** (section 9.8): its first calibration plants a missing wall collider, a 0.6 m door
   and a prop jammed against a wall (a pocket), plus controls.
 
+### 9.5b Animator: animation reviewer (`animator`)
+
+- **Job:** judge whether the character moves believably: limb directions (measured as foot and hand positions, never
+  from an angle sign), walk cycle, foot skating, symmetry, jump pose seen from the FRONT, snaps between frames,
+  readability of the filmstrips, deterministic timing (physics tick). See the file for the table of numbers.
+- **Model:** Sonnet. **Budget:** about 10 minutes on a /tmp copy. **Run when:** a change touches the model,
+  its animation, movement feel or outfits (Hawkeye for stills, Animator for motion).
+- **Must report:** the 9.0 contract plus MEASUREMENTS and a SHIP / FIX FIRST verdict. **Must not:** edit files, judge
+  colours or composition (Hawkeye), or report placeholder simplicity (no elbows) as a defect.
+- **Not yet calibrated** (9.8): its first calibration plants backward knees, crossed arms and skating legs.
+
 ### 9.6 Dispatching agents efficiently (lead's rules)
 
 Agents start with **zero context**. A vague brief makes them explore, which is
@@ -501,9 +521,22 @@ Scheduling:
   | Controls, physics, gameplay logic | yes | yes (targeted) | if visible | yes |
   | A new system (village, zombie ...) | yes | yes | yes | yes + that system's specialist |
   | Terrain, buildings, props, paths, nature placement | yes | no (the village test walks it) | yes (changed images) | yes + Mason |
+  | Character model, animation, outfits, movement feel | yes | yes (targeted) | yes (changed images) | yes + Animator |
   | Agents, docs, test tooling | yes | no | no | yes |
   | Pre-release or risky | all | all | FULL REVIEW | all |
 
+- **Cheapest first (cost rules; lesson 44).** Order every change through these tiers and stop paying once a tier answers:
+  0. **Free, every run:** `tests/run_tests.sh` (18 steps, starting with `tests/tools/check_repo.py`, which catches doc drift,
+     missing README rows, stale step counts, loose files, missing .uid files and lessons cited but not written) and the
+     **soak test** (a bot drives the real player along a route with Shift and Space held and fails on any stall, blocked
+     path, dead door or fall). Agents never re-check what these prove.
+  1. **Lead looks** at the changed screenshots first (about 5k tokens each, no agent needed for obvious faults).
+  2. **Brief from the pack:** `python3 tests/tools/review_pack.py` prints the diff summary, ONLY the changed images and
+     the agents this change needs. Paste it into the brief; agents read the pack, not the repo.
+  3. **Agents, only the ones the pack names**, in parallel, each on a /tmp copy, one round. **Warden is skipped** when the
+     lead ran both renderers green (CI on the PR is the independent run; a Warden round is ~70k tokens for nothing new).
+     After a fix, re-run only the agent whose finding it was.
+  Typical docs-only PR: 0 agents. Typical code PR: Sage + the one specialist (Mason, Animator or Hawkeye).
 - **Before dispatching Sage, run the lessons gate yourself** (the PR template checklist: lessons in section 14 AND
   in the agent files, INTENTIONAL.md, README, state table). Sage will find it, and a round costs ~100k tokens (lesson 30).
 - **Sage also runs on any PR that touches `AGENTS.md` section 14 or `.claude/agents/`** (it enforces the
@@ -629,7 +662,7 @@ NEXT RECOMMENDED STEP
 3. Third-person camera ✅
 4. Small 3D environment ✅ (meadow, nature, lighting)
 5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths)
-6. Basic interaction
+6. Basic interaction ✅ (E key, doors, notice board) + the dog character
 7. Day/night system
 8. Sleep system
 9. Basic zombie
@@ -702,6 +735,11 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 38 | The first "doorway" screenshot showed the player in the door from OUTSIDE, not the room (my own review before dispatch caught it) | The camera sits behind the player, so a player in the doorway is seen from outside | For an interior shot put the player INSIDE and the camera 1-3 m outside the door (`house1_interior`). Look at every new shot before dispatching Hawkeye: a wrong framing wastes a ~100k-token round |
 | 39 | Sage proved by mutation that three advertised checks could not fail: an INVERTED roof passed (the roof check only said `y > wall height`), one wall losing its collider passed (only the left wall was ever walked at; my "no collision" control removed ALL collision at once), and moving a house without its dirt link passed (nothing tied them) | My controls broke whole features, so they only proved the check could fail in the case I imagined; bounds were one-sided; a doc claimed "the test checks it" with no test | Controls must be as fine-grained as the thing that can regress: one wall, one prop kind, one house. Geometry gets two-sided bounds AND a shape check (ridge higher than both sides by 0.6 m). Every cross-file coupling (house position, door link) gets its own assertion. Never write "the test checks it" without naming the check. 12 controls now: door 0.5 m, door height 1.5 m, all collision off, back wall alone, right wall alone, inverted roof, flat zone 6 m, props without collision, nature ignoring the village, fence wall on the path, house moved without its link, two lamps missing. All fail as intended |
 | 40 | Hawkeye found a z-fighting door jamb (trim inner face on the same plane as the wall end face; stripes in the Compatibility renderer), a V notch at the roof ridge, and Sage found a roof floating 0.18 m above the walls and a left window whose glass faced INTO the house | Coplanar faces; slabs meeting at their centre lines; the roof slope was measured from the eave tip instead of the wall top; the window normal used one yaw for both sides | Visual-only trim never shares a plane with another face: inset 2 cm. Compute slopes from the line through the support point (wall top), not the overhang tip. Mirrored parts (left/right) are built from the sign, then BOTH sides are looked at. Static frames only hint at z-fighting: compare the Compatibility renderer, where it is worse |
+| 41 | The player said sprint "randomly stops" and Space needed tapping. A trace over 8 headings found most stops were real solids, but two things were genuinely jerky: slopes near the 45 degree limit stopped the character dead, and a 7 m/s run over bumps left the ground for a frame (so a jump pressed then was eaten) | Plain `move_and_slide` defaults (no floor snap, speed lost on slopes), a jump only on the exact on-floor frame, and `is_action_just_pressed` for jump | Floor snap 0.5 m, constant speed on slopes, 0.12 s coyote time, jump read with `is_action_pressed` (held Space repeats on every landing; never faster than the airtime, no double jump). Held-sprint continuity is tested over 4 s with and without jumping. `wall_min_slide_angle` was added by guess, had no effect (its control could not fail) and was removed: do not add a setting without a control that proves it matters |
+| 42 | The jump pose kicked the legs BACKWARD and folded the arms ACROSS the body, and my first test (`leg_angles().x < -0.3`) enshrined the bug as correct | A hanging limb swings FORWARD with a POSITIVE rotation.x, and an arm on the +X side goes OUTWARD with a POSITIVE rotation.z; I had both signs reversed, and an angle test agrees with whatever sign the code uses | Animation is tested by GEOMETRY: where the feet and hands are, in model space (feet ahead of the hips and arms out in the air, the arm opposite the forward foot forward, planted foot barely sliding, no joint change over 0.35 rad or limb move over 0.2 m per frame). The conventions are written at the top of `animal_model.gd`. Look at a front view for arms (a side view hides them). 13 controls prove it |
+| 43 | The walk filmstrip showed eight nearly identical thumbnails | The animation ran in `_process`; under a slow renderer several physics frames pass per rendered frame, so the animation froze or ran at the wrong speed while the movement (and the filmstrip clock) ran on the physics tick. It would also make animation speed depend on the player's frame rate | Gameplay-driven animation runs in `_physics_process`, in lockstep with the movement it shows; `test_animation.gd` asserts `is_physics_processing()`. When a filmstrip looks frozen, check the tick it runs on before blaming the pose |
+| 44 | Reviews were expensive and repetitive: Sage spent most of its ~120k tokens finding drift a script can find (a test missing from the README, a stale "11 steps", a lesson cited but not written), Warden re-ran what the lead had just run, and "random stops" reached the player because only a human had ever played a full route | Hygiene and route-walking were left to paid agents | `tests/tools/check_repo.py` is the runner's first step (8 controls prove it, one caught a bug in itself: a substring match that could never fail); `test_soak.gd` is a bot that plays a route with held keys and fails on any stall (2 controls); `review_pack.py` briefs agents with only the diff, the changed images and the agents needed; Warden is skipped when the lead's own both-renderer run is green. Sage is told never to report what the repo check covers |
+| 45 | Sage proved by mutation that the coyote-time check passed with coyote shortened to one frame (floor snap pulled the lifted player back down and faked the pass), that the cone, range, close-box and board position checks only tested the dead-centre case, that fade-on-equip was only tested in one order, and that a deferred collision write could leave a snapped door walk-through. Animator found a sprint-reversal moonwalk. Hawkeye found a 2 px gap beside the door leaf | Controls broke one thing at a time but my CHECKS still only visited the happy case; a second setting (floor snap) masked the first; a signed quantity was tested by magnitude | For every rule with a number (range, angle, window, box size) test BOTH sides of its edge; when two settings overlap, defeat the other in the test (lift the player above the snap length); test order-dependent features in both orders; test signed quantities with their sign. 12 more controls prove it. Sage's fixes cost the same round as the finding: expect the second tier of weakness after the first |
 
 ### 14.2 What worked (keep doing)
 
@@ -733,3 +771,9 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **Scripted negative controls with a byte-exact restore** (copy the file aside, patch it, run, copy it back, assert the content is identical) | Six controls ran in one command and could not leave a break behind; no stash, reset or checkout needed |
 | **Tracing positions per step before touching the world** (lesson 36) | The path was fine and the test was wrong; found in one 10-second run |
 | **Reading the screenshots myself before dispatching Hawkeye** | Caught a wrong framing (lesson 38) and an odd olive strip (lintel underside lit by the sky's green ground colour) that is now in INTENTIONAL.md |
+| **Geometry tests for animation** (positions of feet and hands, per-frame deltas) plus a FRONT view for arms | Caught the backward knees, crossed arms, a skating stride, a 0.68 rad snap and the foot-lift gap in one session (lesson 42) |
+| **Tracing before fixing** ("sprint randomly stops": an 8-direction probe) | Separated real obstacles from the two genuinely jerky causes instead of changing speeds blindly (lesson 41) |
+| **Looking at enlarged crops of every thumbnail** | Thumbnails are 320 px; crops at 4x showed the frozen strip (lesson 43) and the arm directions |
+| **A script for every repeatable review finding** (`check_repo.py`) | Drift found once is found forever for free; it even found a stale "17" in its own PR |
+| **A bot that plays a route with held keys** (`test_soak.gd`, 1.7 s) | Catches "it randomly stops" and dead doors with no agent and no human |
+| **A generated review pack** | Agents start with the diff and the changed images instead of exploring |

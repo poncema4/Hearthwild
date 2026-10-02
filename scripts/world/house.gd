@@ -25,6 +25,8 @@ const ROOF_OVERHANG := 0.4
 @export var roof_color := Color(0.78, 0.38, 0.30)
 @export var trim_color := Color(0.50, 0.35, 0.24)
 
+## The door leaf (closed by default); `door.open_instantly()` for tests and setup.
+var door: Door
 var _body: StaticBody3D
 var _materials := {}
 
@@ -127,6 +129,11 @@ func _build() -> void:
 	for sign_x in [-1.0, 1.0]:
 		_window(Vector3(sign_x * side_x, 1.55, half_d + 0.01), 0, glass)       # front
 		_window(Vector3(sign_x * (half_w + 0.01), 1.55, 0), 90.0 * sign_x, glass)  # sides, glass facing OUT
+	door = Door.new()
+	door.name = "Door"
+	door.leaf_color = trim_color
+	door.position = Vector3(0, 0, half_d - t * 0.5)
+	_body.add_child(door)
 	_box("Chimney", Vector3(0.6, 1.5, 0.6), Vector3(1.6, h + ROOF_RISE * 0.45 + 0.5, -0.9), Color(0.62, 0.58, 0.54), Vector3.ZERO, false)
 
 
