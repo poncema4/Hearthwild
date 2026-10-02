@@ -26,10 +26,25 @@ installed (`which xvfb-run`). If there's no Xvfb **and** no display, run
 `tests/run_tests.sh --headless-only` and **report both rendered steps as
 SKIPPED**. Never present a headless-only run as a full pass.
 
+## Run it twice: both renderers (AGENTS.md lesson 23)
+
+CI uses the OpenGL Compatibility renderer, which supports fewer features than
+the default Forward+. After the normal run, run it again in CI mode and report
+**both**:
+
+```bash
+GODOT_FLAGS="--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy" \
+  QA_OUTPUT=/tmp/hw_warden_ci/qa_output RUN_STAMP=ci tests/run_tests.sh
+```
+
+A check that passes in one and fails in the other is a finding (usually a
+renderer feature the Compatibility renderer lacks), never "flaky".
+
 ## Report (exactly this shape)
 
 ```text
-TEST RUN
+TEST RUN (repeat the whole block for the CI-mode run)
+Renderer: Forward+ (default) / Compatibility (CI mode)
 Godot: <version line>
 Command: <exact command>
 Exit code: <number>

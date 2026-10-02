@@ -11,7 +11,9 @@ extends Node3D
 ##
 ## When the arm is squeezed short (backed into a wall or tree), the camera
 ## ends up almost inside the player. The player's body then fades out so it
-## never fills the screen.
+## never fills the screen. The fade uses each body material's alpha:
+## GeometryInstance3D.transparency is ignored by the Compatibility renderer
+## (which CI and weak GPUs use), so the body would stay fully visible there.
 
 @export var mouse_sensitivity: float = 0.003
 @export var min_pitch_degrees: float = -60.0
@@ -27,7 +29,7 @@ extends Node3D
 @onready var _pitch: Node3D = $Pitch
 @onready var _spring_arm: SpringArm3D = $Pitch/SpringArm3D
 
-var _body_meshes: Array[GeometryInstance3D] = []
+var _body_materials: Array[StandardMaterial3D] = []
 var _last_fade := 0.0
 
 
@@ -38,8 +40,13 @@ func _ready() -> void:
 	var body := get_parent().get_node_or_null("Body")
 	if body:
 		for child in body.get_children():
-			if child is GeometryInstance3D:
-				_body_meshes.append(child)
+			var mesh := child as MeshInstance3D
+			var material := mesh.get_surface_override_material(0) as StandardMaterial3D if mesh else null
+			if material:
+				# A private copy, so fading never touches a shared resource.
+				material = material.duplicate() as StandardMaterial3D
+				mesh.set_surface_override_material(0, material)
+				_body_materials.append(material)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -48,8 +55,9 @@ func _process(_delta: float) -> void:
 	if is_equal_approx(fade, _last_fade):
 		return
 	_last_fade = fade
-	for mesh in _body_meshes:
-		mesh.transparency = fade
+	for material in _body_materials:
+		material.albedo_color.a = 1.0 - fade
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if fade > 0.001 else BaseMaterial3D.TRANSPARENCY_DISABLED
 
 
 func _unhandled_input(event: InputEvent) -> void:

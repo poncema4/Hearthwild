@@ -408,8 +408,10 @@ through a PR anyway.** No direct pushes to `master`.
 
 1. Start from an up-to-date `master`: `git switch master && git pull`.
 2. Create a branch: `feature/<short-name>`, `fix/<short-name>`, or `chore/<short-name>`.
-3. Build the change, write and prove the tests, run `tests/run_tests.sh`, and
-   dispatch the specialist agents. Fix everything they find.
+3. Build the change, write and prove the tests, run `tests/run_tests.sh` **in
+   both renderers** (normal, and CI mode:
+   `GODOT_FLAGS="--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy" QA_OUTPUT=/tmp/hw_ci tests/run_tests.sh`),
+   and dispatch the specialist agents. Fix everything they find.
 4. Review the diff: no unrelated files, nothing from `.gitignore` forced in,
    no secrets.
 5. Commit with a descriptive message (`Add third-person player controller`,
@@ -530,6 +532,7 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 20 | Scout sent an "incomplete" report, then a "correction" | It piped Godot through `tail` (no output until the process exits) and reported before the run ended | Write Godot's output to a file, wait for the process to finish, then report. Never report a run that hasn't finished |
 | 21 | Sage guessed (60% confidence) that CI's editor-load step wouldn't catch errors on a fresh checkout | Untested suspicion | CI-only behaviour is tested on a clean copy in /tmp (no `.git`, no `.godot`), not guessed. Checked: it does catch a planted error |
 | 22 | Two tests couldn't catch a misaligned terrain collision, and the fade test measured a value the camera had just set (Sage) | The spawn is flat, and the fade check read a property instead of the screen | Test at non-flat points with a ray grid and slope-aware player drops; compare real pixels. Proven by negative controls: transposed heightmap → 1.527 m error, fade off → 31.9% of pixels differ |
+| 23 | PR #2's first CI run failed: the camera fade did nothing in CI, though it worked and passed locally | CI uses the OpenGL **Compatibility** renderer, which ignores `GeometryInstance3D.transparency`. The property-based check passed everywhere (the property was set); only the pixel comparison (added after Sage called the first check circular) saw the capsule still on screen | Fade with **material alpha**, which every renderer supports. Run the suite in **both** renderers before every PR: `GODOT_FLAGS="--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy" tests/run_tests.sh`. Prefer features the Compatibility renderer supports, or assert on pixels |
 
 ### 14.2 What worked (keep doing)
 
@@ -547,6 +550,7 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **Fixing every finding, or recording it as a known issue** | Nothing from a review is silently dropped |
 | **Triage, then test**: Scout's false alarms each became a permanent test | The scenario mistakes turned into checks that can't be repeated (lesson 18) |
 | **A ray grid against the physics world** | One check proves the collision matches the mesh at 120 points, with no sliding or settling to confuse it |
-| **Comparing real pixels** (frame vs the same frame with the body hidden) | Tests what the player sees, not an internal value (lesson 22) |
+| **Comparing real pixels** (frame vs the same frame with the body hidden) | Tests what the player sees, not an internal value (lesson 22). It also caught the Compatibility-renderer bug that every property check missed (lesson 23) |
+| **Reproducing a CI failure locally with CI's own flags** | Found the cause in one run, before changing anything |
 | **Clean-copy CI checks** (copy to /tmp without `.git`/`.godot`) | Settles "will CI do X?" in 30 seconds |
 
