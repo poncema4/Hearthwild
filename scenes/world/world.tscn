@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/world/village.gd" id="4_village"]
 [ext_resource type="Script" path="res://scripts/world/day_night.gd" id="5_daynight"]
 [ext_resource type="Script" path="res://scripts/ui/character_creator.gd" id="6_creator"]
+[ext_resource type="Script" path="res://scripts/world/sleep_system.gd" id="8_sleep"]
 [ext_resource type="Script" path="res://scripts/world/fishing_pond.gd" id="7_fishing"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 
@@ -100,3 +101,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="CharacterCreator" type="CanvasLayer" parent="."]
 script = ExtResource("6_creator")
+
+[node name="SleepSystem" type="CanvasLayer" parent="."]
+script = ExtResource("8_sleep")

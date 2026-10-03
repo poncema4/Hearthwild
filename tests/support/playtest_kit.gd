@@ -34,9 +34,11 @@ var village: Village
 var day_night: DayNight
 var creator: CharacterCreator
 var fishing: FishingPond
+var sleep_system: SleepSystem
 
-## Tests never touch the player's real profile.
-const TEST_PROFILE_PATH := "user://hw_test_world_profile.json"
+## Tests never touch the player's real profile. The name carries the process id so two test runs at the same
+## time (both renderers in parallel) never share a file (lesson 52).
+var TEST_PROFILE_PATH := "user://hw_test_world_profile_%d.json" % OS.get_process_id()
 var failures := 0
 
 
@@ -68,6 +70,7 @@ func load_world(settle_frames: int = 60) -> void:
 	day_night.set_time(10.0)
 	creator = world.get_node("CharacterCreator")
 	fishing = world.get_node("Fishing")
+	sleep_system = world.get_node("SleepSystem")
 	await physics_frames(settle_frames)
 
 
@@ -461,5 +464,8 @@ func check_rendered(name: String, image: Image) -> void:
 func finish() -> void:
 	if not _manifest.is_empty():
 		write_manifests()
+	for leftover in [TEST_PROFILE_PATH, TEST_PROFILE_PATH + ".tmp"]:
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(leftover)
 	print("RESULT: %s (%d failures)" % ["ALL PASS" if failures == 0 else "FAILED", failures])
 	tree.quit(failures)

@@ -53,7 +53,11 @@ var _equipped := {}
 var _equipped_ids := {}  # slot -> item id, so a species change can put the outfit back on
 var display_name := ""
 var _name_tag: Label3D
+var _tag_height := 0.0
 var _fishing := false
+var _sleeping := false
+var _sleep_amount := 0.0
+var _zzz: Label3D
 var _fishing_amount := 0.0
 var _rod: Node3D
 var _tail_phase := 0.0
@@ -177,6 +181,23 @@ func stop_fishing() -> void:
 	_fishing = false
 	if _rod:
 		_rod.visible = false
+
+
+## Lies down on its back (the player sleeping in a bed), eyes shut, with a floating Zzz.
+## `instant` skips the transition (used while the screen is black).
+func set_sleeping(on: bool, instant := false) -> void:
+	_sleeping = on
+	if instant:
+		_sleep_amount = 1.0 if on else 0.0
+
+
+func is_sleeping() -> bool:
+	return _sleeping
+
+
+## 0 = standing, 1 = fully lying down.
+func sleep_amount() -> float:
+	return _sleep_amount
 
 
 func is_fishing() -> bool:
@@ -303,11 +324,43 @@ func _physics_process(delta: float) -> void:
 	# The wag PHASE is accumulated: blending the frequency inside sin(time * freq) made the tail whip
 	# through several wags whenever the walk blend changed, worse the longer the game had run.
 	_tail_phase += delta * lerpf(9.0, 6.0, _walk_amount)
-	_tail.rotation.y = sin(_tail_phase) * lerpf(0.5, 0.35, _walk_amount)
+	_tail.rotation.y = sin(_tail_phase) * lerpf(0.5, 0.35, _walk_amount) * (1.0 - _sleep_amount)  # a sleeping animal does not wag
 	_ear_l.rotation.z = _ear_base(1.0) + sin(_phase * 2.0) * 0.12 * on_foot + sin(_time * 1.3) * 0.03
 	_ear_r.rotation.z = _ear_base(-1.0) - sin(_phase * 2.0) * 0.12 * on_foot - sin(_time * 1.3 + 1.0) * 0.03
 
-	var blink := fmod(_time, 3.4) < 0.12
+	# Sleeping: lie on the back (the rig turns 90 degrees about X, head toward +Z), arms and legs relaxed.
+	_sleep_amount = move_toward(_sleep_amount, 1.0 if _sleeping else 0.0, delta * 2.2)
+	var lie := _sleep_amount
+	if lie > 0.0:
+		_rig.rotation.x = lerpf(_rig.rotation.x, PI * 0.5, lie)
+		_rig.position = Vector3(0.0, lerpf(_rig.position.y, 0.3, lie), 0.0)
+		_leg_l.rotation.x = lerpf(_leg_l.rotation.x, 0.0, lie)
+		_leg_r.rotation.x = lerpf(_leg_r.rotation.x, 0.0, lie)
+		_arm_l.rotation.x = lerpf(_arm_l.rotation.x, 0.1, lie)
+		_arm_r.rotation.x = lerpf(_arm_r.rotation.x, 0.1, lie)
+		_arm_l.rotation.z = lerpf(_arm_l.rotation.z, 0.2, lie)
+		_arm_r.rotation.z = lerpf(_arm_r.rotation.z, -0.2, lie)
+		if _zzz == null:
+			_zzz = Label3D.new()
+			_zzz.name = "Zzz"
+			_zzz.text = "Z z z"
+			_zzz.font_size = 96
+			_zzz.pixel_size = 0.006
+			_zzz.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			_zzz.modulate = Color(0.85, 0.92, 1.0)
+			_zzz.outline_size = 12
+			_zzz.outline_modulate = Color(0.1, 0.15, 0.3, 0.9)
+			add_child(_zzz)
+		_zzz.position = Vector3(0.0, 1.55 + sin(_time * 1.6) * 0.06, 1.3)
+		_zzz.visible = lie > 0.9
+		if _name_tag:  # the tag follows the body down instead of floating a metre above it
+			_name_tag.position.y = lerpf(_tag_height, 1.45, lie)
+	elif _zzz:
+		_zzz.visible = false
+
+	if lie <= 0.0 and _name_tag and _tag_height > 0.0:
+		_name_tag.position.y = _tag_height
+	var blink := fmod(_time, 3.4) < 0.12 or lie > 0.5
 	var eye_scale := 0.12 if blink else 1.0
 	_eye_l.scale.y = eye_scale
 	_eye_r.scale.y = eye_scale
@@ -407,6 +460,7 @@ func _position_name_tag() -> void:
 		for mesh in _meshes_under(hat):
 			var top := (mesh.global_transform * mesh.get_aabb()).end.y - global_position.y
 			height = maxf(height, top + 0.2)
+	_tag_height = height
 	_name_tag.position.y = height
 
 

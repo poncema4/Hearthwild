@@ -18,6 +18,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_profile.gd` | Player profile: save/load round trip, damaged and hostile saves, name rules, wardrobe catalog consistency. | no |
 | `functional/test_creator.gd` | Character screen: opens on first launch, locks the player, animal and outfit pickers, Start saves and dresses the player, reopen with F2. | no |
 | `functional/test_fishing.gd` | Fishing: spots on real terrain, reachable, cast/bite/reel timings, every way it ends, visuals, day/night fish, saved journal. | no |
+| `functional/test_sleep.gd` | Sleep: a bed in every cottage, 7 PM-6 AM window (both edges), full night sequence, clock forward to 6:30, lock/unlock, pose, wake-up spot. | no |
 | `functional/test_daynight.gd` | Day/night: clock, noon vs midnight light, sun path, dusk colour, smoothness, signals, lamps, clock hands, HUD clock. | no |
 | `functional/test_animation.gd` | Animation geometry: feet and hands, skating, snaps, physics tick. | no |
 | `playtests/` | Rendered tests that save screenshots into `qa_output/`. | yes (Xvfb is fine) |
@@ -27,6 +28,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `playtests/playtest_character.gd` | 7 screenshots of the dog (all sides, face close-up, walking, jumping, outfit). | yes |
 | `playtests/playtest_creator.gd` | The character screen with the dog, cat and bunny, and the result in the world; panel fits the window; mouse captured after Start. | yes |
 | `playtests/playtest_fishing.gd` | Fishing: ready, cast, bite, caught, night; bobber and ! on screen. | yes |
+| `playtests/playtest_sleep.gd` | Sleep: bed prompt, lying down, waking, morning. | yes |
 | `playtests/playtest_daynight.gd` | 6 times of day in the village plus a whole-day filmstrip. | yes |
 | `playtests/playtest_animation.gd` | Filmstrips: walk, sprint, hop (side and front), idle. | yes |
 | `playtests/playtest_movement.gd` | Movement filmstrips (contact sheets) for visual review. | yes |
