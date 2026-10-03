@@ -134,13 +134,14 @@ func _look_at_from(target: Vector3, back: float, distance: float, pitch_degrees:
 	await _frame(Vector3(spot.x, NAN, spot.z), -toward_centre, distance, pitch_degrees)
 
 
-## Per-frame cost ceilings, measured as the WORST frame of this tour on the 240 m world (1.48 M triangles, 2,084
-## objects, 833 draw calls; the spawn view alone is much lighter, so measure the tour, not one view) plus about 35%. They catch "someone scattered 10x the trees" without an agent. Raise them
+## Per-frame cost ceilings, measured as the WORST frame of this tour (1.58 M triangles, 2,469 objects, 1,363 draw calls
+## on Forward+ / 2,457 on Compatibility, with the 8-cottage village; the first 240 m world measured 1.48 M / 2,084 / 833,
+## and the spawn view alone is much lighter, so measure the tour, not one view) plus about 35%. They catch "someone scattered 10x the trees" without an agent. Raise them
 ## on purpose, in a PR that says why (the world is meant to grow, step by step).
-const BUDGET_PRIMITIVES := 2_000_000
-const BUDGET_OBJECTS := 2_800
-## Draw calls differ by renderer (Compatibility has no batching and more passes): Forward+ 833, Compatibility 2,072 measured.
-const BUDGET_DRAW_CALLS := {"forward_plus": 1_150, "gl_compatibility": 2_800}
+const BUDGET_PRIMITIVES := 2_150_000
+const BUDGET_OBJECTS := 3_350
+## Draw calls differ by renderer (Compatibility has no batching and more passes): Forward+ 1,363, Compatibility 2,457 measured.
+const BUDGET_DRAW_CALLS := {"forward_plus": 1_850, "gl_compatibility": 3_300}
 var _worst := {"primitives": 0, "objects": 0, "draw_calls": 0}
 
 

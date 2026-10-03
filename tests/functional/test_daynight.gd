@@ -143,7 +143,8 @@ func _run() -> void:
 	for lamp in lamps:
 		if (lamp as Light3D).light_energy > 2.0 and (lamp as Light3D).visible:
 			lit += 1
-	kit.check("all 4 village lamps are lit at midnight", lamps.size() == 4 and lit == 4, "%d lamps, %d lit" % [lamps.size(), lit])
+	var village_lamps := kit.village.props.filter(func(p): return p.get_meta("kind") == "LampPost").size()  # not a literal: the village grew from 4 to 9 (lesson 53)
+	kit.check("all %d village lamps are lit at midnight" % village_lamps, village_lamps >= 9 and lamps.size() == village_lamps and lit == village_lamps, "%d lamps in the group, %d placed by the village, %d lit" % [lamps.size(), village_lamps, lit])
 	dn.set_time(12.0)
 	var dark := 0
 	for lamp in lamps:
@@ -178,7 +179,7 @@ func _run() -> void:
 	for lamp in night_lamps:
 		if (lamp as Light3D).light_energy > 2.0:
 			night_lit += 1
-	kit.check("a world that starts at midnight paused has all 4 lamps lit", night_lamps.size() == 4 and night_lit == 4, "%d lamps, %d lit" % [night_lamps.size(), night_lit])
+	kit.check("a world that starts at midnight paused has all %d lamps lit" % village_lamps, night_lamps.size() == village_lamps and night_lit == village_lamps, "%d lamps, %d lit" % [night_lamps.size(), night_lit])
 	night_world.queue_free()
 	await kit.physics_frames(2)
 

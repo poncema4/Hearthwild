@@ -131,10 +131,15 @@ func _run() -> void:
 					"airborne=%s, best upward speed %.2f m/s" % [airborne, best_vy])
 
 	# 9. Sprint is continuous: holding Shift keeps full speed (with or without jumping) on
-	# an open lane (south of the spawn: nothing solid for 28 m), and letting go ends it.
+	# an open lane (nothing solid for 30 m, found at runtime: the village grew onto the old south lane, lesson 54),
+	# and letting go ends it.
+	var lane := _open_lane(kit)
+	kit.check("the spawn has an open 30 m lane for the sprint test", lane != Vector3.ZERO, "every one of 16 headings is blocked by a tree, rock, house, prop or the pond")
+	if lane == Vector3.ZERO:
+		lane = Vector3.BACK
 	for jumping in [false, true]:
 		await _reset(kit)
-		kit.face(Vector3.BACK)
+		kit.face(lane)
 		Input.action_press("sprint")
 		Input.action_press("move_forward")
 		if jumping:
@@ -162,7 +167,52 @@ func _run() -> void:
 					"%.2f m/s 40 frames after release" % kit.horizontal_speed())
 		Input.action_release("move_forward")
 
+	# 10. Speeding up keeps the heading straight (lesson 54): from a standstill on a 37 degree diagonal the velocity
+	# points at the target direction on EVERY frame. Accelerating x and z separately curved it (about 8 degrees off).
+	await _reset(kit)
+	var diagonal := Vector3(0.6, 0.0, -0.8)
+	kit.face(diagonal)
+	Input.action_press("move_forward")
+	var worst_off := 0.0
+	var samples := 0
+	for i in 12:
+		await kit.physics_frames(1)
+		var flat := Vector2(kit.player.velocity.x, kit.player.velocity.z)
+		if flat.length() > 0.3:
+			samples += 1
+			worst_off = maxf(worst_off, absf(rad_to_deg(flat.angle_to(Vector2(diagonal.x, diagonal.z)))))
+	Input.action_release("move_forward")
+	kit.check("speeding up along a diagonal never curves the heading (worst %.2f degrees over %d frames, limit 1.5)" % [worst_off, samples], samples >= 6 and absf(worst_off) < 1.5, "worst %.2f over %d frames" % [worst_off, samples])
+
 	kit.finish()
+
+
+## A heading from the spawn with nothing solid within 1.6 m of the next 30 m (trees, rocks, houses, props, the pond),
+## preferring south; Vector3.ZERO if every heading is blocked.
+func _open_lane(kit: PlaytestKit) -> Vector3:
+	var blockers: Array[Vector3] = []
+	var radii: Array[float] = []
+	for tree in kit.nature.get_trees():
+		blockers.append(tree.global_position); radii.append(1.6)
+	for rock in kit.nature.get_rocks():
+		blockers.append(rock.global_position); radii.append(2.2)
+	for house in kit.village.houses:
+		blockers.append(house.global_position); radii.append(4.6)
+	for prop in kit.village.props:
+		blockers.append(prop.global_position); radii.append(1.8)
+	blockers.append(Vector3(kit.terrain.pond_center.x, 0.0, kit.terrain.pond_center.y)); radii.append(kit.terrain.pond_radius + 1.5)
+	for i in 16:
+		var step := ceili(i / 2.0) * (1 if i % 2 == 1 else -1)
+		var heading := Vector3.BACK.rotated(Vector3.UP, deg_to_rad(22.5 * step))
+		var clear := true
+		for b in blockers.size():
+			var along := clampf(blockers[b].dot(heading), 0.0, 30.0)
+			if blockers[b].distance_to(heading * along) < radii[b]:
+				clear = false
+				break
+		if clear:
+			return heading
+	return Vector3.ZERO
 
 
 func _reset(kit: PlaytestKit) -> void:

@@ -56,6 +56,9 @@ func _ready() -> void:
 	# 7 m/s otherwise hops off the ground for a frame) and keep speed on slopes.
 	floor_snap_length = 0.5
 	floor_constant_speed = true
+	# Walking almost head-on into a wall (within 15 degrees of its normal, the default) stops dead instead of
+	# sliding along it. Zero lets the player always slide (the village test walks 5 degrees off a wall; lesson 54).
+	wall_min_slide_angle = 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -80,8 +83,11 @@ func _physics_process(delta: float) -> void:
 	var speed := sprint_speed if wants_sprint() else walk_speed
 	var target := direction * speed
 
-	velocity.x = move_toward(velocity.x, target.x, acceleration * delta)
-	velocity.z = move_toward(velocity.z, target.z, acceleration * delta)
+	# Accelerate as a VECTOR toward the target velocity. Doing x and z separately made a diagonal heading
+	# curve while speeding up, which left a sideways slide along any wall that is not axis-aligned (lesson 54).
+	var flat_velocity := Vector2(velocity.x, velocity.z).move_toward(Vector2(target.x, target.z), acceleration * delta)
+	velocity.x = flat_velocity.x
+	velocity.z = flat_velocity.y
 	move_and_slide()
 	var flat := Vector2(velocity.x, velocity.z)
 	var forward := Vector2(-_body.global_transform.basis.z.x, -_body.global_transform.basis.z.z)

@@ -16,6 +16,8 @@ const SHOTS := {
 	"village/house1_interior": ["Player standing inside the first cottage facing the back wall; the camera is 3 m behind, just outside the door.", "Seen through the doorway: a plain room with a wooden floor, plain walls and the player facing the back wall. The room is dim because the roof shades it (intentional)."],
 	"village/house3_back": ["Behind the third cottage (pink walls, brown roof), looking at its back wall.", "Solid back wall with a roof overhang and the chimney; the ground is flat and grass reaches the wall."],
 	"village/well_and_lamps": ["Standing at (-12, 20) looking at the well in the plaza.", "Stone well with a small red roof, lamp posts with a warm glowing lantern, a bench, cobble ground that blends into grass."],
+	"village/ring_overview": ["Standing in the plaza (-20, 16) with a 30 m camera boom (screenshots only; the player's zoom stops at 8 m) at a steep -62 degree pitch, looking south.", "The plaza and well in the middle with cottages around it AND a ring of cottages further out, each with a dirt path to the plaza, a lamp post and a bench; open grass between the ring houses; nothing overlapping."],
+	"village/ring_house": ["Standing on the path in front of a ring cottage (south-east of the plaza), looking at its door from 5 m.", "A cottage with its own colours, a closed door, a dirt path running from the doorstep toward the plaza, a lamp post and a bench beside the path; no prop in front of the door."],
 	"village/notice_board": ["Standing south-west of the notice board at (-18.5, 10.8), camera aimed so the board is right of the player.", "The board is fully visible beside the capsule: two wooden posts and three pale notes; flat ground; nothing floating."],
 }
 
@@ -73,6 +75,14 @@ func _run() -> void:
 	# centre, the board sits to the right, and the lamp post (north-east of the board) is out of view.
 	await _frame(Vector3(-18.5, NAN, 10.8), Vector3(4, 0, -3.3).normalized(), 3.5, -10.0)
 	await _take("notice_board")
+
+	await _frame(Vector3(-20, NAN, 16), Vector3.BACK, 30.0, -62.0)
+	await _take("ring_overview")
+
+	var ring: House = kit.village.houses[3]
+	var in_front := ring.door_outside(5.0)
+	await _frame(Vector3(in_front.x, NAN, in_front.z), -ring.global_transform.basis.z, 4.5, -10.0)
+	await _take("ring_house")
 
 	print("SCREENSHOTS: %s/village/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()

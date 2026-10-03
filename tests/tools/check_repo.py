@@ -100,6 +100,23 @@ check("AGENTS.md section 13 marks step 6 done when interaction exists",
       not (ROOT / "scripts/interaction/door.gd").exists() or "6. Basic interaction ✅" in agents_md,
       "update the development order")
 
+# 8. Facts the docs state about the world must match the code (the landmarks table drifted once: lesson 53).
+terrain_src = read("scripts/world/terrain.gd")
+village_src = read("scripts/world/village.gd")
+size_match = re.search(r"@export var size: int = (\d+)", terrain_src)
+world_size = int(size_match.group(1)) if size_match else -1
+check("AGENTS.md landmarks state the terrain size", f"| Size | {world_size} × {world_size} m" in agents_md,
+      f"Terrain.size is {world_size}; update the 'Size' row in the landmarks table")
+check("AGENTS.md landmarks state the boundary wall faces", f"inner faces at x = ±{world_size // 2 - 2} and z = ±{world_size // 2 - 2}" in agents_md,
+      f"walls sit 2 m inside the edge: ±{world_size // 2 - 2}")
+houses_block = village_src.split("const HOUSES := [")[1].split("\n]")[0]
+house_count = len(re.findall(r"^\s*\[Vector2\(", houses_block, re.M))
+check("AGENTS.md landmarks state the number of cottages", f"| Cottages | {house_count} houses" in agents_md,
+      f"Village.HOUSES has {house_count} entries; update the 'Cottages' row")
+flat = re.search(r"@export var village_flat_radius: float = ([\d.]+)", terrain_src)
+check("AGENTS.md landmarks state the village flat radius", bool(flat) and f"flat (y = 0) within {int(float(flat.group(1)))} m" in agents_md,
+      "update the 'Village' row of the landmarks table")
+
 print(f"repo check: {passed} passed, {len(failures)} failed")
 for line in failures:
     print(line)

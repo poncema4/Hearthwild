@@ -52,7 +52,7 @@ signal rebuilt
 		village_center = value
 		_rebuild()
 ## Inside this radius the ground is perfectly flat (height 0) so buildings sit true.
-@export var village_flat_radius: float = 14.0:
+@export var village_flat_radius: float = 30.0:
 	set(value):
 		village_flat_radius = value
 		_rebuild()
