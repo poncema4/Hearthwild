@@ -14,10 +14,10 @@ extends Node3D
 
 @export var terrain_path: NodePath = ^"../Terrain"
 @export var scatter_seed: int = 11
-@export var tree_count: int = 90
-@export var rock_count: int = 45
-@export var grass_count: int = 18000
-@export var flower_count: int = 500
+@export var tree_count: int = 280
+@export var rock_count: int = 130
+@export var grass_count: int = 48000
+@export var flower_count: int = 1400
 ## No trees or rocks closer than this to the spawn point.
 @export var clear_radius: float = 11.0
 

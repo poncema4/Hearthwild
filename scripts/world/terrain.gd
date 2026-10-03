@@ -22,7 +22,7 @@ signal rebuilt
 		world_seed = value
 		_rebuild()
 ## Width and depth of the terrain in metres (square, centred on the origin).
-@export var size: int = 120:
+@export var size: int = 240:
 	set(value):
 		size = value
 		_rebuild()

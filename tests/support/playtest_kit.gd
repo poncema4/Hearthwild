@@ -18,7 +18,7 @@ extends RefCounted
 ##       kit.finish()
 ##
 ## Landmarks (fixed by seed): flat spawn clearing around (0, 0), pond at
-## kit.terrain.pond_center, boundary wall inner faces at x/z = +-58,
+## kit.terrain.pond_center, boundary wall inner faces at x/z = +-(terrain.half_size() - 2) = +-118,
 ## trees from kit.nature.get_trees().
 
 const WORLD_SCENE := "res://scenes/world/world.tscn"
