@@ -31,6 +31,7 @@ var spring_arm: SpringArm3D
 var terrain: Terrain
 var nature: NatureScatter
 var village: Village
+var day_night: DayNight
 var failures := 0
 
 
@@ -48,6 +49,11 @@ func load_world(settle_frames: int = 60) -> void:
 	terrain = world.get_node("Terrain")
 	nature = world.get_node("Nature")
 	village = world.get_node("Village")
+	# A running clock changes the light every frame, so tests freeze it at 10:00 (tests of the
+	# clock itself unpause it).
+	day_night = world.get_node("DayNight")
+	day_night.paused = true
+	day_night.set_time(10.0)
 	await physics_frames(settle_frames)
 
 
@@ -323,6 +329,57 @@ func _previous_image(topic: String, name: String) -> Dictionary:
 				if image:
 					return {"stamp": stamp, "image": image}
 	return {}
+
+
+## ---- Driving the player like a person (used by the soak bot and any playtester script) ----
+
+## Longest run of frames (so far) at under 1 m/s while driving, and where it was.
+var worst_stall := 0
+var worst_stall_at := ""
+var fell := false
+var takeoffs := 0
+var _drive_was_on_floor := true
+
+
+## Walks/sprints the real player toward `target` (Shift held, Space too if `jump`), steering
+## the camera every frame, until within `tolerance` metres. Returns false (and records a FAIL
+## line) if it gets stuck: it does not arrive within twice the expected time plus 2 s.
+func drive_to(target: Vector3, tolerance: float, jump: bool, label: String) -> bool:
+	Input.action_press("move_forward")
+	Input.action_press("sprint")
+	if jump:
+		Input.action_press("jump")
+	else:
+		Input.action_release("jump")
+	var cap := int(player.global_position.distance_to(target) / 4.0 * 60.0 * 2.0) + 120
+	var low := 0
+	for i in cap:
+		var offset := target - player.global_position
+		offset.y = 0.0
+		if offset.length() < tolerance:
+			return true
+		face(offset.normalized())
+		await physics_frames(1)
+		var on_floor := player.is_on_floor()
+		if _drive_was_on_floor and not on_floor:
+			takeoffs += 1
+		_drive_was_on_floor = on_floor
+		low = low + 1 if horizontal_speed() < 1.0 else 0
+		if low > worst_stall:
+			worst_stall = low
+			worst_stall_at = "on the way to %s at (%.1f, %.1f)" % [label, player.global_position.x, player.global_position.z]
+		if player.global_position.y < -1.0:
+			fell = true
+	check("reached %s" % label, false, "stuck: %.1f m away after %d frames, %s" % [
+			Vector2(target.x - player.global_position.x, target.z - player.global_position.z).length(), cap, where()])
+	return false
+
+
+## Releases the driving keys and lets the player come to rest.
+func stop_driving() -> void:
+	for action in ["move_forward", "sprint", "jump"]:
+		Input.action_release(action)
+	await physics_frames(20)
 
 
 ## Writes manifest.json into every topic folder this run touched.

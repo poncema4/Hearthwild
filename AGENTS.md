@@ -82,6 +82,8 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Nature (trees, rocks, grass, flowers) | Done | `scripts/world/nature_scatter.gd`, `scenes/world/nature/` |
 | Village: flat zone + plaza + dirt paths (terrain), 3 cottages, well, lamp posts, benches, notice board, fence | Done | `scripts/world/{village,house,village_props}.gd`, `terrain.gd` (`path_lines`, `in_village`), `world.tscn` (`Village`) |
 | Village tests (flat ground, doors walkable, walls/roofs/props solid, nature keeps out, path walkable) + 7 village screenshots | Done | `tests/functional/test_village.gd`, `tests/playtests/playtest_village.gd` |
+| Day/night cycle: 12-minute day, sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
+| Tests for it: clock, light, sun path, smoothness, signals, lamps, clock hands + 7 screenshots incl. a whole-day filmstrip | Done | `tests/functional/test_daynight.gd`, `tests/playtests/playtest_daynight.gd` |
 | Day lighting (sun, sky, fog, SSAO, glow) | Done | `scenes/world/world.tscn` (WorldEnvironment, Sun) |
 | Boundary walls + fall-out respawn | Done | `world.tscn` (Boundary), `player_controller.gd` |
 | Third-person player (walk, hold-Shift sprint, hold-Space repeat jumps, coyote time, floor snap, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
@@ -252,6 +254,11 @@ right after the village test), and the character and animation playtests (render
 prompt text, facing and range rules, E opens and closes the door, a door won't close on a player in the doorway,
 the notice board message. Character test: parts, size, grounding, big head, fadeable materials, species
 variety, outfits sit on sockets and fade. Animation test: see lesson 42.
+
+**Step 7 added two more (20 in all):** daynight test (headless; clock text, noon vs midnight light, sun path east to west,
+dusk colour, smoothness over the whole day, clock speed and wrap, pause, `night_started`/`day_started` exactly once, lamps,
+plaza clock hands, HUD clock) and the daynight playtest (rendered; 6 times of day plus a whole-day filmstrip). **Every step has
+a timeout** (`STEP_TIMEOUT`, default 600 s): a hung Godot fails the step. The test kit freezes the clock at 10:00 on load.
 
 After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
 result) and regenerates `qa_output/INDEX.md`.
@@ -663,7 +670,9 @@ NEXT RECOMMENDED STEP
 4. Small 3D environment ✅ (meadow, nature, lighting)
 5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths)
 6. Basic interaction ✅ (E key, doors, notice board) + the dog character
-7. Day/night system
+7. Day/night system ✅ (sun, moon, dusk, lamps, clocks; tests freeze the clock at 10:00)
+7a. Character select (pick your animal), outfit swap screen, name tag over the head (Steam name later, via a small `PlayerProfile` interface)
+7b. Fishing (the pond now; the ocean when the world has one)
 8. Sleep system
 9. Basic zombie
 10. Zombie AI
@@ -739,7 +748,8 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 42 | The jump pose kicked the legs BACKWARD and folded the arms ACROSS the body, and my first test (`leg_angles().x < -0.3`) enshrined the bug as correct | A hanging limb swings FORWARD with a POSITIVE rotation.x, and an arm on the +X side goes OUTWARD with a POSITIVE rotation.z; I had both signs reversed, and an angle test agrees with whatever sign the code uses | Animation is tested by GEOMETRY: where the feet and hands are, in model space (feet ahead of the hips and arms out in the air, the arm opposite the forward foot forward, planted foot barely sliding, no joint change over 0.35 rad or limb move over 0.2 m per frame). The conventions are written at the top of `animal_model.gd`. Look at a front view for arms (a side view hides them). 13 controls prove it |
 | 43 | The walk filmstrip showed eight nearly identical thumbnails | The animation ran in `_process`; under a slow renderer several physics frames pass per rendered frame, so the animation froze or ran at the wrong speed while the movement (and the filmstrip clock) ran on the physics tick. It would also make animation speed depend on the player's frame rate | Gameplay-driven animation runs in `_physics_process`, in lockstep with the movement it shows; `test_animation.gd` asserts `is_physics_processing()`. When a filmstrip looks frozen, check the tick it runs on before blaming the pose |
 | 44 | Reviews were expensive and repetitive: Sage spent most of its ~120k tokens finding drift a script can find (a test missing from the README, a stale "11 steps", a lesson cited but not written), Warden re-ran what the lead had just run, and "random stops" reached the player because only a human had ever played a full route | Hygiene and route-walking were left to paid agents | `tests/tools/check_repo.py` is the runner's first step (8 controls prove it, one caught a bug in itself: a substring match that could never fail); `test_soak.gd` is a bot that plays a route with held keys and fails on any stall (2 controls); `review_pack.py` briefs agents with only the diff, the changed images and the agents needed; Warden is skipped when the lead's own both-renderer run is green. Sage is told never to report what the repo check covers |
-| 45 | Sage proved by mutation that the coyote-time check passed with coyote shortened to one frame (floor snap pulled the lifted player back down and faked the pass), that the cone, range, close-box and board position checks only tested the dead-centre case, that fade-on-equip was only tested in one order, and that a deferred collision write could leave a snapped door walk-through. Animator found a sprint-reversal moonwalk. Hawkeye found a 2 px gap beside the door leaf | Controls broke one thing at a time but my CHECKS still only visited the happy case; a second setting (floor snap) masked the first; a signed quantity was tested by magnitude | For every rule with a number (range, angle, window, box size) test BOTH sides of its edge; when two settings overlap, defeat the other in the test (lift the player above the snap length); test order-dependent features in both orders; test signed quantities with their sign. 12 more controls prove it. Sage's fixes cost the same round as the finding: expect the second tier of weakness after the first |
+| 45 | Sage proved by mutation that the coyote-time check passed with coyote shortened to one frame (floor snap pulled the lifted player back down and faked the pass), that the cone, range, close-box and board position checks only tested the dead-centre case, that fade-on-equip was only tested in one order, and that a deferred collision write could leave a snapped door walk-through. Animator found a sprint-reversal moonwalk. Hawkeye found a 2 px gap beside the door leaf | Controls broke one thing at a time but my CHECKS still only visited the happy case; a second setting (floor snap) masked the first; a signed quantity was tested by magnitude | For every rule with a number (range, angle, window, box size) test BOTH sides of its edge, with probe points tight against the REAL edge (measure where it is first: night really starts near 5:45 PM, so probes at 5 PM and 7 PM let a threshold of 0.1 or 0.9 pass); when two settings overlap, defeat the other in the test (lift the player above the snap length); test order-dependent features in both orders; test signed quantities with their sign. 12 more controls prove it. Sage's fixes cost the same round as the finding: expect the second tier of weakness after the first |
+| 46 | A parse error in one script made a Godot run hang for 6 minutes and orphaned a process; a regex rename in the soak test rewrote words inside strings ("never kit.fell through"); a lamp light reused a variable name (`glow`) and broke every test that loaded the village; a signal test counted an event its own setup fired | No per-step timeout; a mechanical text rewrite without reading the diff; no unique-name check before pasting code; counters connected before the state was settled | Every runner step has a timeout (a hang = a failed step). Review the diff after any scripted rename. Run a quick `godot --headless --import` (it prints parse errors) right after editing a script. Settle state BEFORE connecting counters in a signal test. Kill stray Godots by PID, never `pkill -f` with a pattern that matches your own shell |
 
 ### 14.2 What worked (keep doing)
 
@@ -777,3 +787,4 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **A script for every repeatable review finding** (`check_repo.py`) | Drift found once is found forever for free; it even found a stale "17" in its own PR |
 | **A bot that plays a route with held keys** (`test_soak.gd`, 1.7 s) | Catches "it randomly stops" and dead doors with no agent and no human |
 | **A generated review pack** | Agents start with the diff and the changed images instead of exploring |
+| **Contact sheets and whole-day filmstrips as the first look** | One image of six times of day or a 24-hour cycle shows lighting problems and smoothness at a glance, before any agent is paid |

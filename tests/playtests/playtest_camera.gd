@@ -17,8 +17,8 @@ const SHOTS := {
 		"Meadow with trees; the pond may be out of frame; no clipping."],
 	"toward_forest": ["Camera turned west toward the forest edge.",
 		"Soft shadows on hills; trees on the slope; bright foreground; hill shading not gloomy."],
-	"overview": ["Camera zoomed out to 8 m at -60 deg pitch (near top-down).",
-		"Player small in the clearing, grass and flowers around, rocks/trees at the edges; no black patches."],
+	"overview": ["Camera zoomed out to 8 m at -35 deg pitch (a high view), turned toward the village.",
+		"Player small in the clearing, the dirt path leading away toward the village, hills and sky at the top, grass and flowers around; no black patches."],
 	"against_wall": ["Player backed into the east boundary wall; the camera arm is squeezed to ~0.2 m.",
 		"The player's body has faded out; the whole valley, pond and trees are visible; nothing covers the view."],
 }
@@ -110,8 +110,8 @@ func _run() -> void:
 	await kit.physics_frames(3)
 	await _screenshot("toward_forest")
 	arm.spring_length = rig.max_distance
-	pitch.rotation.x = deg_to_rad(rig.min_pitch_degrees)
-	rig.rotation.y = PI * 0.25
+	pitch.rotation.x = deg_to_rad(-35.0)  # high, but with the hills and sky in frame: a flat top-down meadow is always borderline (lesson 35)
+	kit.face(Vector3(-20, 0, 14).normalized())  # toward the village: the dirt path gives the frame real variety (lesson 35)
 	await kit.physics_frames(3)
 	await _screenshot("overview")
 	arm.spring_length = 4.0
