@@ -65,6 +65,7 @@ func _build() -> void:
 	for sign_x in [-1.0, 1.0]:
 		for sign_z in [-1.0, 1.0]:
 			_place(VillageProps.lamp_post(), Vector2(sign_x * 3.9, sign_z * 3.9), 0.0)
+	_place(VillageProps.clock_post(), Vector2(4.6, 2.6), -119.5)  # faces the well
 	_place(VillageProps.bench(), Vector2(0, 6), 180.0)
 	_place(VillageProps.bench(), Vector2(-6, 5), 90.0)
 	var board := _place(VillageProps.notice_board(), Vector2(3.2, -6.5), 0.0)

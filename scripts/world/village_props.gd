@@ -29,6 +29,47 @@ static func lamp_post() -> Node3D:
 	glow.emission_energy_multiplier = 1.6
 	lantern.material_override = glow
 	_collider(body, "PostCollision", Vector3(0.3, 3.0, 0.3), Vector3(0, 1.5, 0))
+	# The lantern really lights up after dark: DayNight sets the energy of every `night_light`.
+	var night_light := OmniLight3D.new()
+	night_light.name = "NightLight"
+	night_light.position = Vector3(0.4, 2.7, 0)
+	night_light.omni_range = 8.0
+	night_light.light_color = Color(1.0, 0.78, 0.45)
+	night_light.light_energy = 0.0
+	night_light.shadow_enabled = false
+	night_light.visible = false
+	night_light.add_to_group(&"night_light")
+	root.add_child(night_light)
+	return root
+
+
+## A clock post: the hands are driven by WorldClock from the game time.
+static func clock_post() -> Node3D:
+	var root := WorldClock.new()
+	root.name = "Clock"
+	var body := _body(root)
+	_box(body, "Post", Vector3(0.28, 2.6, 0.28), Vector3(0, 1.3, 0), DARK_WOOD)
+	_box(body, "Base", Vector3(0.6, 0.25, 0.6), Vector3(0, 0.125, 0), STONE)
+	var rim := _cylinder(body, "Rim", 0.62, 0.14, Vector3(0, 2.65, 0.05), DARK_WOOD, false)
+	rim.rotation = Vector3(deg_to_rad(90), 0, 0)
+	var face := _cylinder(body, "Face", 0.54, 0.16, Vector3(0, 2.65, 0.06), Color(0.97, 0.94, 0.85), false)
+	face.rotation = Vector3(deg_to_rad(90), 0, 0)
+	for i in 4:  # ticks at 12, 3, 6 and 9
+		var angle := deg_to_rad(i * 90.0)
+		_box(body, "Tick", Vector3(0.06, 0.12, 0.03), Vector3(sin(angle) * 0.44, 2.65 + cos(angle) * 0.44, 0.15), IRON)
+	for hand in [["HourHand", 0.3, 0.07], ["MinuteHand", 0.44, 0.05]]:
+		var pivot := Node3D.new()
+		pivot.name = hand[0]
+		pivot.position = Vector3(0, 2.65, 0.17)
+		root.add_child(pivot)
+		var blade := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(hand[2], hand[1], 0.03)
+		blade.mesh = mesh
+		blade.material_override = _material(IRON)
+		blade.position = Vector3(0, hand[1] * 0.5, 0)
+		pivot.add_child(blade)
+	_collider(body, "ClockCollision", Vector3(0.4, 2.6, 0.4), Vector3(0, 1.3, 0))
 	return root
 
 

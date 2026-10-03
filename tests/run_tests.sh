@@ -47,8 +47,12 @@ run_step() {
 	echo "=== $name"
 	local log
 	log="$(mktemp)"
-	"$@" 2>&1 | tee "$log"
+	# A hung Godot (e.g. after a parse error) must fail the step, not freeze the run: lesson 46.
+	timeout -k 10 "${STEP_TIMEOUT:-600}" "$@" 2>&1 | tee "$log"
 	local code=${PIPESTATUS[0]}
+	if [[ $code -eq 124 || $code -eq 137 ]]; then
+		echo "!!! $name: TIMED OUT after ${STEP_TIMEOUT:-600} s (a hung Godot; lesson 46)"
+	fi
 	if grep -qE "SCRIPT ERROR|^ERROR:|Parse Error|Failed to load" "$log"; then
 		echo "!!! $name: errors in output"
 		code=1
@@ -76,6 +80,7 @@ run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res
 run_step "interaction test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_interaction.gd
 run_step "character test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_character.gd
 run_step "soak test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_soak.gd
+run_step "daynight test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_daynight.gd
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
@@ -105,6 +110,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "animation playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_animation.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "daynight playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_daynight.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else
@@ -115,6 +123,7 @@ else
 	echo "=== village playtest: SKIPPED (--headless-only)"
 	echo "=== character playtest: SKIPPED (--headless-only)"
 	echo "=== animation playtest: SKIPPED (--headless-only)"
+	echo "=== daynight playtest: SKIPPED (--headless-only)"
 	echo "=== qa index: NOT regenerated (--headless-only)"
 fi
 

@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/world/terrain.gd" id="1_terrain"]
 [ext_resource type="Script" path="res://scripts/world/nature_scatter.gd" id="2_scatter"]
 [ext_resource type="Script" path="res://scripts/world/village.gd" id="4_village"]
+[ext_resource type="Script" path="res://scripts/world/day_night.gd" id="5_daynight"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_day"]
@@ -57,6 +58,9 @@ shadow_blur = 1.6
 shadow_opacity = 0.68
 directional_shadow_blend_splits = true
 directional_shadow_max_distance = 110.0
+
+[node name="DayNight" type="Node3D" parent="."]
+script = ExtResource("5_daynight")
 
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("1_terrain")

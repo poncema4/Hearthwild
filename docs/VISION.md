@@ -55,3 +55,13 @@ COZY (day)  →  ALIVE (evening)  →  DANGEROUS (night)  →  RELIEF (morning)
 - Not a hardcore survival sim (no hunger micromanagement stress by default).
 - Not first-person.
 - Not photorealistic.
+
+## Ideas from the player (Marco, 2026-10-03)
+
+- **Character select:** when the game starts, pick your animal (dog first, more species later), then dress them up in an
+  outfit-swap screen. The player's **name floats over their head** (their Steam username once Steam is connected; until
+  then a local profile name). Publishing on Steam is the goal; the Steam connection itself can come later.
+- **Fishing:** fish from the water (the pond now, the ocean when the world has one).
+- **Time:** a visible sun and moon that really move, realistic dimming at dusk and brightening at dawn (done: day/night),
+  clocks you can read (HUD and plaza clock done; a craftable pocket watch when crafting exists).
+

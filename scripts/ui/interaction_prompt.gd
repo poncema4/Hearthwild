@@ -10,6 +10,7 @@ var _prompt_label: Label
 var _message_panel: PanelContainer
 var _message_label: Label
 var _message_timer: Timer
+var _clock: Label
 
 
 func _ready() -> void:
@@ -46,10 +47,27 @@ func _ready() -> void:
 	_message_panel.add_child(_message_label)
 	_message_panel.visible = false
 
+	_clock = Label.new()
+	_clock.position = Vector2(20, 14)
+	_clock.add_theme_font_size_override("font_size", 24)
+	_clock.add_theme_color_override("font_color", Color(1, 1, 1))
+	_clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_clock.add_theme_constant_override("outline_size", 6)
+	root.add_child(_clock)
+
 	_message_timer = Timer.new()
 	_message_timer.one_shot = true
 	_message_timer.timeout.connect(func(): _message_panel.visible = false)
 	add_child(_message_timer)
+
+
+func _process(_delta: float) -> void:
+	var clock := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	_clock.text = clock.clock_text() if clock else ""
+
+
+func clock_text() -> String:
+	return _clock.text
 
 
 ## Shows "[E] <text>" at the bottom of the screen; empty text hides it.
