@@ -80,6 +80,9 @@ run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res
 run_step "interaction test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_interaction.gd
 run_step "character test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_character.gd
 run_step "soak test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_soak.gd
+run_step "profile test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_profile.gd
+run_step "creator test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_creator.gd
+run_step "fishing test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_fishing.gd
 run_step "daynight test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_daynight.gd
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 
@@ -113,6 +116,12 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "daynight playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_daynight.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "creator playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_creator.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "fishing playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_fishing.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else
@@ -124,6 +133,8 @@ else
 	echo "=== character playtest: SKIPPED (--headless-only)"
 	echo "=== animation playtest: SKIPPED (--headless-only)"
 	echo "=== daynight playtest: SKIPPED (--headless-only)"
+	echo "=== creator playtest: SKIPPED (--headless-only)"
+	echo "=== fishing playtest: SKIPPED (--headless-only)"
 	echo "=== qa index: NOT regenerated (--headless-only)"
 fi
 

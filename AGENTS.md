@@ -82,6 +82,9 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Nature (trees, rocks, grass, flowers) | Done | `scripts/world/nature_scatter.gd`, `scenes/world/nature/` |
 | Village: flat zone + plaza + dirt paths (terrain), 3 cottages, well, lamp posts, benches, notice board, fence | Done | `scripts/world/{village,house,village_props}.gd`, `terrain.gd` (`path_lines`, `in_village`), `world.tscn` (`Village`) |
 | Village tests (flat ground, doors walkable, walls/roofs/props solid, nature keeps out, path walkable) + 7 village screenshots | Done | `tests/functional/test_village.gd`, `tests/playtests/playtest_village.gd` |
+| Character screen (first launch + F2): pick dog / cat / bunny, dress 5 slots from a 7-item wardrobe, name over the head (Steam name hook), live 3D preview; saved profile (name, animal, outfit, fishing journal) in `user://profile.json` | Done | `scripts/ui/character_creator.gd`, `scripts/player/{player_profile,outfits,animal_species}.gd` |
+| Fishing: 4 spots round the pond, cast / wait / bite / reel, day and night fish, rare fish and junk, journal, rod and arm pose | Done | `scripts/world/{fishing_spot,fishing_pond,fish_catalog}.gd`, `animal_model.gd` |
+| Tests for them: profile, creator, fishing, species animation + creator and fishing playtests (panel fits the window, bobber on screen) | Done | `tests/functional/test_{profile,creator,fishing}.gd`, `tests/playtests/playtest_{creator,fishing}.gd` |
 | Day/night cycle: 12-minute day, sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
 | Tests for it: clock, light, sun path, smoothness, signals, lamps, clock hands + 7 screenshots incl. a whole-day filmstrip | Done | `tests/functional/test_daynight.gd`, `tests/playtests/playtest_daynight.gd` |
 | Day lighting (sun, sky, fog, SSAO, glow) | Done | `scenes/world/world.tscn` (WorldEnvironment, Sun) |
@@ -259,6 +262,11 @@ variety, outfits sit on sockets and fade. Animation test: see lesson 42.
 dusk colour, smoothness over the whole day, clock speed and wrap, pause, `night_started`/`day_started` exactly once, lamps,
 plaza clock hands, HUD clock) and the daynight playtest (rendered; 6 times of day plus a whole-day filmstrip). **Every step has
 a timeout** (`STEP_TIMEOUT`, default 600 s): a hung Godot fails the step. The test kit freezes the clock at 10:00 on load.
+
+**Steps 7a/7b added five more (25 in all):** profile test, creator test, fishing test (headless) and the creator and
+fishing playtests (rendered). The creator playtest also checks that the whole panel fits the window and that the mouse is
+captured after Start; the fishing playtest checks the bobber, line and ! project onto the screen. `test_animation` now also
+runs the cat and the bunny through the walk and jump geometry.
 
 After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
 result) and regenerates `qa_output/INDEX.md`.
@@ -446,6 +454,7 @@ The goal is near-zero false positives at low token cost. These rules are in ever
 - **Must not:** edit project files (propose fixes, don't make them); report a
   problem it didn't reproduce; report "everything works" without listing
   exactly what was exercised.
+- **Cheap routes:** use `PlaytestKit.drive_to` / `stop_driving` (the soak bot's engine) instead of writing walking loops; see the Scout file.
 
 ### 9.4 Hawkeye: visual QA (`hawkeye`)
 
@@ -671,8 +680,8 @@ NEXT RECOMMENDED STEP
 5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths)
 6. Basic interaction ✅ (E key, doors, notice board) + the dog character
 7. Day/night system ✅ (sun, moon, dusk, lamps, clocks; tests freeze the clock at 10:00)
-7a. Character select (pick your animal), outfit swap screen, name tag over the head (Steam name later, via a small `PlayerProfile` interface)
-7b. Fishing (the pond now; the ocean when the world has one)
+7a. Character select (pick your animal), outfit swap screen, name tag over the head ✅ (Steam name later: `PlayerProfile.steam_name()`)
+7b. Fishing ✅ (the pond now; the ocean when the world has one)
 8. Sleep system
 9. Basic zombie
 10. Zombie AI
@@ -750,6 +759,9 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 44 | Reviews were expensive and repetitive: Sage spent most of its ~120k tokens finding drift a script can find (a test missing from the README, a stale "11 steps", a lesson cited but not written), Warden re-ran what the lead had just run, and "random stops" reached the player because only a human had ever played a full route | Hygiene and route-walking were left to paid agents | `tests/tools/check_repo.py` is the runner's first step (8 controls prove it, one caught a bug in itself: a substring match that could never fail); `test_soak.gd` is a bot that plays a route with held keys and fails on any stall (2 controls); `review_pack.py` briefs agents with only the diff, the changed images and the agents needed; Warden is skipped when the lead's own both-renderer run is green. Sage is told never to report what the repo check covers |
 | 45 | Sage proved by mutation that the coyote-time check passed with coyote shortened to one frame (floor snap pulled the lifted player back down and faked the pass), that the cone, range, close-box and board position checks only tested the dead-centre case, that fade-on-equip was only tested in one order, and that a deferred collision write could leave a snapped door walk-through. Animator found a sprint-reversal moonwalk. Hawkeye found a 2 px gap beside the door leaf | Controls broke one thing at a time but my CHECKS still only visited the happy case; a second setting (floor snap) masked the first; a signed quantity was tested by magnitude | For every rule with a number (range, angle, window, box size) test BOTH sides of its edge, with probe points tight against the REAL edge (measure where it is first: night really starts near 5:45 PM, so probes at 5 PM and 7 PM let a threshold of 0.1 or 0.9 pass); when two settings overlap, defeat the other in the test (lift the player above the snap length); test order-dependent features in both orders; test signed quantities with their sign. 12 more controls prove it. Sage's fixes cost the same round as the finding: expect the second tier of weakness after the first |
 | 46 | A parse error in one script made a Godot run hang for 6 minutes and orphaned a process; a regex rename in the soak test rewrote words inside strings ("never kit.fell through"); a lamp light reused a variable name (`glow`) and broke every test that loaded the village; a signal test counted an event its own setup fired | No per-step timeout; a mechanical text rewrite without reading the diff; no unique-name check before pasting code; counters connected before the state was settled | Every runner step has a timeout (a hang = a failed step). Review the diff after any scripted rename. Run a quick `godot --headless --import` (it prints parse errors) right after editing a script. Settle state BEFORE connecting counters in a signal test. Kill stray Godots by PID, never `pkill -f` with a pattern that matches your own shell |
+| 47 | The first fishing screenshots showed no bobber, line or ! although the tests proved they existed and were `visible`; the first character screen had a Start button below the bottom of the window | `visible` is not "can be seen": the bobber was 13 cm across, 7 m from the camera and behind the character; the panel was taller than 720 px and no headless test has a window | Anything the player must SEE gets an on-screen check in the windowed playtest: project its position with `unproject_position` (inside the viewport, in front of the camera) and make it big enough; a panel's rect must be enclosed by the window rect. Then LOOK at the image. Bobber 0.24 m, line 2.8 cm, "!" 0.8 m up |
+| 48 | A method named `set_name` silently clashed with `Node.set_name` and failed to parse; a cast distance guessed at 5 m would have landed on dry ground (the pond's "radius 8" is the bowl the hills flatten into, the visible waterline is 4.2 m) | Guessing a number the world answers; reusing a name from the engine's API | Probe the real world before placing things (a 20-line script that prints waterline, tree clearance and slope per angle placed 4 spots correctly the first time). Do not name methods like `Node`'s (`set_name`, `get_name`, `free`); `enter_name` instead |
+| 49 | Reviewers found bugs that only appear when something CHANGES while in a state: changing animal mid-cast rebuilt the model and orphaned the fishing rod (an engine error, then arms out holding nothing); the tail whipped whenever the walk blend changed (the wag frequency was blended inside `sin(time * freq)`, so the phase jumped, worse as the game ran longer); a rod made while the body was faded stayed opaque; a profile with a `null` in it crashed the loader and silently reset the player; a fishing test on seeds 1-10 never saw a short wait because consecutive seeds give similar first rolls | Every test started from a clean state and moved forward; nothing rebuilt, faded, interrupted or corrupted a thing already in progress | Test TRANSITIONS: rebuild/switch/fade/cancel while in each state (cast, fishing pose, faded, outfit worn), and damage every field of saved data with null, a list and text. Accumulate phases, never multiply time by a changing frequency. Use widely spread seeds (`i * 7919 + 13`). Measure timers over many samples and assert both ends of the range |
 
 ### 14.2 What worked (keep doing)
 
@@ -788,3 +800,5 @@ in 14.2, so agents repeat them. Agents read both before working.
 | **A bot that plays a route with held keys** (`test_soak.gd`, 1.7 s) | Catches "it randomly stops" and dead doors with no agent and no human |
 | **A generated review pack** | Agents start with the diff and the changed images instead of exploring |
 | **Contact sheets and whole-day filmstrips as the first look** | One image of six times of day or a 24-hour cycle shows lighting problems and smoothness at a glance, before any agent is paid |
+| **Probe scripts that print the real world's numbers** (waterline, clearance, slope per angle) before placing anything | Four fishing spots worked first time and the cast distance was measured, not guessed (lesson 48) |
+| **Looking at every new screenshot before dispatching agents** | Found the back-view preview, the clipped name tag, the cut-off Start button and the invisible bobber in two renders, for free |

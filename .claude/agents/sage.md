@@ -89,6 +89,8 @@ checks that cannot fail (prove by mutation in /tmp), logic and engine traps, and
   coupling between files (house position and its door link) has its own assertion (lesson 39). Prove it by mutation in /tmp.
 - An animation test that asserts joint ANGLES agrees with whatever sign the code uses; it must measure where feet and
   hands are (lesson 42). A setting added without a control that proves it matters is a finding (lesson 41).
+- Timers and random waits are measured over MANY widely spread seeds, both ends of the range (consecutive seeds correlate), and
+  every saved field is attacked with null, a list and text (lesson 49). Test transitions: rebuild, switch and cancel while in each state.
 - Every rule with a number (range, angle, window, box) needs a test on BOTH sides of its edge, and when two settings
   overlap (coyote time vs floor snap) the test must defeat the other (lesson 45). Signed quantities are tested with their sign.
 - A threshold that guards against "flat or empty" must never be loosened to make a borderline shot pass; the

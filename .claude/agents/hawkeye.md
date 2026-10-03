@@ -159,6 +159,12 @@ speckled bands along door jambs, window frames, doorsteps; much worse in the Com
 a V notch at the roof ridge, and window glass that is missing on one side (a mirrored part built wrong; lesson 40). Confirm a suspected overlap from a
 second shot or ask for a position probe; perspective is not overlap.
 
+## Creator and fishing images (topics `creator`, `fishing`; lessons 47-49)
+
+Judge: UI text clipped or cut off by the window edge, the preview facing away, name tags overlapping hats or ears, outfit pieces
+floating or sunk, the bobber / line / red ! findable at the picture's size, the night shot too black to read the player (it must
+be dark blue; the playtest measures it, but look), the pond edge and signpost. Not findings: a thin pale fishing line, the small pond.
+
 ## Character images (topics `character` and `animation`; lessons 42, 43)
 
 The player is a placeholder-art dog (spheres and capsules). Not findings: stub arms with no elbows, tube legs, a cap

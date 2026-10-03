@@ -32,6 +32,11 @@ var terrain: Terrain
 var nature: NatureScatter
 var village: Village
 var day_night: DayNight
+var creator: CharacterCreator
+var fishing: FishingPond
+
+## Tests never touch the player's real profile.
+const TEST_PROFILE_PATH := "user://hw_test_world_profile.json"
 var failures := 0
 
 
@@ -41,7 +46,14 @@ func _init(scene_tree: SceneTree) -> void:
 
 ## Loads the world and waits for the player to land.
 func load_world(settle_frames: int = 60) -> void:
+	PlayerProfile.save_path = TEST_PROFILE_PATH
+	PlayerProfile.reset_current()
+	if FileAccess.file_exists(TEST_PROFILE_PATH):
+		DirAccess.remove_absolute(TEST_PROFILE_PATH)
 	world = load(WORLD_SCENE).instantiate()
+	# The character screen would cover every test on a first launch: switch it off before it
+	# looks at the world (it decides on the first idle frame, after this line).
+	(world.get_node("CharacterCreator") as CharacterCreator).enabled = false
 	tree.root.add_child(world)
 	player = world.get_node("Player")
 	camera_rig = player.get_node("CameraRig")
@@ -54,6 +66,8 @@ func load_world(settle_frames: int = 60) -> void:
 	day_night = world.get_node("DayNight")
 	day_night.paused = true
 	day_night.set_time(10.0)
+	creator = world.get_node("CharacterCreator")
+	fishing = world.get_node("Fishing")
 	await physics_frames(settle_frames)
 
 
