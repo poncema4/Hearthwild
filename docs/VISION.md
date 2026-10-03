@@ -70,7 +70,9 @@ COZY (day)  →  ALIVE (evening)  →  DANGEROUS (night)  →  RELIEF (morning)
   HP), but a mob standing where the sun cannot reach (shade, caves, indoors) survives the day. The player has HP too.
   Weapons come later.
 - **A bigger world for multiplayer:** a much larger world and village with room for many players and other jobs.
-- **A shared screen:** a big screen in the village where players paste a YouTube link and watch together (needs
-  multiplayer sync; build the place first, the playback later).
+- **A shared screen (the place is done, step 10):** a big screen in the village where players paste a YouTube link and
+  watch together. The place, seating and the paste box exist and only remember the chosen video id; the playback itself
+  needs multiplayer sync (`SharedScreen.url_changed` is the hook). A real player (WebView or video stream) is a later
+  decision.
 - **A realistic lake:** a bigger shoreline with depth, ripples and reflections for fishing.
 - **Better UI/UX:** HUD, prompts and menus polished for real players (hotbar and health bar come with combat).
