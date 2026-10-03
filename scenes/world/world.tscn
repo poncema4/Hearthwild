@@ -67,7 +67,7 @@ script = ExtResource("5_daynight")
 
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("1_terrain")
-path_lines = Array[PackedVector2Array]([PackedVector2Array(0, 0, -6, 2, -12, 6.5, -16, 9.5, -20, 14), PackedVector2Array(-25.6, 12, -20, 14), PackedVector2Array(-14.4, 13, -20, 14), PackedVector2Array(-20, 7.4, -20, 14)])
+path_lines = Array[PackedVector2Array]([PackedVector2Array(0, 0, -6, 2, -12, 6.5, -16, 9.5, -20, 14), PackedVector2Array(-25.6, 12, -20, 14), PackedVector2Array(-14.4, 13, -20, 14), PackedVector2Array(-20, 7.4, -20, 14), PackedVector2Array(-2.14, 24.3, -20, 14), PackedVector2Array(-14.68, 33.92, -20, 14), PackedVector2Array(-30.3, 31.86, -20, 14), PackedVector2Array(-39.4, 21.04, -20, 14), PackedVector2Array(-33.22, -1.79, -20, 14)])
 
 [node name="Nature" type="Node3D" parent="."]
 script = ExtResource("2_scatter")

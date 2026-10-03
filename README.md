@@ -12,10 +12,11 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 
 | Feature | What you get |
 |---|---|
+| **Village** | Eight cottages: three round a cobbled plaza with a well, lamps, clock and notice board, and five more in a ring, each with its own dirt path, lamp post and bench |
 | **Meadow world** | A 240 × 240 m valley (four times the area, room for many players) with rolling hills, a ring of taller hills around the edge, a pond, and a flat clearing where you spawn |
 | **Nature** | 90 trees (round and pine), 45 rocks, thousands of grass tufts and wildflowers, in a soft low-poly style |
 | **Daytime lighting** | Warm sun with shadows, soft sky, gentle fog for depth, ambient occlusion and glow |
-| **Village** | A flat village green at the north-west with a cobble plaza, a well, three cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
+| **Village** | A flat village green at the north-west with a cobble plaza, a well, eight cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
 | **Your character** | A cute dog with big eyes, floppy ears and a wagging tail, animated as you move (walk, sprint, jump), ready for outfits (a cap and a scarf are in) and for more animals later |
 | **Third-person player** | Walk, hold Shift to sprint, hold Space to keep hopping; trees, rocks and walls are solid; fall out of the world and you respawn |
 | **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |

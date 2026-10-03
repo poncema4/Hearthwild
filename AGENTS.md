@@ -80,12 +80,13 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | World scene (the one main world) | Done | `scenes/world/world.tscn` |
 | Meadow terrain (hills, hill ring, spawn clearing, pond) | Done | `scripts/world/terrain.gd` |
 | Nature (trees, rocks, grass, flowers) | Done | `scripts/world/nature_scatter.gd`, `scenes/world/nature/` |
-| Village: flat zone + plaza + dirt paths (terrain), 3 cottages, well, lamp posts, benches, notice board, fence | Done | `scripts/world/{village,house,village_props}.gd`, `terrain.gd` (`path_lines`, `in_village`), `world.tscn` (`Village`) |
+| Village: flat zone + plaza + dirt paths (terrain), 8 cottages, well, lamp posts, benches, notice board, fence | Done | `scripts/world/{village,house,village_props}.gd`, `terrain.gd` (`path_lines`, `in_village`), `world.tscn` (`Village`) |
 | Village tests (flat ground, doors walkable, walls/roofs/props solid, nature keeps out, path walkable) + 7 village screenshots | Done | `tests/functional/test_village.gd`, `tests/playtests/playtest_village.gd` |
 | Character screen (first launch + F2): pick dog / cat / bunny, dress 5 slots from a 7-item wardrobe, name over the head (Steam name hook), live 3D preview; saved profile (name, animal, outfit, fishing journal) in `user://profile.json` | Done | `scripts/ui/character_creator.gd`, `scripts/player/{player_profile,outfits,animal_species}.gd` |
 | Fishing: 4 spots round the pond, cast / wait / bite / reel, day and night fish, rare fish and junk, journal, rod and arm pose | Done | `scripts/world/{fishing_spot,fishing_pond,fish_catalog}.gd`, `animal_model.gd` |
 | Tests for them: profile, creator, fishing, species animation + creator and fishing playtests (panel fits the window, bobber on screen) | Done | `tests/functional/test_{profile,creator,fishing}.gd`, `tests/playtests/playtest_{creator,fishing}.gd` |
 | Bigger world: 240 m square terrain, boundary walls at its edge (group `boundary`), 280 trees / 130 rocks / 48,000 grass; checked by the terrain test (size, walls by ray, trees past 70 m, none outside) | Done | `terrain.gd`, `nature_scatter.gd`, `world.tscn` (Boundary) |
+| Bigger village: 8 cottages (3 at the plaza, 5 in a ring 24 m out), a dirt path from every door to the plaza, ring lamp posts and benches placed on free spots, flat zone 30 m; the player accelerates as a vector and always slides along walls | Done | `village.gd`, `terrain.gd`, `world.tscn` (path_lines), `player_controller.gd` |
 | Day/night cycle: 20-minute day (about 10 minutes of night), sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
 | Tests for it: clock, light, sun path, smoothness, signals, lamps, clock hands + 7 screenshots incl. a whole-day filmstrip | Done | `tests/functional/test_daynight.gd`, `tests/playtests/playtest_daynight.gd` |
 | Sleep: a bed in every cottage (solid, off the door lane), E at night: the character slides onto the bed and lies down, fade to black, the clock (paused the whole time) runs to 6:30 AM, the character stands beside the bed under the black screen, fade in; lying pose with Zzz; `fell_asleep`/`woke_up` signals | Done | `scripts/world/{bed,sleep_system}.gd`, `house.gd`, `animal_model.gd`, `player_controller.gd`, `world.tscn` (SleepSystem) |
@@ -117,14 +118,14 @@ the real world, so what Marco sees in the editor is exactly what's tested.
 
 | Landmark | Where |
 |---|---|
-| Size | 120 × 120 m, centred on the origin (`Terrain.size`) |
+| Size | 240 × 240 m, centred on the origin (`Terrain.size`) |
 | Spawn | (0, 1, 0), camera facing −Z; flat clearing within ~4.5 m, gentle within 9 m; no trees/rocks within 11 m |
 | Pond | centre (16, −12), radius 8, water surface y = −0.6 |
 | Hill ring | starts rising at 65% of the way to the edge, 14 m high at the edge |
-| Boundary walls | inner faces at x = ±58 and z = ±58 (`Boundary` node) |
-| Village | centre (−20, 14); flat (y = 0) within 14 m, blends into the hills over the next 8 m; plaza radius 4.5 m (`Terrain.village_center` / `village_flat_radius` / `plaza_radius`) |
-| Cottages | 3 houses, 6 × 5 m, walls 2.8 m, door 1.4 × 2.2 m facing the plaza (`House.*` constants); at offsets (−9,−2), (9,−1), (0,−10) from the village centre |
-| Paths | `Terrain.path_lines` in `world.tscn`: main path (0,0) → (−6,2) → (−12,6.5) → (−16,9.5) → (−20,14), plus one link from each door to the plaza. Nature keeps 2.6 m off every path |
+| Boundary walls | inner faces at x = ±118 and z = ±118, i.e. 2 m inside the terrain edge (`Boundary` node, group `boundary`) |
+| Village | centre (−20, 14); flat (y = 0) within 30 m, blends into the hills over the next 8 m; plaza radius 4.5 m (`Terrain.village_center` / `village_flat_radius` / `plaza_radius`) |
+| Cottages | 8 houses, 6 × 5 m, walls 2.8 m, door 1.4 × 2.2 m facing the plaza (`House.*` constants); 3 at offsets (−9,−2), (9,−1), (0,−10) from the village centre and 5 in a ring 24 m out at 30, 75, 120, 160 and 230 degrees (`Village.HOUSES`) |
+| Paths | `Terrain.path_lines` in `world.tscn`: main path (0,0) → (−6,2) → (−12,6.5) → (−16,9.5) → (−20,14), plus one straight link from each of the 8 doors to the plaza centre (all 9 paths end at the well, so a walker steps aside at the end; accepted). Nature keeps 2.6 m off every path |
 | Respawn | falling below y = −25 returns the player to spawn |
 | Trees / rocks | 90 trees (round + pine), 45 rocks: `Nature.get_trees()` / `get_rocks()` |
 
@@ -683,14 +684,14 @@ NEXT RECOMMENDED STEP
 2. Third-person player ✅
 3. Third-person camera ✅
 4. Small 3D environment ✅ (meadow, nature, lighting)
-5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths)
+5. Small village ✅ (flat zone, plaza, 3 cottages, props, dirt paths; grown to 8 cottages in step 9)
 6. Basic interaction ✅ (E key, doors, notice board) + the dog character
 7. Day/night system ✅ (sun, moon, dusk, lamps, clocks; tests freeze the clock at 10:00)
 7a. Character select (pick your animal), outfit swap screen, name tag over the head ✅ (Steam name later: `PlayerProfile.steam_name()`)
 7b. Fishing ✅ (the pond now; the ocean when the world has one)
 8. Sleep system ✅ (beds work 7 PM to 6 AM; you wake at 6:30; the clock is shared, so multiplayer will need sleep voting)
 8b. Longer Minecraft-style day (20 minutes, about 10 of night) ✅
-9. Bigger world and village (room for many players; a more realistic lake for fishing)
+9. Bigger world ✅ and bigger village ✅ (room for many players); a more realistic lake for fishing is next
 10. The shared screen place (a big screen in the plaza; link playback comes with multiplayer)
 11. Health component (player + mobs) and the HP bar
 12. Basic zombie: spawns at night, chases, leaves a sleeping player alone, burns in sunlight, survives in shade
@@ -777,6 +778,7 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 51 | A negative control escaped: pausing the world clock during sleep changed nothing visible, because the system overwrote the hour every frame anyway. A screenshot meant to show a half-faded screen also came out fully faded, because I waited a fixed number of frames | Behaviour that is a contract but not an outcome is invisible to outcome checks; frame counts in a script drift from game time | Assert the contract directly (the clock is paused while asleep) and make the test start from the state a real player has (a RUNNING clock; the kit pauses it, which made the check unfalsifiable). Mutate by DELETING lines as well as flipping values, and sample from BEFORE the action (a teleport in the first frames escaped). Time a screenshot by polling the state it must show (overlay alpha 0.3 to 0.7), and check that state in the test |
 | 52 | Running both renderers at the same time made the creator test fail in one of them ("no saved profile" expected, one existed) | Every test process used the same fixed temp file under `user://`, so one run's save was the other's "existing profile"; it passed alone | Anything a test writes to a shared place (user://, /tmp, a port) gets a per-process name (`OS.get_process_id()`) and is removed in `finish()`. If a failure vanishes when run alone, suspect shared state first |
 | 53 | Doubling the world broke two OLD tests that hard-coded the wall position (x = 58); my targeted terrain tests passed and only the full suite found them | A literal that mirrors another file's number is a hidden dependency; I ran only the tests I expected to be affected | Derive such numbers from the source of truth (`terrain.half_size() - 2`), and run the FULL suite before declaring a world-scale change done. The new render-budget check in the visual tour guards the other side of growing the world (cost per frame) |
+| 54 | Adding a ring of rotated cottages exposed three old assumptions at once: (1) the player's acceleration was per axis, so a diagonal heading CURVED while speeding up (8 degrees off) and the player slid sideways along any wall that was not axis-aligned, through an open door in one case; (2) the near-head-on wall slide had only worked BECAUSE of that curve (Godot sticks within 15 degrees of a wall normal, `wall_min_slide_angle`; lesson 41 said the setting had no effect, but its control was run under the code that hid it); (3) the sprint test assumed the lane south of the spawn was empty, and a cottage now stood in it | Every earlier house was axis-aligned (yaw 0, 90, -90), so no test ever walked a diagonal; fixed numbers (a heading, a wall x) quietly encode the old layout | Accelerate as a vector; set `wall_min_slide_angle = 0` explicitly and keep the village slide test as its control; tests find their open lane at runtime and fail loudly if none exists; the day/night test counts the village's real lamps (it said "4"); the doc facts about the world are now checked against the code by `check_repo.py`; the render budget was raised on purpose (INTENTIONAL.md). Layout tests must include rotated, non-axis-aligned buildings. My own new heading check first read the SIGNED angle and could not fail: its control against the old code caught that, so every new check still needs its control (lessons 1, 27) |
 
 ### 14.2 What worked (keep doing)
 
