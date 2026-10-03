@@ -8,6 +8,9 @@ extends Node3D
 ## Hour 0 is midnight, 12 is noon; the sun rises at 6 and sets at 18. The clock
 ## runs on the physics tick, so it is deterministic in tests.
 ##
+## The lake joins the `water` group (MeshInstance3D with the water ShaderMaterial): its `daylight` and
+## `sky_tint` shader parameters follow the clock.
+##
 ## Zombies (a later step) listen to `night_started` / `day_started`. Anything that
 ## should glow at night joins the `night_light` group (Light3D nodes: the energy
 ## is set here, 0 by day).
@@ -167,6 +170,13 @@ func _apply() -> void:
 		_environment.ambient_light_sky_contribution = lerpf(1.0, NIGHT_SKY_SHARE, night)
 		_environment.fog_light_color = horizon
 		_environment.glow_intensity = lerpf(0.45, 0.8, night)
+
+	# The lake: dark at night, reflecting the horizon colour (the shader has no light of its own to dim).
+	for water in get_tree().get_nodes_in_group(&"water") if is_inside_tree() else []:
+		var water_material := (water as MeshInstance3D).material_override as ShaderMaterial
+		if water_material:
+			water_material.set_shader_parameter("daylight", day)
+			water_material.set_shader_parameter("sky_tint", horizon)
 
 	for lamp in get_tree().get_nodes_in_group(&"night_light") if is_inside_tree() else []:
 		(lamp as Light3D).light_energy = LAMP_ENERGY * night

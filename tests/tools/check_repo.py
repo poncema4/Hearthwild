@@ -117,6 +117,16 @@ flat = re.search(r"@export var village_flat_radius: float = ([\d.]+)", terrain_s
 check("AGENTS.md landmarks state the village flat radius", bool(flat) and f"flat (y = 0) within {int(float(flat.group(1)))} m" in agents_md,
       "update the 'Village' row of the landmarks table")
 
+pond_center = re.search(r"@export var pond_center: Vector2 = Vector2\((-?\d+), (-?\d+)\)", terrain_src)
+pond_radius = re.search(r"@export var pond_radius: float = ([\d.]+)", terrain_src)
+if pond_center and pond_radius:
+    cx, cy = int(pond_center.group(1)), int(pond_center.group(2))
+    shown_y = ("−" if cy < 0 else "") + str(abs(cy))
+    check("AGENTS.md landmarks state the lake centre and radius", f"| Pond | the lake: centre ({cx}, {shown_y}), radius {int(float(pond_radius.group(1)))}" in agents_md,
+          f"Terrain.pond_center/pond_radius are ({cx}, {cy}) / {pond_radius.group(1)}; update the 'Pond' row")
+else:
+    check("AGENTS.md landmarks state the lake centre and radius", False, "could not read pond_center / pond_radius from terrain.gd")
+
 print(f"repo check: {passed} passed, {len(failures)} failed")
 for line in failures:
     print(line)

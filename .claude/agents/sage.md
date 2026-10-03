@@ -71,7 +71,7 @@ checks that cannot fail (prove by mutation in /tmp), logic and engine traps, and
   physics frames (lesson 9).
 - New behaviour without a test; a bug fix without a test that would have caught it.
 
-**Checks that can't fail (the most expensive kind of bug; lessons 1, 8, 22, 27, 28, 51, 52, 53, 54)**
+**Checks that can't fail (the most expensive kind of bug; lessons 1, 8, 22, 27, 28, 51, 52, 53, 54, 55)**
 - Does the check assert the END state when the bug happens over time? ("on the floor at the end" passes
   with bunny-hopping; count takeoffs instead.) Prove it: break the feature in a `/tmp` copy and run the
   check once. A reviewer who proves a finding with a run beats one who argues.

@@ -152,6 +152,22 @@ func _run() -> void:
 			dark += 1
 	kit.check("all village lamps are off at noon", dark == lamps.size(), "%d of %d off" % [dark, lamps.size()])
 
+	# 8d. The lake follows the clock: bright by day, dark at night, tinted by the horizon.
+	var lake: MeshInstance3D = kit.terrain.get_node("PondWater")
+	var lake_material := lake.material_override as ShaderMaterial
+	dn.set_time(12.0)
+	var day_level: float = lake_material.get_shader_parameter("daylight")
+	var day_tint: Color = lake_material.get_shader_parameter("sky_tint")
+	dn.set_time(0.0)
+	var night_level: float = lake_material.get_shader_parameter("daylight")
+	var night_tint: Color = lake_material.get_shader_parameter("sky_tint")
+	dn.set_time(18.5)
+	var dusk_tint: Color = lake_material.get_shader_parameter("sky_tint")
+	dn.set_time(10.0)
+	kit.check("the lake is bright at noon and dark at midnight (daylight %.2f -> %.2f)" % [day_level, night_level], day_level > 0.95 and night_level < 0.05, "%.3f / %.3f" % [day_level, night_level])
+	kit.check("the lake's reflection tint changes with the sky (noon, dusk and midnight all different)", _colour_gap(day_tint, night_tint) > 0.2 and _colour_gap(day_tint, dusk_tint) > 0.1 and _colour_gap(night_tint, dusk_tint) > 0.1,
+			"%s %s %s" % [day_tint, dusk_tint, night_tint])
+
 	# 8b. The clock post in the plaza shows the game time with its hands.
 	var clock: WorldClock = null
 	for prop in kit.village.props:
@@ -189,3 +205,7 @@ func _run() -> void:
 	kit.check("the HUD clock reads the game time", hud.clock_text() == "3:15 PM", "HUD says '%s'" % hud.clock_text())
 	dn.set_time(10.0)
 	kit.finish()
+
+
+func _colour_gap(a: Color, b: Color) -> float:
+	return Vector3(a.r, a.g, a.b).distance_to(Vector3(b.r, b.g, b.b))

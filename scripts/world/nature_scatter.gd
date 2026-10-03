@@ -21,6 +21,9 @@ extends Node3D
 ## No trees or rocks closer than this to the spawn point.
 @export var clear_radius: float = 11.0
 
+## Trees and rocks stay this far (m) beyond the lake's nominal radius, so the banks are open for fishing and reeds.
+const SHORE_CLEAR := 5.0
+
 const TREE_SCENES: Array[PackedScene] = [
 	preload("res://scenes/world/nature/tree_round.tscn"),
 	preload("res://scenes/world/nature/tree_pine.tscn"),
@@ -244,7 +247,7 @@ func _is_open_ground(spot: Vector3, clearing: float, max_slope: float = 0.8) -> 
 	if spot.y < _terrain.water_level + 0.25:
 		return false
 	var pond_distance := Vector2(spot.x, spot.z).distance_to(_terrain.pond_center)
-	if pond_distance < _terrain.pond_radius + 0.5:
+	if pond_distance < _terrain.pond_radius + SHORE_CLEAR:  # no trees or rocks on the banks (fishing spots, reeds)
 		return false
 	# Skip steep slopes: compare heights a metre apart.
 	var dx := _terrain.height_at(spot.x + 1.0, spot.z) - spot.y

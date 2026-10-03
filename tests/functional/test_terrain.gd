@@ -135,7 +135,50 @@ func _run() -> void:
 			out_of_bounds += 1
 	kit.check("trees reach beyond the old 120 m world (at least 80 trees past 70 m from the centre)", outer_trees >= 80, "%d trees" % outer_trees)
 	kit.check("no tree stands outside or in the walls", out_of_bounds == 0, "%d trees" % out_of_bounds)
-	kit.check("the village and the pond are where they always were", terrain.village_center == Vector2(-20, 14) and terrain.pond_center == Vector2(16, -12), "%s %s" % [terrain.village_center, terrain.pond_center])
+	kit.check("the village is where it always was", terrain.village_center == Vector2(-20, 14), str(terrain.village_center))
+
+	# 8. The lake: clear of the village, inside the hill rim, an organic shoreline, open banks, real water shader.
+	var lake_gap := terrain.pond_center.distance_to(terrain.village_center) - terrain.pond_radius - (terrain.village_flat_radius + terrain.village_blend)
+	kit.check("the lake's bowl stays at least 10 m clear of the village's flat zone", lake_gap >= 10.0, "%.1f m" % lake_gap)
+	var lake_far_edge := terrain.pond_center.length() + terrain.pond_radius
+	kit.check("the lake sits inside the hill rim (far edge %.1f m, rim starts %.1f m)" % [lake_far_edge, terrain.rim_start * half], lake_far_edge <= terrain.rim_start * half, "%.1f vs %.1f" % [lake_far_edge, terrain.rim_start * half])
+	var shore_min := 99.0
+	var shore_max := 0.0
+	for i in 64:
+		var line := terrain.waterline_at(TAU * i / 64.0)
+		shore_min = minf(shore_min, line)
+		shore_max = maxf(shore_max, line)
+	kit.check("the shoreline is a real lake: 9 m from the centre at the least, inside the water disc (radius %.1f) on all 64 bearings, and not a perfect circle (spread over 1 m)" % terrain.pond_radius,
+			shore_min >= 9.0 and shore_max <= terrain.pond_radius and shore_max - shore_min > 1.0, "min %.2f max %.2f" % [shore_min, shore_max])
+	var bank_things := 0
+	for thing in kit.nature.get_trees() + kit.nature.get_rocks():
+		if Vector2(thing.global_position.x, thing.global_position.z).distance_to(terrain.pond_center) < terrain.pond_radius + NatureScatter.SHORE_CLEAR - 0.01:
+			bank_things += 1
+	kit.check("no tree or rock stands on the banks (within %.0f m of the lake's radius)" % NatureScatter.SHORE_CLEAR, bank_things == 0, "%d things" % bank_things)
+	var water: MeshInstance3D = terrain.get_node("PondWater")
+	var material := water.material_override as ShaderMaterial
+	var depth_map: ImageTexture = material.get_shader_parameter("depth_map") if material else null
+	var map_image := depth_map.get_image() if depth_map else null
+	var centre_depth := map_image.get_pixel(map_image.get_width() / 2, map_image.get_height() / 2).r if map_image else -1.0
+	var corner_depth := map_image.get_pixel(1, 1).r if map_image else -1.0
+	kit.check("the water is the water shader with a baked depth map: deep (over 0.6) in the middle, zero at the corner",
+			material != null and material.shader.resource_path.ends_with("water.gdshader") and centre_depth > 0.6 and corner_depth == 0.0 and water.is_in_group(&"water"),
+			"material %s, centre %.2f, corner %.2f" % [material, centre_depth, corner_depth])
+	# The map must line up with the ground (not flipped, mirrored or transposed): at asymmetric points the shader's
+	# own uv formula must find the depth the terrain really has there (a centre and a corner pixel cannot tell).
+	var extent: float = material.get_shader_parameter("map_half_extent") if material else 1.0
+	var deepest := terrain.pond_depth + 1.0
+	var misaligned := []
+	var distinct_values := 0
+	for offset: Vector2 in [Vector2(10, 3), Vector2(-9, 6), Vector2(4, -12), Vector2(7, 9), Vector2(-5, -8)]:
+		var uv: Vector2 = offset / (2.0 * extent) + Vector2(0.5, 0.5)
+		var pixel := map_image.get_pixel(int(uv.x * map_image.get_width()), int(uv.y * map_image.get_height())).r if map_image else -1.0
+		var expected := terrain.water_depth_at(terrain.pond_center.x + offset.x, terrain.pond_center.y + offset.y) / deepest
+		if expected > 0.1:
+			distinct_values += 1
+		if absf(pixel - expected) > 0.05:
+			misaligned.append("%s: map %.2f, ground %.2f" % [offset, pixel, expected])
+	kit.check("the depth map lines up with the real ground at five asymmetric points (not flipped or mirrored)", misaligned.is_empty() and distinct_values >= 3, "%s (%d points with real depth)" % [str(misaligned), distinct_values])
 
 	kit.finish()
 
