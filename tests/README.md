@@ -23,7 +23,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_animation.gd` | Animation geometry: feet and hands, skating, snaps, physics tick. | no |
 | `playtests/` | Rendered tests that save screenshots into `qa_output/`. | yes (Xvfb is fine) |
 | `playtests/playtest_camera.gd` | Mouse look, pitch clamp, zoom, wall squeeze + player fade (pixel-checked). | yes |
-| `playtests/playtest_visual_tour.gd` | 15 scenic screenshots (environment, nature, player), each auto-checked. | yes |
+| `playtests/playtest_visual_tour.gd` | 15 scenic screenshots (environment, nature, player), each auto-checked. Also checks the render budget (triangles, objects, draw calls of the busiest frame, per renderer). | yes |
 | `playtests/playtest_village.gd` | 7 village screenshots (path, plaza, cottage front and interior, back wall, well, notice board), each auto-checked. | yes |
 | `playtests/playtest_character.gd` | 7 screenshots of the dog (all sides, face close-up, walking, jumping, outfit). | yes |
 | `playtests/playtest_creator.gd` | The character screen with the dog, cat and bunny, and the result in the world; panel fits the window; mouse captured after Start. | yes |

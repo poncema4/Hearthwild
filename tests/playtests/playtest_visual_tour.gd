@@ -18,7 +18,7 @@ const SHOTS := {
 	"environment/spawn_south": ["Spawn clearing looking south, player seen from the front.", "The dog's face visible; long soft shadow; hills lit, not murky."],
 	"environment/spawn_west": ["Spawn clearing looking west.", "Trees at hill base, rocks, pleasant meadow."],
 	"environment/pond_shore": ["Standing at the pond shore looking at the water.", "Round pond with a smooth sandy ring, no square corners, no hard sand edge."],
-	"environment/hill_rim_view": ["On the hill rim (0, 44) looking back over the meadow.", "Wide valley below, grass in the foreground, rocks, big soft tree shadows."],
+	"environment/hill_rim_view": ["On the hill rim (0, 88) looking back over the meadow.", "Wide valley below, grass in the foreground, rocks, big soft tree shadows."],
 	"environment/overview": ["Camera at max zoom and -60 deg pitch, standing at (-8, 6) and looking toward the village.", "Grass and flowers, the dirt path from the spawn running toward the village, and the first cottage roof or wall at the top of the frame."],
 	"nature/tree_round_close": ["Close-up of the nearest round tree; player body hidden.", "The tree is the subject: brown trunk, layered green canopy, grass and rocks around."],
 	"nature/tree_pine_close": ["Close-up of the nearest pine; player body hidden.", "Pine is the subject: warm brown trunk, rich green tiers, shaded underside is fine."],
@@ -46,6 +46,11 @@ func _run() -> void:
 	await _nature()
 	await _player()
 
+	print("RENDER COST (worst frame of the tour): %s" % str(_worst))
+	var method := RenderingServer.get_current_rendering_method()
+	var draw_budget: int = BUDGET_DRAW_CALLS.get(method, 0)
+	kit.check("the busiest frame stays inside the render budget on %s (%d triangles, %d objects, %d draw calls)" % [method, BUDGET_PRIMITIVES, BUDGET_OBJECTS, draw_budget],
+			draw_budget > 0 and _worst["primitives"] > 100_000 and _worst["primitives"] <= BUDGET_PRIMITIVES and _worst["objects"] <= BUDGET_OBJECTS and _worst["draw_calls"] <= draw_budget, "%s %s" % [method, str(_worst)])
 	print("SCREENSHOTS: %s/{environment,nature,player}/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()
 
@@ -63,7 +68,7 @@ func _environment() -> void:
 	await _take("environment", "pond_shore")
 
 	# Up on the hill ring, looking back over the meadow.
-	await _frame(Vector3(0, NAN, 44), Vector3.FORWARD, 5.0, -18.0)
+	await _frame(Vector3(0, NAN, 88), Vector3.FORWARD, 5.0, -18.0)
 	await _take("environment", "hill_rim_view")
 
 	# Looks toward the village (centre about (-20, 14)); the dirt path leads the eye there.
@@ -129,9 +134,22 @@ func _look_at_from(target: Vector3, back: float, distance: float, pitch_degrees:
 	await _frame(Vector3(spot.x, NAN, spot.z), -toward_centre, distance, pitch_degrees)
 
 
+## Per-frame cost ceilings, measured as the WORST frame of this tour on the 240 m world (1.48 M triangles, 2,084
+## objects, 833 draw calls; the spawn view alone is much lighter, so measure the tour, not one view) plus about 35%. They catch "someone scattered 10x the trees" without an agent. Raise them
+## on purpose, in a PR that says why (the world is meant to grow, step by step).
+const BUDGET_PRIMITIVES := 2_000_000
+const BUDGET_OBJECTS := 2_800
+## Draw calls differ by renderer (Compatibility has no batching and more passes): Forward+ 833, Compatibility 2,072 measured.
+const BUDGET_DRAW_CALLS := {"forward_plus": 1_150, "gl_compatibility": 2_800}
+var _worst := {"primitives": 0, "objects": 0, "draw_calls": 0}
+
+
 func _take(topic: String, name: String) -> void:
 	var info: Array = SHOTS.get(topic + "/" + name, ["", ""])
 	kit.check_rendered(topic + "/" + name, await kit.shot(topic, name, info[0], info[1]))
+	_worst["primitives"] = maxi(_worst["primitives"], RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))
+	_worst["objects"] = maxi(_worst["objects"], RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME))
+	_worst["draw_calls"] = maxi(_worst["draw_calls"], RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 
 
 func _nearest_of_kind(nodes: Array[Node3D], kind: String) -> Node3D:

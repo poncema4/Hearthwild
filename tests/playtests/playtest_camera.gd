@@ -120,21 +120,22 @@ func _run() -> void:
 	# Camera collision: put the player near the east boundary wall facing
 	# inward (west), so the camera sits behind them on the wall side, then
 	# back the player into the wall. The spring arm must pull the camera in
-	# and keep it on the inner side of the wall (inner face x = 58).
+	# and keep it on the inner side of the wall (inner face = terrain half size - 2).
+	var wall_face: float = kit.terrain.half_size() - 2.0
 	kit.face(Vector3.LEFT)
-	await kit.teleport(Vector3(54, NAN, 0))
+	await kit.teleport(Vector3(wall_face - 4.0, NAN, 0))
 	Input.action_press("move_back")
 	await kit.physics_frames(150)
 	Input.action_release("move_back")
 	kit.face(Vector3.LEFT)
 	await kit.physics_frames(10)
 	var px := kit.player.global_position.x
-	kit.check("player stopped by boundary wall", px > 57.2 and px < 57.7, "player x=%.2f, wall face x=58.0" % px)
+	kit.check("player stopped by boundary wall", px > wall_face - 0.8 and px < wall_face - 0.3, "player x=%.2f, wall face x=%.1f" % [px, wall_face])
 	var hit := arm.get_hit_length()
 	kit.check("camera pulls in at wall", hit < arm.spring_length - 1.0,
 		"hit length %.2f of %.1f" % [hit, arm.spring_length])
 	var cam_x := (arm.get_node("Camera3D") as Node3D).global_position.x
-	kit.check("camera stays inside the wall", cam_x < 58.0, "camera x=%.2f, wall face x=58.0" % cam_x)
+	kit.check("camera stays inside the wall", cam_x < wall_face, "camera x=%.2f, wall face x=%.1f" % [cam_x, wall_face])
 	# With the camera squeezed against the wall it sits almost inside the
 	# player, so the body must have faded away (it filled a third of the
 	# screen before this existed).

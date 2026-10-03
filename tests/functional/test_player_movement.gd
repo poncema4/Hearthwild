@@ -61,15 +61,16 @@ func _run() -> void:
 	await kit.physics_frames(90)
 	kit.check("lands again after jump", kit.player.is_on_floor(), kit.where())
 
-	# Walls: the east boundary wall (inner face x = 58) stops the player.
+	# Walls: the east boundary wall (inner face 2 m inside the terrain edge: x = 118 on the 240 m world) stops the player.
 	# Start well inside and walk long enough that a missing wall would carry
 	# the player off the edge (x > 60) and into a respawn.
+	var wall_face: float = kit.terrain.half_size() - 2.0  # derived, not a literal: the world grew once already
 	kit.face(Vector3.RIGHT)
-	await kit.teleport(Vector3(50, NAN, 0))
+	await kit.teleport(Vector3(wall_face - 8.0, NAN, 0))
 	await kit.hold(["move_forward"], 300)
 	var x := kit.player.global_position.x
-	kit.check("boundary wall stops the player at its face", x > 57.2 and x < 57.7,
-		"x=%.2f, wall face x=58.0" % x)
+	kit.check("boundary wall stops the player at its face", x > wall_face - 0.8 and x < wall_face - 0.3,
+		"x=%.2f, wall face x=%.1f" % [x, wall_face])
 
 	# Trees are solid: walk into the tree nearest the spawn.
 	var trees := kit.nature.get_trees()

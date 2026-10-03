@@ -109,6 +109,34 @@ func _run() -> void:
 		"%.4f vs %.4f" % [again.height_at(12.3, -7.7), terrain.height_at(12.3, -7.7)])
 	again.free()
 
+	# 7. A world big enough for many players (Marco: multiplayer, other players join): 240 m square, walls
+	# exactly at its edge, and real nature all the way out (not just in the old 120 m).
+	var half := terrain.half_size()
+	kit.check("the world is at least 240 m square (room for many players)", terrain.size >= 240, "size %d" % terrain.size)
+	var wall_space: PhysicsDirectSpaceState3D = kit.world.get_world_3d().direct_space_state
+	var walls_ok := true
+	var wall_detail := ""
+	for direction in [Vector3.RIGHT, Vector3.LEFT, Vector3.BACK, Vector3.FORWARD]:
+		var from: Vector3 = direction * (half - 6.0) + Vector3(0, 10, 0)
+		var to: Vector3 = direction * (half + 6.0) + Vector3(0, 10, 0)
+		var hit := wall_space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to))
+		var inner: float = (hit["position"] as Vector3).dot(direction) if not hit.is_empty() else -1.0
+		if hit.is_empty() or not (hit["collider"] as Node).is_in_group(&"boundary") or absf(inner - (half - 2.0)) > 0.3:
+			walls_ok = false
+			wall_detail += " %s: %s;" % [direction, "no hit" if hit.is_empty() else "wall face at %.1f (want %.1f)" % [inner, half - 2.0]]
+	kit.check("a wall stands at each edge of the terrain (its face 2 m inside it, so nobody walks off)", walls_ok, wall_detail)
+	var outer_trees := 0
+	var out_of_bounds := 0
+	for tree in kit.nature.get_trees():
+		var p: Vector3 = (tree as Node3D).global_position
+		if maxf(absf(p.x), absf(p.z)) > 70.0:
+			outer_trees += 1
+		if maxf(absf(p.x), absf(p.z)) > half - 2.0:
+			out_of_bounds += 1
+	kit.check("trees reach beyond the old 120 m world (at least 80 trees past 70 m from the centre)", outer_trees >= 80, "%d trees" % outer_trees)
+	kit.check("no tree stands outside or in the walls", out_of_bounds == 0, "%d trees" % out_of_bounds)
+	kit.check("the village and the pond are where they always were", terrain.village_center == Vector2(-20, 14) and terrain.pond_center == Vector2(16, -12), "%s %s" % [terrain.village_center, terrain.pond_center])
+
 	kit.finish()
 
 
