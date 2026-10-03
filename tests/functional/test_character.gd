@@ -165,6 +165,84 @@ func _run() -> void:
 	await kit.physics_frames(2)
 	kit.check("unequipping removes the items", model.get_equipped(&"head_top") == null and model.get_equipped(&"neck") == null)
 	model.set_fade(0.0)
+	# 7. Every animal builds well, and every wardrobe item sits on its socket and fades.
+	var tag_model: AnimalModel = null
+	for species in AnimalSpecies.all():
+		var animal := AnimalModel.new()
+		animal.species = species
+		kit.world.add_child(animal)
+		animal.global_position = Vector3(40, 0, 40)
+		await kit.physics_frames(2)
+		var body := _bounds(animal)
+		var rel := body.position - animal.global_position
+		kit.check("%s: builds grounded (lowest point -3..+6 cm), under 2.3 m tall and inside a 1.1 m footprint" % species.species_name,
+				rel.y > -0.03 and rel.y < 0.06 and body.size.y < 2.3 and body.size.x < 1.1 and body.size.z < 1.2, "height %.2f, lowest %.3f, footprint %.2f x %.2f" % [body.size.y, rel.y, body.size.x, body.size.z])
+		if species.id == &"bunny":
+			var bunny_head := _mesh_bounds(animal.find_child("Skull", true, false)).end.y
+			kit.check("bunny: the tall ears rise well above the head", body.end.y > bunny_head + 0.3, "ears reach %.2f, head top %.2f" % [body.end.y, bunny_head])
+		var problems := []
+		for row in Outfits.CATALOG:
+			animal.equip_item(row[0])
+			await kit.physics_frames(1)
+			var item := animal.get_equipped(row[1])
+			var socket_p: Vector3 = animal.sockets[row[1]].global_position
+			var item_box := _bounds(item)
+			if item == null or item_box.get_center().distance_to(socket_p) > 0.6:
+				problems.append("%s is %.2f m from its socket" % [row[0], item_box.get_center().distance_to(socket_p) if item else -1.0])
+			animal.set_fade(1.0)
+			for mesh in item.find_children("*", "MeshInstance3D", true, false):
+				if ((mesh as MeshInstance3D).material_override as StandardMaterial3D).albedo_color.a > 0.01:
+					problems.append("%s does not fade" % row[0])
+					break
+			animal.set_fade(0.0)
+		kit.check("%s: all %d wardrobe items sit on their sockets and fade with the body" % [species.species_name, Outfits.CATALOG.size()], problems.is_empty(), str(problems))
+		var worn_before := animal.worn_items()
+		animal.set_species(AnimalSpecies.by_id(&"dog" if species.id != &"dog" else &"cat"))
+		await kit.physics_frames(2)
+		kit.check("%s: switching animal keeps the outfit on" % species.species_name, animal.worn_items() == worn_before and animal.get_equipped(&"head_top") != null,
+				"before %s after %s" % [worn_before, animal.worn_items()])
+		animal.set_species(species)
+		await kit.physics_frames(2)
+		animal.set_display_name("Marco")
+		var tag := animal.find_child("NameTag", true, false) as Label3D
+		var animal_top := _bounds(animal).end.y
+		kit.check("%s: the name tag reads the name and floats above the head" % species.species_name, tag != null and tag.text == "Marco" and tag.visible and tag.global_position.y > animal_top - 0.35,
+				"tag y %.2f, model top %.2f" % [tag.global_position.y if tag else -1.0, animal_top])
+		animal.equip_item(&"straw_hat")
+		await kit.physics_frames(2)
+		var hat_top := _bounds(animal.get_equipped(&"head_top")).end.y
+		kit.check("%s: with a tall hat on, the name tag floats above the hat (not through it)" % species.species_name, tag.global_position.y > hat_top + 0.1,
+				"tag y %.2f, hat top %.2f" % [tag.global_position.y, hat_top])
+		animal.unequip_slot(&"head_top")
+		var tall := Node3D.new()  # a deliberately tall hat (80 cm), taller than anything in the catalog
+		var tall_mesh := MeshInstance3D.new()
+		var tall_box := BoxMesh.new()
+		tall_box.size = Vector3(0.3, 0.8, 0.3)
+		tall_mesh.mesh = tall_box
+		tall_mesh.material_override = StandardMaterial3D.new()
+		tall_mesh.position = Vector3(0, 0.4, 0)
+		tall.add_child(tall_mesh)
+		animal.equip(&"head_top", tall)
+		await kit.physics_frames(2)
+		var tall_top := _bounds(tall).end.y
+		kit.check("%s: the name tag rises above an 80 cm hat" % species.species_name, tag.global_position.y > tall_top + 0.1, "tag y %.2f, hat top %.2f" % [tag.global_position.y, tall_top])
+		animal.unequip(&"head_top")
+		animal.set_fade(1.0)
+		kit.check("%s: the name tag fades away with the body" % species.species_name, not tag.visible and tag.modulate.a < 0.01)
+		animal.queue_free()
+		await kit.physics_frames(1)
+	# 8. A rod made while the body is already faded is faded too (it was opaque next to an invisible dog).
+	var faded := AnimalModel.new()
+	kit.world.add_child(faded)
+	await kit.physics_frames(2)
+	faded.set_fade(1.0)
+	faded.start_fishing()
+	await kit.physics_frames(2)
+	var rod_alpha := 1.0
+	for mesh in faded.find_child("FishingRod", true, false).find_children("*", "MeshInstance3D", true, false):
+		rod_alpha = minf(rod_alpha, ((mesh as MeshInstance3D).material_override as StandardMaterial3D).albedo_color.a)
+	kit.check("a fishing rod created while the body is faded is faded too (alpha 0)", rod_alpha < 0.01, "alpha %.2f" % rod_alpha)
+	faded.queue_free()
 	kit.finish()
 
 

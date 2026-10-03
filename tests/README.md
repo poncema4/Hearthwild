@@ -15,6 +15,9 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_interaction.gd` | E key, prompt, doors (open, close, blocked), notice board. | no |
 | `functional/test_character.gd` | The dog: parts, size, grounding, species variety, outfits, fade. | no |
 | `functional/test_soak.gd` | A bot drives the real player along a route (path, plaza, into two cottages through their doors with E) with Shift held, then again with Space held: fails on any stall, blocked path, dead door or fall. | no |
+| `functional/test_profile.gd` | Player profile: save/load round trip, damaged and hostile saves, name rules, wardrobe catalog consistency. | no |
+| `functional/test_creator.gd` | Character screen: opens on first launch, locks the player, animal and outfit pickers, Start saves and dresses the player, reopen with F2. | no |
+| `functional/test_fishing.gd` | Fishing: spots on real terrain, reachable, cast/bite/reel timings, every way it ends, visuals, day/night fish, saved journal. | no |
 | `functional/test_daynight.gd` | Day/night: clock, noon vs midnight light, sun path, dusk colour, smoothness, signals, lamps, clock hands, HUD clock. | no |
 | `functional/test_animation.gd` | Animation geometry: feet and hands, skating, snaps, physics tick. | no |
 | `playtests/` | Rendered tests that save screenshots into `qa_output/`. | yes (Xvfb is fine) |
@@ -22,6 +25,8 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `playtests/playtest_visual_tour.gd` | 15 scenic screenshots (environment, nature, player), each auto-checked. | yes |
 | `playtests/playtest_village.gd` | 7 village screenshots (path, plaza, cottage front and interior, back wall, well, notice board), each auto-checked. | yes |
 | `playtests/playtest_character.gd` | 7 screenshots of the dog (all sides, face close-up, walking, jumping, outfit). | yes |
+| `playtests/playtest_creator.gd` | The character screen with the dog, cat and bunny, and the result in the world; panel fits the window; mouse captured after Start. | yes |
+| `playtests/playtest_fishing.gd` | Fishing: ready, cast, bite, caught, night; bobber and ! on screen. | yes |
 | `playtests/playtest_daynight.gd` | 6 times of day in the village plus a whole-day filmstrip. | yes |
 | `playtests/playtest_animation.gd` | Filmstrips: walk, sprint, hop (side and front), idle. | yes |
 | `playtests/playtest_movement.gd` | Movement filmstrips (contact sheets) for visual review. | yes |

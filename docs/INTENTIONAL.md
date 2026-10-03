@@ -35,6 +35,17 @@ include the numbers, so an agent can tell "intended" from "broken" by measuring.
 | A day lasts 12 real minutes and starts at 10 AM | Sun rises 6 AM, sets 6 PM; the test kit freezes the clock at 10:00 so light never drifts under a test | Day/night (step 7); `DayNight.day_length_seconds` |
 | Night is dark blue, not black; dusk is orange; the first/last minutes before sunrise are dim | Moon light 0.28, ambient never below 0.9, the 4 village lamps (OmniLight, no shadows) glow warm after dark | Readable but moody; zombies come at night later |
 | Shadows of the moon are soft and weak | Moon shadow opacity 0.5 | Night look |
+| Three animals: dog, cat, bunny (placeholder shapes) | The cat's tail curves up, the bunny's ears are tall (the model is up to 2.1 m with ears; the name tag floats above them) | More animals later = new `AnimalSpecies` rows |
+| The character screen opens on a first launch and with F2; the name defaults to the Steam name (none yet), else the computer's user name | Name at most 16 characters; saved in `user://profile.json` (never in git) | Steam comes later; `PlayerProfile.steam_name()` is the hook |
+| Everyone's name floats over their head, including your own | White text with a dark outline, fades with the body when the camera is close | Name tags (Steam names later) |
+| Fishing: the visible pond is small (water edge about 4.2 m from its centre); spots are 5.3 m out and the cast is 3.2 m | Four spots at angles 60, 135, 240, 315 degrees; fish by day (bluegill, golden koi) and night (catfish, moon eel), junk (boot, can) | Measured on the real terrain; ocean fishing needs an ocean |
+| The fishing line is a thin straight pale cylinder from the rod tip to the bobber | No sag or physics | Placeholder |
+| A cast is cancelled by jumping (4+ frames off the ground), walking more than 1.6 m away, or opening a menu | Messages: "You walked away and pulled in your line." / "You put your rod away." | Fishing rules (step 7b) |
+| Pressing E before the bite scares the fish away; after the 1.4 s window it "got away" | Waiting is 2 to 6 s, the cast 0.6 s | Fishing rules |
+| Junk (old boot, rusty can) is shown but never kept in the journal | The journal counts only real fish | Fishing rules |
+| The character screen has Cancel (Esc) only when reopened with F2, never on the first launch | The first launch must pick a look | Character screen |
+| Everyone shares one `PlayerProfile.current()` and a spot has one angler | Fine for one local player | Multiplayer step will make both per-player |
+| The bunny's ears reach 2.2 m in a hop and the cat's tail ends about 0.5 m behind the body | Visual only; the collision capsule is unchanged | Placeholder shapes |
 | The mouse is captured at start | Esc frees it, left-click captures again | Standard third-person control |
 | Movement feel numbers | Walk 4 m/s, sprint 7 m/s; 90% speed in ~8 / ~13 frames; stop in ~8 frames; 180 turn ~13 frames; jump apex ~1.3 m, airtime ~1.07 s | Measured by `tests/functional/test_movement_feel.gd` (bands in AGENTS.md 8.5) |
 

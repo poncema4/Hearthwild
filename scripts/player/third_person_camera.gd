@@ -52,6 +52,8 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if (get_parent() as PlayerController).input_locked:
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		# screen_relative is raw pixels; `relative` is scaled by the window's
 		# stretch factor, which would make sensitivity depend on window size.

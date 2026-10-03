@@ -18,11 +18,13 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | **Village** | A flat village green at the north-west with a cobble plaza, a well, three cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
 | **Your character** | A cute dog with big eyes, floppy ears and a wagging tail, animated as you move (walk, sprint, jump), ready for outfits (a cap and a scarf are in) and for more animals later |
 | **Third-person player** | Walk, hold Shift to sprint, hold Space to keep hopping; trees, rocks and walls are solid; fall out of the world and you respawn |
+| **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |
+| **Fishing** | Four spots round the pond: cast, wait for the bobber to dip, reel in. Different fish by day and night, some rare, a bit of junk; your catches are saved |
 | **Day and night** | A 12-minute day: the sun crosses the sky, sets in orange, the moon and warm lamps take over, then it brightens again at dawn; a clock on screen and a clock post in the plaza |
 | **Interaction** | Press E near a cottage door to open or close it, or at the notice board to read it |
 | **Camera** | Orbit with the mouse, zoom with the wheel; pulls in so it never clips through walls, and your character fades out if the camera gets too close |
 
-Next up (see the development order in `AGENTS.md`): pick your animal and an outfit-swap screen with a name tag, then fishing, then sleep and zombies.
+Next up (see the development order in `AGENTS.md`): sleep, then zombies at night, then more to do (the ocean, building).
 
 ## Running it
 
@@ -45,7 +47,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (20 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (25 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 

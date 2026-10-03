@@ -50,6 +50,13 @@ var _generated: Node3D
 var _materials: Array[StandardMaterial3D] = []
 var _material_cache := {}
 var _equipped := {}
+var _equipped_ids := {}  # slot -> item id, so a species change can put the outfit back on
+var display_name := ""
+var _name_tag: Label3D
+var _fishing := false
+var _fishing_amount := 0.0
+var _rod: Node3D
+var _tail_phase := 0.0
 var _fade := 0.0
 
 var _rig: Node3D
@@ -95,6 +102,10 @@ func set_fade(amount: float) -> void:
 	_fade = clampf(amount, 0.0, 1.0)
 	for material in _materials:
 		_apply_fade(material)
+	if _name_tag:
+		_name_tag.modulate.a = 1.0 - _fade
+		_name_tag.outline_modulate.a = 0.9 * (1.0 - _fade)
+		_name_tag.visible = display_name != "" and _fade < 0.99
 
 
 ## Opacity of the body right now (1 = solid). The camera tests read this.
@@ -112,6 +123,79 @@ func equip(slot: StringName, item: Node3D) -> void:
 	sockets[slot].add_child(item)
 	_equipped[slot] = item
 	_register_materials(item)
+	_position_name_tag()
+
+
+## Puts a catalog outfit item on by id (`Outfits.catalog()`), on its own slot.
+func equip_item(item_id: StringName) -> void:
+	var slot := Outfits.slot_of(item_id)
+	if slot == &"":
+		return
+	equip(slot, Outfits.make(item_id))
+	_equipped_ids[slot] = item_id
+
+
+func unequip_slot(slot: StringName) -> void:
+	unequip(slot)
+	_equipped_ids.erase(slot)
+
+
+## slot -> item id of what is worn now.
+func worn_items() -> Dictionary:
+	return _equipped_ids.duplicate()
+
+
+## Switches to another animal (the outfit stays on). Name and fade are kept.
+func set_species(new_species: AnimalSpecies) -> void:
+	species = new_species
+
+
+## Takes the fishing rod in the right hand and raises both arms (until `stop_fishing()`).
+func start_fishing() -> void:
+	_fishing = true
+	if _rod == null:
+		_rod = Node3D.new()
+		_rod.name = "FishingRod"
+		var shaft := MeshInstance3D.new()
+		var capsule := CapsuleMesh.new()
+		capsule.radius = 0.018
+		capsule.height = 1.1
+		shaft.mesh = capsule
+		shaft.material_override = _material(Color(0.5, 0.34, 0.2), 0.8)
+		shaft.position = Vector3(0, -0.5, 0)
+		_rod.add_child(shaft)
+		var tip := Node3D.new()
+		tip.name = "Tip"
+		tip.position = Vector3(0, -1.05, 0)
+		_rod.add_child(tip)
+		_arm_r.get_node("Paw").add_child(_rod)
+		set_fade(_fade)  # a rod made while the body is faded must be faded too
+	_rod.visible = true
+
+
+func stop_fishing() -> void:
+	_fishing = false
+	if _rod:
+		_rod.visible = false
+
+
+func is_fishing() -> bool:
+	return _fishing
+
+
+## World position of the rod tip (the line starts here).
+func rod_tip_global() -> Vector3:
+	if _rod == null:
+		return global_position + Vector3(0, 1.2, 0)
+	return (_rod.get_node("Tip") as Node3D).global_position
+
+
+## The name floating over the head (the player's name; their Steam name once connected).
+func set_display_name(new_name: String) -> void:
+	display_name = new_name
+	if _name_tag:
+		_name_tag.text = new_name
+		_name_tag.visible = new_name != "" and _fade < 0.99
 
 
 ## Takes whatever is on `slot` off (and deletes it).
@@ -124,6 +208,7 @@ func unequip(slot: StringName) -> void:
 		_materials.erase(mesh.material_override)
 	item.get_parent().remove_child(item)
 	item.queue_free()
+	_position_name_tag()
 
 
 func get_equipped(slot: StringName) -> Node3D:
@@ -191,8 +276,12 @@ func _physics_process(delta: float) -> void:
 	var arms_up := lerpf(1.5, 2.5, rising)
 	_leg_l.rotation.x = _slew(_leg_l.rotation.x, lerpf(leg_swing, 0.7, _air_amount), delta)
 	_leg_r.rotation.x = _slew(_leg_r.rotation.x, lerpf(-leg_swing, 0.3, _air_amount), delta)
-	_arm_l.rotation.x = _slew(_arm_l.rotation.x, lerpf(-arm_swing, 0.15, _air_amount), delta)
-	_arm_r.rotation.x = _slew(_arm_r.rotation.x, lerpf(arm_swing, 0.15, _air_amount), delta)
+	# Fishing: both arms forward, the right one holding the rod up (only while standing; moving cancels it).
+	_fishing_amount = move_toward(_fishing_amount, 1.0 if _fishing and _grounded and _speed < 0.5 else 0.0, delta * 6.0)
+	if _rod:  # the rod is only in hand while the arms hold the fishing pose (no dangling through the ground)
+		_rod.visible = _fishing and _fishing_amount > 0.25
+	_arm_l.rotation.x = _slew(_arm_l.rotation.x, lerpf(lerpf(-arm_swing, 0.15, _air_amount), 0.55, _fishing_amount), delta)
+	_arm_r.rotation.x = _slew(_arm_r.rotation.x, lerpf(lerpf(arm_swing, 0.15, _air_amount), 1.25, _fishing_amount), delta)
 	_arm_l.rotation.z = _slew(_arm_l.rotation.z, lerpf(0.0, arms_up, _air_amount), delta)
 	_arm_r.rotation.z = _slew(_arm_r.rotation.z, lerpf(0.0, -arms_up, _air_amount), delta)
 
@@ -211,7 +300,10 @@ func _physics_process(delta: float) -> void:
 	_head.rotation.x = 0.12 * _air_amount  # chin up, looking at the sky
 
 	# Tail wags faster when standing still and happy.
-	_tail.rotation.y = sin(_time * lerpf(9.0, 6.0, _walk_amount)) * lerpf(0.5, 0.35, _walk_amount)
+	# The wag PHASE is accumulated: blending the frequency inside sin(time * freq) made the tail whip
+	# through several wags whenever the walk blend changed, worse the longer the game had run.
+	_tail_phase += delta * lerpf(9.0, 6.0, _walk_amount)
+	_tail.rotation.y = sin(_tail_phase) * lerpf(0.5, 0.35, _walk_amount)
 	_ear_l.rotation.z = _ear_base(1.0) + sin(_phase * 2.0) * 0.12 * on_foot + sin(_time * 1.3) * 0.03
 	_ear_r.rotation.z = _ear_base(-1.0) - sin(_phase * 2.0) * 0.12 * on_foot - sin(_time * 1.3 + 1.0) * 0.03
 
@@ -230,6 +322,8 @@ func _ear_base(side: float) -> float:
 	match s.ear_style:
 		AnimalSpecies.EarStyle.FLOPPY:
 			return 0.28 * side
+		AnimalSpecies.EarStyle.TALL:
+			return 0.1 * side
 		AnimalSpecies.EarStyle.POINTY:
 			return -0.18 * side
 		_:
@@ -244,6 +338,7 @@ func _build() -> void:
 	_material_cache.clear()
 	sockets.clear()
 	_equipped.clear()
+	_rod = null  # the old rod was a child of the old arm and is freed with it
 	var s := species if species else AnimalSpecies.dog()
 
 	_generated = Node3D.new()
@@ -290,8 +385,47 @@ func _build() -> void:
 	sockets[&"torso"] = _pivot(_rig, "Socket_torso", Vector3(0, 0.78, 0))
 	sockets[&"back"] = _pivot(_rig, "Socket_back", Vector3(0, 0.8, 0.25))
 
+	_build_name_tag(s)
 	set_fade(_fade)
+	if _fishing:  # a rebuild mid-cast (the character screen) must not leave the angler without a rod
+		start_fishing()
+	for slot in _equipped_ids.keys():  # a species change keeps the outfit
+		var id: StringName = _equipped_ids[slot]
+		equip(slot, Outfits.make(id))
+		_equipped_ids[slot] = id
 	rebuilt.emit()
+
+
+## The tag floats above the head, the tall ears, or the top of the hat, whichever is highest.
+func _position_name_tag() -> void:
+	if _name_tag == null or not is_inside_tree():
+		return
+	var s := species if species else AnimalSpecies.dog()
+	var height := HEIGHT + (0.62 if s.ear_style == AnimalSpecies.EarStyle.TALL else 0.3)
+	var hat: Node3D = _equipped.get(&"head_top")
+	if hat:
+		for mesh in _meshes_under(hat):
+			var top := (mesh.global_transform * mesh.get_aabb()).end.y - global_position.y
+			height = maxf(height, top + 0.2)
+	_name_tag.position.y = height
+
+
+func _build_name_tag(s: AnimalSpecies) -> void:
+	_name_tag = Label3D.new()
+	_name_tag.name = "NameTag"
+	_name_tag.text = display_name
+	_name_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_name_tag.font_size = 72
+	_name_tag.pixel_size = 0.0045
+	_name_tag.outline_size = 14
+	_name_tag.modulate = Color(1, 1, 1)
+	_name_tag.outline_modulate = Color(0.08, 0.1, 0.14, 0.9)
+	_name_tag.no_depth_test = false
+	_name_tag.shaded = false
+	_name_tag.position = Vector3(0, HEIGHT + (0.62 if s.ear_style == AnimalSpecies.EarStyle.TALL else 0.3), 0)
+	_name_tag.visible = display_name != ""
+	_generated.add_child(_name_tag)
+	_position_name_tag.call_deferred()
 
 
 func _build_leg(s: AnimalSpecies, leg_name: String, side: float) -> Node3D:
@@ -320,6 +454,9 @@ func _build_ear(s: AnimalSpecies, ear_name: String, side: float) -> Node3D:
 	match s.ear_style:
 		AnimalSpecies.EarStyle.FLOPPY:
 			_shape(ear, "Flap", _sphere(0.17), Vector3(0.05 * side, -0.16, 0), s.accent_color, Vector3(0.42, 1.1, 0.8))
+		AnimalSpecies.EarStyle.TALL:
+			_shape(ear, "Tall", _capsule(0.075, 0.5), Vector3(0.02 * side, 0.27, 0), s.fur_color, Vector3(0.75, 1.0, 0.55))
+			_shape(ear, "Inner", _capsule(0.045, 0.34), Vector3(0.02 * side, 0.27, -0.035), s.accent_color, Vector3(0.7, 1.0, 0.3))
 		AnimalSpecies.EarStyle.POINTY:
 			var cone := CylinderMesh.new()
 			cone.top_radius = 0.0
@@ -338,8 +475,10 @@ func _build_tail(s: AnimalSpecies) -> Node3D:
 			_shape(tail, "Stem", _capsule(0.07, 0.36), Vector3(0, 0.14, 0.08), s.fur_color, Vector3.ONE, 0.85, Vector3(deg_to_rad(35), 0, 0))
 			_shape(tail, "Tip", _sphere(0.105), Vector3(0, 0.31, 0.2), s.belly_color)
 		AnimalSpecies.TailStyle.LONG:
-			_shape(tail, "Stem", _capsule(0.05, 0.55), Vector3(0, 0.0, 0.2), s.fur_color, Vector3.ONE, 0.85, Vector3(deg_to_rad(80), 0, 0))
-			_shape(tail, "Tip", _sphere(0.07), Vector3(0, 0.0, 0.46), s.belly_color)
+			# Long but curved UP (35 degrees from vertical): the tip ends about 0.5 m behind the body centre
+			# (visual only; the test bound is 0.6 m).
+			_shape(tail, "Stem", _capsule(0.05, 0.5), Vector3(0, 0.17, 0.12), s.fur_color, Vector3.ONE, 0.85, Vector3(deg_to_rad(35), 0, 0))
+			_shape(tail, "Tip", _sphere(0.07), Vector3(0, 0.37, 0.25), s.belly_color)
 		_:
 			_shape(tail, "Stub", _sphere(0.1), Vector3(0, 0.02, 0.08), s.fur_color)
 	return tail

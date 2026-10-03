@@ -38,7 +38,11 @@ const MOON_COLOR := Color(0.55, 0.66, 1.0)
 const SUN_ENERGY := 1.2
 const MOON_ENERGY := 0.28
 const AMBIENT_DAY := 1.25
-const AMBIENT_NIGHT := 0.9
+const AMBIENT_NIGHT := 1.1
+## At night the ambient light is partly a fixed cool blue instead of the (nearly black) sky:
+## without it a character with their back to the moon was pure black.
+const NIGHT_AMBIENT_COLOR := Color(0.22, 0.30, 0.55)
+const NIGHT_SKY_SHARE := 0.5
 const LAMP_ENERGY := 2.6
 
 var hour: float = 10.0
@@ -157,6 +161,8 @@ func _apply() -> void:
 		_sky.ground_bottom_color = GROUND_DAY.lerp(GROUND_NIGHT, night)
 	if _environment:
 		_environment.ambient_light_energy = lerpf(AMBIENT_DAY, AMBIENT_NIGHT, night)
+		_environment.ambient_light_color = NIGHT_AMBIENT_COLOR
+		_environment.ambient_light_sky_contribution = lerpf(1.0, NIGHT_SKY_SHARE, night)
 		_environment.fog_light_color = horizon
 		_environment.glow_intensity = lerpf(0.45, 0.8, night)
 

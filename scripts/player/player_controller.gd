@@ -38,6 +38,8 @@ extends CharacterBody3D
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _spawn_position: Vector3
 var _coyote := 0.0
+## True while a full-screen menu (the character screen) is open: no movement, jumping or interacting.
+var input_locked := false
 
 
 func _ready() -> void:
@@ -86,20 +88,26 @@ func respawn() -> void:
 
 
 func _read_move_input() -> Vector2:
+	if input_locked:
+		return Vector2.ZERO
 	return Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 
 
 ## Held, not just pressed: keep holding Space and the character hops on every landing.
 func wants_jump() -> bool:
-	return Input.is_action_pressed("jump")
+	return not input_locked and Input.is_action_pressed("jump")
 
 
 func wants_sprint() -> bool:
-	return Input.is_action_pressed("sprint")
+	return not input_locked and Input.is_action_pressed("sprint")
 
 
 func wants_interact() -> bool:
-	return Input.is_action_just_pressed("interact")
+	return not input_locked and Input.is_action_just_pressed("interact")
+
+
+func wants_customize() -> bool:
+	return not input_locked and Input.is_action_just_pressed("customize")
 
 
 func _camera_relative_direction(input: Vector2) -> Vector3:

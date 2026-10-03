@@ -53,6 +53,16 @@ func _run() -> void:
 	var start_elevation := sin((dn.start_hour - 6.0) / 24.0 * TAU)
 	kit.check("a new game starts in daylight", start_elevation > 0.5, "start hour %.1f, sun elevation %.2f" % [dn.start_hour, start_elevation])
 
+	# 2c. Night is dark BLUE, not black: a cool ambient floor keeps a character facing away from the moon
+	# readable (their back was pure black at 11 PM).
+	dn.set_time(0.0)
+	var floor_share := environment.ambient_light_sky_contribution
+	var floor_color := environment.ambient_light_color
+	dn.set_time(12.0)
+	kit.check("at midnight part of the ambient light is a fixed cool blue (sky share under 0.8, colour not dark), by day it is all sky",
+			floor_share < 0.8 and floor_color.get_luminance() > 0.15 and floor_color.b > floor_color.r and environment.ambient_light_sky_contribution == 1.0,
+			"midnight share %.2f colour %s, noon share %.2f" % [floor_share, floor_color, environment.ambient_light_sky_contribution])
+
 	# 3. The sun crosses the sky: straight down at noon, level at 6 and 18, and moves east to west.
 	var travel := {}
 	for h in [6.0, 8.0, 12.0, 16.0, 18.0]:

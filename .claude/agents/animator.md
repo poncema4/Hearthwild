@@ -29,6 +29,13 @@ changed files). Do not explore the repo or re-review unchanged images.
   torso instead (the scarf sits on the rig and does not follow head tilt: 1 cm).
 - The curled, white-tipped tail reads as a raised hand in a side view (see INTENTIONAL.md): check the front strip first.
 
+## Transitions checklist (every review; the geometry test cannot see these)
+
+Probe each of these once and report errors, dangling references and pops: `set_species()` while holding a pose (fishing),
+`set_fade()` before a part is created (a rod, an outfit item), a fade while walking, a jump while holding a pose, a walk-away
+mid-pose, equip while faded. Also record tail and ear tip movement per frame (a tail tip moving over 0.12 m in one frame is a
+whip), and the model's highest point per animal (bunny ears reach 2.2 m).
+
 ## Budget
 
 About **10 minutes**: the filmstrips of the newest run, `test_animation.gd` once, and at most **2 probe

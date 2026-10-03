@@ -140,6 +140,14 @@ LAUNCHES USED: <n> / 3
 VERDICT: PASS / ISSUES FOUND
 ```
 
+## Scripting a whole route cheaply (the soak bot's engine)
+
+Do not write your own walking loop. `kit.drive_to(target, tolerance, jump, label)` walks the REAL player to a point with Shift
+(and Space) held and records stalls (`kit.worst_stall`, `kit.worst_stall_at`), hops (`kit.takeoffs`) and falls (`kit.fell`);
+`kit.stop_driving()` releases the keys. `tests/functional/test_soak.gd` is a complete example (path, plaza, into two cottages
+through their doors with E, home): copy it and change the waypoints. `kit.interact` is just `await kit.tap("interact")`.
+`FishingPond.spots`, `Village.houses` and `Terrain.path_lines` give exact targets.
+
 ## Walking to a point (lesson 36)
 
 To reach a target (a door, the plaza), walk in short bursts (3 frames) until within ~1.8 m or a frame cap,

@@ -23,6 +23,9 @@ func _run() -> void:
 	await kit.load_world()
 	var model: AnimalModel = kit.player.get_node("Body/Model")
 	var dt := 1.0 / 60.0
+	# Emulate an hour of play: phase bugs that multiply the running time by a changing value (the tail whip,
+	# lesson 49) only show once the clock is large.
+	model._time = 3600.0
 
 	# The animation must run on the physics tick, in lockstep with the movement it shows. In
 	# `_process` a slow renderer froze it while the physics kept running (lesson 43).
@@ -134,6 +137,45 @@ func _run() -> void:
 	kit.check("a sharp turn at sprint: while sliding backwards the legs do not keep striding (mean change under 0.1 rad/frame over 3+ frames)",
 			sliding_frames >= 3 and mean_leg_change < 0.1, "%d sliding frames, mean leg change %.3f rad/frame (a running stride is about 0.2)" % [sliding_frames, mean_leg_change])
 
+	# 5c. The other animals move correctly too (same rig, different shapes): stride, arm opposition,
+	# the jump pose and smoothness for the cat and the bunny.
+	for species: AnimalSpecies in [AnimalSpecies.cat(), AnimalSpecies.bunny()]:
+		model.set_species(species)
+		await kit.physics_frames(3)
+		var label: String = species.species_name
+		var s_walk := await _record(kit, model, ["move_forward"], 100, Vector3.BACK, 40)
+		var s_reach := _reach(s_walk)
+		var s_opposite := _arm_leg_opposition(s_walk)
+		kit.check("%s walking: feet swing forward and back, the opposite arm leads" % label, s_reach.x <= -0.2 and s_reach.y >= 0.2 and s_opposite[1] >= 20 and s_opposite[0] >= 0.95,
+				"reach %.2f/%.2f, opposition %.0f%% of %d" % [-s_reach.x, s_reach.y, s_opposite[0] * 100.0, s_opposite[1]])
+		var s_hops := await _record(kit, model, ["move_forward", "sprint", "jump"], 220, Vector3.BACK, 0)
+		var s_air := s_hops.filter(func(f): return f["air"] > 0.9)
+		var s_feet := 0
+		var s_arms := 0
+		for f in s_air:
+			s_feet += 1 if f["foot_l"].z < -0.1 and f["foot_r"].z < -0.1 else 0
+			s_arms += 1 if f["hand_l"].x > 0.45 and f["hand_r"].x < -0.45 else 0
+		kit.check("%s jumping: knees up in front, arms out to the sides" % label, s_air.size() > 40 and s_feet >= s_air.size() * 0.95 and s_arms >= s_air.size() * 0.95,
+				"%d airborne frames: feet ahead %d, arms out %d" % [s_air.size(), s_feet, s_arms])
+		var s_worst := 0.0
+		for sequence in [s_walk, s_hops]:
+			for i in range(1, sequence.size()):
+				for key in ["leg_l", "leg_r", "arm_lx", "arm_rx", "arm_lz", "arm_rz"]:
+					s_worst = maxf(s_worst, absf(sequence[i][key] - sequence[i - 1][key]))
+		kit.check("%s: no joint snaps (under 0.35 rad per frame)" % label, s_worst < 0.35, "worst %.3f rad" % s_worst)
+		var tail_worst := 0.0
+		for sequence in [s_walk, s_hops]:
+			for i in range(1, sequence.size()):
+				tail_worst = maxf(tail_worst, sequence[i]["tail_tip"].distance_to(sequence[i - 1]["tail_tip"]))
+		kit.check("%s: the tail never whips (tip moves under 0.12 m in a frame, walking and hopping)" % label, tail_worst < 0.12, "worst %.3f m" % tail_worst)
+	model.set_species(AnimalSpecies.dog())
+	await kit.physics_frames(3)
+	var dog_tail := 0.0
+	for sequence in [hops, walk, sprint]:
+		for i in range(1, sequence.size()):
+			dog_tail = maxf(dog_tail, sequence[i]["tail_tip"].distance_to(sequence[i - 1]["tail_tip"]))
+	kit.check("Dog: the tail never whips (tip moves under 0.12 m in a frame)", dog_tail < 0.12, "worst %.3f m" % dog_tail)
+
 	# 6. After the stop the character settles back to the idle pose.
 	var last: Dictionary = stop[stop.size() - 1]
 	kit.check("after stopping, the pose is idle again (legs level, hands hanging)",
@@ -187,6 +229,7 @@ func _sample(model: AnimalModel) -> Dictionary:
 		"leg_l": model.leg_angles().x, "leg_r": model.leg_angles().y,
 		"arm_lx": model.arm_angles().x, "arm_rx": model.arm_angles().y, "arm_lz": arm_l.rotation.z, "arm_rz": arm_r.rotation.z,
 		"head_z": model.to_local(head.global_position).z, "air": model.air_amount(),
+		"tail_tip": model.to_local((model.find_child("Tail", true, false).get_child(model.find_child("Tail", true, false).get_child_count() - 1) as Node3D).global_position),
 	}
 
 

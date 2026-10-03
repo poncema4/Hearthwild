@@ -37,9 +37,9 @@ a finding (a renderer feature the Compatibility renderer lacks), never "flaky".
 
 ## Verify the run actually covered everything
 
-The runner must print **all 20 steps**: repo check, import project, load main scene, editor load, player movement
-test, terrain test, movement feel test, village test, interaction test, character test, soak test, daynight test, animation test,
-camera playtest, visual tour, movement playtest, village playtest, character playtest, animation playtest, daynight playtest. A missing step
+The runner must print **all 25 steps**: repo check, import project, load main scene, editor load, player movement
+test, terrain test, movement feel test, village test, interaction test, character test, soak test, profile test, creator test, fishing test, daynight test, animation test,
+camera playtest, visual tour, movement playtest, village playtest, character playtest, animation playtest, daynight playtest, creator playtest, fishing playtest. A missing step
 is a **FAIL** ("a check that didn't run is a failure"). Also check:
 - No `SKIPPED` line you didn't expect. Quote every one. (With `--headless-only` the runner prints six
   SKIPPED lines for the rendered steps plus "qa index: NOT regenerated"; anything else missing is a gap.)
@@ -74,7 +74,7 @@ TEST RUN  <date_time>
 Renderer: Forward+ / Compatibility      Godot: <version line>
 Command: <exact>                        Exit code: <n>
 
-STEPS (20 expected)
+STEPS (25 expected)
 - import project: OK / FAILED (<first error line>)
 - load main scene: ...
 - editor load: ...
@@ -85,6 +85,9 @@ STEPS (20 expected)
 - interaction test: <n> PASS, <n> FAIL
 - character test: <n> PASS, <n> FAIL
 - soak test: <n> PASS, <n> FAIL
+- profile test: <n> PASS, <n> FAIL
+- creator test: <n> PASS, <n> FAIL
+- fishing test: <n> PASS, <n> FAIL
 - daynight test: <n> PASS, <n> FAIL
 - animation test: <n> PASS, <n> FAIL
 - camera playtest: <n> PASS, <n> FAIL / SKIPPED
@@ -94,6 +97,8 @@ STEPS (20 expected)
 - character playtest: <n> PASS, <n> FAIL / SKIPPED
 - animation playtest: <n> PASS, <n> FAIL / SKIPPED
 - daynight playtest: <n> PASS, <n> FAIL / SKIPPED
+- creator playtest: <n> PASS, <n> FAIL / SKIPPED
+- fishing playtest: <n> PASS, <n> FAIL / SKIPPED
 
 SKIPPED CHECKS: <every SKIPPED line verbatim, or "none">
 FAILURES: <every FAIL/ERROR line verbatim with its measured values, or "none">
@@ -104,7 +109,7 @@ VERDICT: PASS / FAIL
 
 ## Rules
 
-- VERDICT is PASS only if the exit code is 0, all 20 steps ran, none are skipped, and no step printed an
+- VERDICT is PASS only if the exit code is 0, all 25 steps ran, none are skipped, and no step printed an
   error. Otherwise FAIL (or "PASS (rendered steps SKIPPED)").
 - Quote failures verbatim; never paraphrase, shorten or interpret them. Never say "flaky" without two
   differing runs on identical code.
