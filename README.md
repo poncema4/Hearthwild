@@ -12,6 +12,7 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 
 | Feature | What you get |
 |---|---|
+| **Shared screen** | A big screen with benches on the north side of the village: press E, paste a YouTube link, and the screen shows what you chose (watching it together comes with multiplayer) |
 | **Village** | Eight cottages: three round a cobbled plaza with a well, lamps, clock and notice board, and five more in a ring, each with its own dirt path, lamp post and bench |
 | **Meadow world** | A 240 × 240 m valley (four times the area, room for many players) with rolling hills, a ring of taller hills around the edge, a lake with reeds and lily pads, and a flat clearing where you spawn |
 | **Nature** | 90 trees (round and pine), 45 rocks, thousands of grass tufts and wildflowers, in a soft low-poly style |
@@ -49,7 +50,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (29 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (30 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 

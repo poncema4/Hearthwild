@@ -86,6 +86,7 @@ run_step "fishing test" "$GODOT" --headless --path . --fixed-fps 60 --script res
 run_step "daynight test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_daynight.gd
 run_step "sleep test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_sleep.gd
 run_step "lake test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_lake.gd
+run_step "screen test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_screen.gd
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided

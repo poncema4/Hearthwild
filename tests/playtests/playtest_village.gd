@@ -18,6 +18,10 @@ const SHOTS := {
 	"village/well_and_lamps": ["Standing at (-12, 20) looking at the well in the plaza.", "Stone well with a small red roof, lamp posts with a warm glowing lantern, a bench, cobble ground that blends into grass."],
 	"village/ring_overview": ["Standing in the plaza (-20, 16) with a 30 m camera boom (screenshots only; the player's zoom stops at 8 m) at a steep -62 degree pitch, looking south.", "The plaza and well in the middle with cottages around it AND a ring of cottages further out, each with a dirt path to the plaza, a lamp post and a bench; open grass between the ring houses; nothing overlapping."],
 	"village/ring_house": ["Standing on the path in front of a ring cottage (south-east of the plaza), looking at its door from 5 m.", "A cottage with its own colours, a closed door, a dirt path running from the doorstep toward the plaza, a lamp post and a bench beside the path; no prop in front of the door."],
+	"village/screen_front": ["Standing between the shared screen and its benches, camera behind and above, at 10 AM.", "A wide dark-blue screen on two wooden posts with 'HEARTHWILD THEATER / Press E at the screen to choose what to watch' in warm white text, readable; two rows of three benches facing it; flat green ground; the screen is not cut off."],
+	"village/screen_night": ["The same view at 9 PM.", "The screen's face glows softly (emissive) and its text is readable in the dark; benches and posts dark but visible; no black void."],
+	"village/screen_dialog": ["The paste-a-link box open in front of the screen.", "A centred rounded panel 'What shall we watch?' with a text field, three buttons (Watch, Clear the screen, Close (Esc)) and the hint line; the whole panel is inside the window and nothing overlaps; the world dimmed behind it."],
+	"village/screen_showing": ["After pasting a YouTube link: the screen shows the chosen video.", "The screen's face reads 'NOW SHOWING / youtu.be/dQw4w9WgXcQ / (playing it together comes with multiplayer)', readable, not cut off; the HUD message about the big screen is visible."],
 	"village/notice_board": ["Standing south-west of the notice board at (-18.5, 10.8), camera aimed so the board is right of the player.", "The board is fully visible beside the capsule: two wooden posts and three pale notes; flat ground; nothing floating."],
 }
 
@@ -83,6 +87,24 @@ func _run() -> void:
 	var in_front := ring.door_outside(5.0)
 	await _frame(Vector3(in_front.x, NAN, in_front.z), -ring.global_transform.basis.z, 4.5, -10.0)
 	await _take("ring_house")
+
+	var screen: SharedScreen = kit.village.screen
+	await _frame(screen.to_global(Vector3(0, 0, 2.4)), -screen.global_transform.basis.z, 7.0, -22.0)
+	await _take("screen_front")
+	kit.day_night.set_time(21.0)
+	await kit.frames(3)
+	await _take("screen_night")
+	kit.day_night.set_time(10.0)
+	screen.open_dialog(kit.player)
+	await kit.frames(5)
+	var window := Rect2(Vector2.ZERO, Vector2(kit.tree.root.size))
+	kit.check("the paste box fits inside the window and the mouse is free while it is open", window.encloses(screen.dialog_rect()) and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "box %s window %s mouse %d" % [screen.dialog_rect(), window, Input.mouse_mode])
+	await _take("screen_dialog")
+	screen.submit("https://youtu.be/dQw4w9WgXcQ")
+	await kit.frames(5)
+	kit.check("after a good link the mouse is captured again", Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "mouse %d" % Input.mouse_mode)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	await _take("screen_showing")
 
 	print("SCREENSHOTS: %s/village/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()

@@ -32,9 +32,14 @@ const HOUSES := [
 ## the rest form the outer ring, whose lamp post and bench are placed from each door.
 const CORE_HOUSES := 3
 
+## Where the shared screen stands, relative to the plaza (the open north side), facing the plaza.
+const SCREEN_OFFSET := Vector2(6, -24)
+
 var _terrain: Terrain
 var _generated: Node3D
 var houses: Array[House] = []
+## The big screen on the north side (not in `props`: it is a place, with its own tests).
+var screen: SharedScreen
 var props: Array[Node3D] = []
 
 
@@ -57,6 +62,7 @@ func _build() -> void:
 		_generated.queue_free()
 	houses.clear()
 	props.clear()
+	screen = null
 	_generated = Node3D.new()
 	_generated.name = "Generated"
 	add_child(_generated)
@@ -91,6 +97,11 @@ func _build() -> void:
 	# Last: the ring's props look for free spots among everything placed above.
 	for ring_house in houses.slice(CORE_HOUSES):
 		_place_ring_props(ring_house)
+
+	screen = SharedScreen.new()
+	screen.name = "SharedScreen"
+	screen.position = _at(SCREEN_OFFSET)
+	_generated.add_child(screen)
 
 
 ## A lamp post and a bench beside the dirt path from this cottage's door to the plaza. Each takes the first
