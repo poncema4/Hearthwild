@@ -40,6 +40,14 @@ var _spawn_position: Vector3
 var _coyote := 0.0
 ## True while a full-screen menu (the character screen) is open: no movement, jumping or interacting.
 var input_locked := false
+## True while lying in a bed (SleepSystem): no physics, no collision, the model is lying down.
+var sleeping := false:
+	set(value):
+		sleeping = value
+		velocity = Vector3.ZERO
+		var shape := get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if shape:
+			shape.set_deferred("disabled", value)
 
 
 func _ready() -> void:
@@ -51,6 +59,10 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if sleeping:
+		velocity = Vector3.ZERO
+		_model.set_motion(0.0, true, 0.0)
+		return
 	if global_position.y < fall_limit_y:
 		respawn()
 		return

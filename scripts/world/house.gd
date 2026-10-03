@@ -27,6 +27,8 @@ const ROOF_OVERHANG := 0.4
 
 ## The door leaf (closed by default); `door.open_instantly()` for tests and setup.
 var door: Door
+## The bed in the back-left corner (E to sleep, 7 PM to 6 AM).
+var bed: Bed
 var _body: StaticBody3D
 var _materials := {}
 
@@ -134,6 +136,11 @@ func _build() -> void:
 	door.leaf_color = trim_color
 	door.position = Vector3(0, 0, half_d - t * 0.5)
 	_body.add_child(door)
+	bed = Bed.new()
+	bed.name = "Bed"
+	bed.blanket_color = roof_color.lightened(0.15)
+	bed.position = Vector3(-1.9, 0, -0.9)
+	_body.add_child(bed)
 	_box("Chimney", Vector3(0.6, 1.5, 0.6), Vector3(1.6, h + ROOF_RISE * 0.45 + 0.5, -0.9), Color(0.62, 0.58, 0.54), Vector3.ZERO, false)
 
 

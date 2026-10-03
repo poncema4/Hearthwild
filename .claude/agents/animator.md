@@ -45,7 +45,7 @@ scripts**. Run Godot only on a copy: `rsync -a --exclude .git --exclude .godot -
 
 ## Read first
 
-`docs/INTENTIONAL.md`, `AGENTS.md` 9.0 (findings contract) and the lessons on animation (14.1 numbers 42 and 43),
+`docs/INTENTIONAL.md`, `AGENTS.md` 9.0 (findings contract) and the lessons on animation (14.1 numbers 42, 43 and 50),
 then `scripts/player/animal_model.gd` (top comment: the rotation conventions) and the manifest of
 `qa_output/animation/<newest>/` (`what`, `expect`, and per-thumbnail `t`, speed, position).
 

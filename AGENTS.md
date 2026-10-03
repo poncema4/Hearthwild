@@ -87,6 +87,8 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Tests for them: profile, creator, fishing, species animation + creator and fishing playtests (panel fits the window, bobber on screen) | Done | `tests/functional/test_{profile,creator,fishing}.gd`, `tests/playtests/playtest_{creator,fishing}.gd` |
 | Day/night cycle: 12-minute day, sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
 | Tests for it: clock, light, sun path, smoothness, signals, lamps, clock hands + 7 screenshots incl. a whole-day filmstrip | Done | `tests/functional/test_daynight.gd`, `tests/playtests/playtest_daynight.gd` |
+| Sleep: a bed in every cottage (solid, off the door lane), E at night: the character slides onto the bed and lies down, fade to black, the clock (paused the whole time) runs to 6:30 AM, the character stands beside the bed under the black screen, fade in; lying pose with Zzz; `fell_asleep`/`woke_up` signals | Done | `scripts/world/{bed,sleep_system}.gd`, `house.gd`, `animal_model.gd`, `player_controller.gd`, `world.tscn` (SleepSystem) |
+| Tests for it: window edges, full sequence, clock, locks, pose, wake spot + 4 screenshots (half-faded wake frame) | Done | `tests/functional/test_sleep.gd`, `tests/playtests/playtest_sleep.gd` |
 | Day lighting (sun, sky, fog, SSAO, glow) | Done | `scenes/world/world.tscn` (WorldEnvironment, Sun) |
 | Boundary walls + fall-out respawn | Done | `world.tscn` (Boundary), `player_controller.gd` |
 | Third-person player (walk, hold-Shift sprint, hold-Space repeat jumps, coyote time, floor snap, gravity) | Done | `scenes/player/player.tscn`, `scripts/player/player_controller.gd` |
@@ -267,6 +269,9 @@ a timeout** (`STEP_TIMEOUT`, default 600 s): a hung Godot fails the step. The te
 fishing playtests (rendered). The creator playtest also checks that the whole panel fits the window and that the mouse is
 captured after Start; the fishing playtest checks the bobber, line and ! project onto the screen. `test_animation` now also
 runs the cat and the bunny through the walk and jump geometry.
+
+**Step 8 added two more (27 in all):** sleep test (headless; window edges both sides, the full night, clock, locks, pose, wake spot)
+and the sleep playtest (rendered; bed prompt, lying, half-faded wake, morning).
 
 After the steps the runner writes `qa_output/run_meta/<date_time>.json` (branch, commit, renderer,
 result) and regenerates `qa_output/INDEX.md`.
@@ -682,7 +687,7 @@ NEXT RECOMMENDED STEP
 7. Day/night system ✅ (sun, moon, dusk, lamps, clocks; tests freeze the clock at 10:00)
 7a. Character select (pick your animal), outfit swap screen, name tag over the head ✅ (Steam name later: `PlayerProfile.steam_name()`)
 7b. Fishing ✅ (the pond now; the ocean when the world has one)
-8. Sleep system
+8. Sleep system ✅ (beds work 7 PM to 6 AM; you wake at 6:30; the clock is shared, so multiplayer will need sleep voting)
 9. Basic zombie
 10. Zombie AI
 11. Basic combat
@@ -762,6 +767,9 @@ in 14.2, so agents repeat them. Agents read both before working.
 | 47 | The first fishing screenshots showed no bobber, line or ! although the tests proved they existed and were `visible`; the first character screen had a Start button below the bottom of the window | `visible` is not "can be seen": the bobber was 13 cm across, 7 m from the camera and behind the character; the panel was taller than 720 px and no headless test has a window | Anything the player must SEE gets an on-screen check in the windowed playtest: project its position with `unproject_position` (inside the viewport, in front of the camera) and make it big enough; a panel's rect must be enclosed by the window rect. Then LOOK at the image. Bobber 0.24 m, line 2.8 cm, "!" 0.8 m up |
 | 48 | A method named `set_name` silently clashed with `Node.set_name` and failed to parse; a cast distance guessed at 5 m would have landed on dry ground (the pond's "radius 8" is the bowl the hills flatten into, the visible waterline is 4.2 m) | Guessing a number the world answers; reusing a name from the engine's API | Probe the real world before placing things (a 20-line script that prints waterline, tree clearance and slope per angle placed 4 spots correctly the first time). Do not name methods like `Node`'s (`set_name`, `get_name`, `free`); `enter_name` instead |
 | 49 | Reviewers found bugs that only appear when something CHANGES while in a state: changing animal mid-cast rebuilt the model and orphaned the fishing rod (an engine error, then arms out holding nothing); the tail whipped whenever the walk blend changed (the wag frequency was blended inside `sin(time * freq)`, so the phase jumped, worse as the game ran longer); a rod made while the body was faded stayed opaque; a profile with a `null` in it crashed the loader and silently reset the player; a fishing test on seeds 1-10 never saw a short wait because consecutive seeds give similar first rolls | Every test started from a clean state and moved forward; nothing rebuilt, faded, interrupted or corrupted a thing already in progress | Test TRANSITIONS: rebuild/switch/fade/cancel while in each state (cast, fishing pose, faded, outfit worn), and damage every field of saved data with null, a list and text. Accumulate phases, never multiply time by a changing frequency. Use widely spread seeds (`i * 7919 + 13`). Measure timers over many samples and assert both ends of the range |
+| 50 | The sleep test failed twice on its first run, both my mistakes: a lying-pose height limit I guessed (1.0 m) before measuring, and an expected phase list that forgot the final AWAKE | The AABB of a whole model included a tail that hides inside the mattress, so the number meant nothing; I picked the threshold from a feeling | Print the real numbers first (a probe), then write the limit from what matters (height above the feet; nothing below the floor as a separate check). A failing first run is a prompt to look, not to loosen |
+| 51 | A negative control escaped: pausing the world clock during sleep changed nothing visible, because the system overwrote the hour every frame anyway. A screenshot meant to show a half-faded screen also came out fully faded, because I waited a fixed number of frames | Behaviour that is a contract but not an outcome is invisible to outcome checks; frame counts in a script drift from game time | Assert the contract directly (the clock is paused while asleep) and make the test start from the state a real player has (a RUNNING clock; the kit pauses it, which made the check unfalsifiable). Mutate by DELETING lines as well as flipping values, and sample from BEFORE the action (a teleport in the first frames escaped). Time a screenshot by polling the state it must show (overlay alpha 0.3 to 0.7), and check that state in the test |
+| 52 | Running both renderers at the same time made the creator test fail in one of them ("no saved profile" expected, one existed) | Every test process used the same fixed temp file under `user://`, so one run's save was the other's "existing profile"; it passed alone | Anything a test writes to a shared place (user://, /tmp, a port) gets a per-process name (`OS.get_process_id()`) and is removed in `finish()`. If a failure vanishes when run alone, suspect shared state first |
 
 ### 14.2 What worked (keep doing)
 

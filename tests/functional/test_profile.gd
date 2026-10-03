@@ -5,7 +5,7 @@ extends SceneTree
 ## Run: godot --headless --path . --fixed-fps 60 --script res://tests/functional/test_profile.gd
 ## Exit code = number of failures (0 = all pass).
 
-const TEST_PATH := "user://hw_test_profile.json"
+var TEST_PATH := "user://hw_test_profile_%d.json" % OS.get_process_id()  # per process: parallel runs must not share a file (lesson 52)
 var failures := 0
 
 
