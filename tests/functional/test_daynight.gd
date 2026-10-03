@@ -105,13 +105,13 @@ func _run() -> void:
 	kit.check("lighting is smooth over the day (per 6 game minutes: sun under 0.25, sky under 0.05, night amount under 0.2)",
 			worst_sun < 0.25 and worst_sky < 0.05 and worst_night < 0.2, "worst sun %.3f sky %.3f night %.3f" % [worst_sun, worst_sky, worst_night])
 
-	# 6. The clock runs on the physics tick: 6 s of a 720 s day = 0.2 hours, and it wraps at midnight.
+	# 6. The clock runs on the physics tick: 6 s of the default day (DayNight.DEFAULT_DAY_LENGTH, 20 minutes) = 0.12 hours, and it wraps at midnight.
 	dn.set_time(10.0)
 	dn.paused = false
 	await kit.physics_frames(360)
-	kit.check("a running clock advances 0.2 game hours in 6 real seconds", absf(dn.hour - 10.2) < 0.01, "hour %.3f" % dn.hour)
+	kit.check("a running clock advances 0.12 game hours in 6 real seconds (a 20-minute day)", dn.day_length_seconds == DayNight.DEFAULT_DAY_LENGTH and DayNight.DEFAULT_DAY_LENGTH == 1200.0 and absf(dn.hour - 10.12) < 0.005, "hour %.3f, day %.0f s" % [dn.hour, dn.day_length_seconds])
 	dn.set_time(23.95)
-	await kit.physics_frames(180)
+	await kit.physics_frames(240)
 	kit.check("the clock wraps past midnight", dn.hour < 0.1 and dn.hour > 0.0, "hour %.3f" % dn.hour)
 	dn.paused = true
 	var frozen := dn.hour
@@ -134,7 +134,7 @@ func _run() -> void:
 	await kit.physics_frames(150)
 	dn.paused = true
 	kit.check("day_started fires exactly once as the morning comes", counts["day"] == 1 and counts["night"] == 1, "night %d day %d at hour %.2f" % [counts["night"], counts["day"], dn.hour])
-	dn.day_length_seconds = 720.0
+	dn.day_length_seconds = DayNight.DEFAULT_DAY_LENGTH
 
 	# 8. The village lamps light up at night and are dark by day.
 	var lamps: Array[Node] = kit.tree.get_nodes_in_group(&"night_light")

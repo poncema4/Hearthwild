@@ -21,7 +21,7 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |
 | **Fishing** | Four spots round the pond: cast, wait for the bobber to dip, reel in. Different fish by day and night, some rare, a bit of junk; your catches are saved |
 | **Sleep** | Beds in the cottages work from 7 PM to 6 AM: press E, the screen fades to black while the clock runs to 6:30 AM, and you wake beside the bed |
-| **Day and night** | A 12-minute day: the sun crosses the sky, sets in orange, the moon and warm lamps take over, then it brightens again at dawn; a clock on screen and a clock post in the plaza |
+| **Day and night** | A 20-minute day (about 10 minutes of night, like Minecraft): the sun crosses the sky, sets in orange, the moon and warm lamps take over, then it brightens again at dawn; a clock on screen and a clock post in the plaza |
 | **Interaction** | Press E near a cottage door to open or close it, or at the notice board to read it |
 | **Camera** | Orbit with the mouse, zoom with the wheel; pulls in so it never clips through walls, and your character fades out if the camera gets too close |
 

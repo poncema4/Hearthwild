@@ -32,7 +32,7 @@ include the numbers, so an agent can tell "intended" from "broken" by measuring.
 | The dog wags its tail and blinks constantly | Tail every ~1 s, blink every 3.4 s for 0.12 s, ears sway | Idle life |
 | The swinging foot lifts as a plain raise | No knee bend; foot lift 5-10 cm | Placeholder rig |
 | Doors are closed at the start and open inward | Press E within 2.6 m and facing the door; 0.45 s swing; it won't close on someone in the doorway | Basic interaction (step 6) |
-| A day lasts 12 real minutes and starts at 10 AM | Sun rises 6 AM, sets 6 PM; the test kit freezes the clock at 10:00 so light never drifts under a test | Day/night (step 7); `DayNight.day_length_seconds` |
+| A day lasts 20 real minutes (about 10 of them night, Minecraft-style) and starts at 10 AM | Sun rises 6 AM, sets 6 PM; the test kit freezes the clock at 10:00 so light never drifts under a test | Day/night (step 7); `DayNight.day_length_seconds` |
 | Night is dark blue, not black; dusk is orange; the first/last minutes before sunrise are dim | Moon light 0.28, ambient never below 0.9, the 4 village lamps (OmniLight, no shadows) glow warm after dark | Readable but moody; zombies come at night later |
 | Shadows of the moon are soft and weak | Moon shadow opacity 0.5 | Night look |
 | Three animals: dog, cat, bunny (placeholder shapes) | The cat's tail curves up, the bunny's ears are tall (the model is up to 2.1 m with ears; the name tag floats above them) | More animals later = new `AnimalSpecies` rows |
