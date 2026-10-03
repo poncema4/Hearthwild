@@ -4,7 +4,7 @@ extends Node3D
 ## moon at night, sky/fog colours with orange dusk and dawn, dimmer ambient light,
 ## and lamps that switch on after dark.
 ##
-## One in-game day lasts `day_length_seconds` of real time (12 minutes by default).
+## One in-game day lasts `day_length_seconds` of real time (20 minutes by default, like Minecraft: about 10 of them are night).
 ## Hour 0 is midnight, 12 is noon; the sun rises at 6 and sets at 18. The clock
 ## runs on the physics tick, so it is deterministic in tests.
 ##
@@ -18,7 +18,9 @@ extends Node3D
 signal night_started
 signal day_started
 
-@export var day_length_seconds: float = 720.0
+const DEFAULT_DAY_LENGTH := 1200.0
+
+@export var day_length_seconds: float = DEFAULT_DAY_LENGTH
 @export_range(0.0, 24.0) var start_hour: float = 10.0
 @export var paused: bool = false
 @export var sun_path: NodePath = ^"../Sun"

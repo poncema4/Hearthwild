@@ -61,7 +61,7 @@ func _run() -> void:
 			"A whole day at one game hour per real second: 9 thumbnails 3 game hours apart (6 AM, 9 AM, 12 PM, 3 PM, 6 PM, 9 PM, 12 AM, 3 AM, 6 AM), the camera fixed on the sky and the plaza.",
 			"The sun climbs from the horizon in the morning, is overhead at noon, sinks toward the other side by 6 PM with an orange sky; the sky turns dark blue with the moon's light by 9 PM and midnight, the lamps glow warm; the sky starts to brighten by 3 AM and 6 AM looks like the first thumbnail again. Brightness changes gradually between neighbours: no thumbnail pair that jumps from day to black.", 3)
 	kit.day_night.paused = true
-	kit.day_night.day_length_seconds = 720.0
+	kit.day_night.day_length_seconds = DayNight.DEFAULT_DAY_LENGTH
 	kit.day_night.set_time(10.0)
 	print("SCREENSHOTS: %s/daynight/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()

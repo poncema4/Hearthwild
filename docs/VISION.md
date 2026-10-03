@@ -64,4 +64,13 @@ COZY (day)  →  ALIVE (evening)  →  DANGEROUS (night)  →  RELIEF (morning)
 - **Fishing (done, step 7b):** fish from the water (the pond now, the ocean when the world has one).
 - **Time:** a visible sun and moon that really move, realistic dimming at dusk and brightening at dawn (done: day/night),
   clocks you can read (HUD and plaza clock done; a craftable pocket watch when crafting exists).
-
+- **Sleep and morning (step 8 done, multiplayer later):** beds work at night; the morning only comes when ALL players are
+  asleep (sleep voting once there is multiplayer). A day is 20 real minutes (Minecraft-like), about 10 of them night.
+- **Mobs and the sun (Minecraft logic):** zombies spawn at night; when the sun rises the light slowly burns them (they have
+  HP), but a mob standing where the sun cannot reach (shade, caves, indoors) survives the day. The player has HP too.
+  Weapons come later.
+- **A bigger world for multiplayer:** a much larger world and village with room for many players and other jobs.
+- **A shared screen:** a big screen in the village where players paste a YouTube link and watch together (needs
+  multiplayer sync; build the place first, the playback later).
+- **A realistic lake:** a bigger shoreline with depth, ripples and reflections for fishing.
+- **Better UI/UX:** HUD, prompts and menus polished for real players (hotbar and health bar come with combat).

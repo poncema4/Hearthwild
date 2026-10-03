@@ -137,7 +137,7 @@ func _run() -> void:
 	# 5. Waking: standing beside the bed, free, with a greeting.
 	var hour_awake := clock.hour
 	await kit.physics_frames(60)
-	kit.check("after waking the clock keeps running (about 0.03 h per second of a 12-minute day)", clock.hour > hour_awake + 0.02 and clock.hour < hour_awake + 0.06, "%.3f -> %.3f" % [hour_awake, clock.hour])
+	kit.check("after waking the clock keeps running (0.02 h per second of a 20-minute day)", clock.hour > hour_awake + 0.012 and clock.hour < hour_awake + 0.03, "%.3f -> %.3f" % [hour_awake, clock.hour])
 	clock.paused = true  # back to the kit's frozen clock for the rest of the test
 	var up_box := _bounds(model)
 	kit.check("after waking: free to move, collision back, standing beside the bed (not inside it), on the floor",

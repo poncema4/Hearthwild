@@ -85,7 +85,7 @@ Hearthwild is a **third-person** game. Never turn it into a first-person game.
 | Character screen (first launch + F2): pick dog / cat / bunny, dress 5 slots from a 7-item wardrobe, name over the head (Steam name hook), live 3D preview; saved profile (name, animal, outfit, fishing journal) in `user://profile.json` | Done | `scripts/ui/character_creator.gd`, `scripts/player/{player_profile,outfits,animal_species}.gd` |
 | Fishing: 4 spots round the pond, cast / wait / bite / reel, day and night fish, rare fish and junk, journal, rod and arm pose | Done | `scripts/world/{fishing_spot,fishing_pond,fish_catalog}.gd`, `animal_model.gd` |
 | Tests for them: profile, creator, fishing, species animation + creator and fishing playtests (panel fits the window, bobber on screen) | Done | `tests/functional/test_{profile,creator,fishing}.gd`, `tests/playtests/playtest_{creator,fishing}.gd` |
-| Day/night cycle: 12-minute day, sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
+| Day/night cycle: 20-minute day (about 10 minutes of night), sun and moon arcs, dusk/dawn colours, dimming ambient, lit lamp posts, HUD clock, plaza clock post with moving hands, `night_started`/`day_started` signals for zombies | Done | `scripts/world/{day_night,world_clock}.gd`, `world.tscn` (DayNight), `village_props.gd` |
 | Tests for it: clock, light, sun path, smoothness, signals, lamps, clock hands + 7 screenshots incl. a whole-day filmstrip | Done | `tests/functional/test_daynight.gd`, `tests/playtests/playtest_daynight.gd` |
 | Sleep: a bed in every cottage (solid, off the door lane), E at night: the character slides onto the bed and lies down, fade to black, the clock (paused the whole time) runs to 6:30 AM, the character stands beside the bed under the black screen, fade in; lying pose with Zzz; `fell_asleep`/`woke_up` signals | Done | `scripts/world/{bed,sleep_system}.gd`, `house.gd`, `animal_model.gd`, `player_controller.gd`, `world.tscn` (SleepSystem) |
 | Tests for it: window edges, full sequence, clock, locks, pose, wake spot + 4 screenshots (half-faded wake frame) | Done | `tests/functional/test_sleep.gd`, `tests/playtests/playtest_sleep.gd` |
@@ -688,17 +688,22 @@ NEXT RECOMMENDED STEP
 7a. Character select (pick your animal), outfit swap screen, name tag over the head ✅ (Steam name later: `PlayerProfile.steam_name()`)
 7b. Fishing ✅ (the pond now; the ocean when the world has one)
 8. Sleep system ✅ (beds work 7 PM to 6 AM; you wake at 6:30; the clock is shared, so multiplayer will need sleep voting)
-9. Basic zombie
-10. Zombie AI
-11. Basic combat
-12. Building
-13. Inventory
-14. Animals
-15. NPCs
-16. Multiplayer foundation
-17. Voice chat
-18. TV/social systems
-19. Steam integration
+8b. Longer Minecraft-style day (20 minutes, about 10 of night) ✅
+9. Bigger world and village (room for many players; a more realistic lake for fishing)
+10. The shared screen place (a big screen in the plaza; link playback comes with multiplayer)
+11. Health component (player + mobs) and the HP bar
+12. Basic zombie: spawns at night, chases, leaves a sleeping player alone, burns in sunlight, survives in shade
+13. Zombie AI
+14. Basic combat (weapons)
+15. UI/UX polish pass (HUD, prompts, menus) - small passes alongside every step too
+16. Building
+17. Inventory
+18. Animals
+19. NPCs
+20. Multiplayer foundation (sleep voting, shared clock)
+21. Voice chat
+22. TV/social systems (the playback for the shared screen)
+23. Steam integration
 
 The order can change for a real architectural reason. Never skip testing to
 reach later features faster.
