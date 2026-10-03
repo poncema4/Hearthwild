@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://1angv3o8sxdg"]
 
+[ext_resource type="Script" path="res://scripts/world/lake_decor.gd" id="9_lakedecor"]
 [ext_resource type="Script" path="res://scripts/world/terrain.gd" id="1_terrain"]
 [ext_resource type="Script" path="res://scripts/world/nature_scatter.gd" id="2_scatter"]
 [ext_resource type="Script" path="res://scripts/world/village.gd" id="4_village"]
@@ -77,6 +78,9 @@ script = ExtResource("4_village")
 
 [node name="Fishing" type="Node3D" parent="."]
 script = ExtResource("7_fishing")
+
+[node name="LakeDecor" type="Node3D" parent="."]
+script = ExtResource("9_lakedecor")
 
 [node name="Boundary" type="StaticBody3D" parent="." groups=["boundary"]]
 

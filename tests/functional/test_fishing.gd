@@ -24,7 +24,12 @@ func _run() -> void:
 	var interactor: Interactor = player.get_node("Interactor")
 
 	# 1. The spots: on dry shore, cast lands in deep water, no tree or rock close, all reachable.
-	kit.check("there are 4 fishing spots", spots.size() == 4, "%d" % spots.size())
+	var pond: FishingPond = kit.fishing
+	var feasible := 0
+	for degrees in pond.candidate_angles_degrees:
+		if not pond.plan_spot(deg_to_rad(degrees)).is_empty():
+			feasible += 1
+	kit.check("every bearing where a cast can reach 1 m of water has a spot, and the lake has at least 6", spots.size() == feasible and spots.size() >= 6, "%d spots, %d feasible bearings" % [spots.size(), feasible])
 	var trees: Array = kit.nature.get_trees() + kit.nature.get_rocks()
 	var problems := []
 	for spot in spots:

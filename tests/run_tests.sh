@@ -85,6 +85,7 @@ run_step "creator test" "$GODOT" --headless --path . --fixed-fps 60 --script res
 run_step "fishing test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_fishing.gd
 run_step "daynight test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_daynight.gd
 run_step "sleep test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_sleep.gd
+run_step "lake test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_lake.gd
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
@@ -126,6 +127,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "sleep playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_sleep.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "lake playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_lake.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else

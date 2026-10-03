@@ -1,16 +1,21 @@
 class_name FishingPond
 extends Node3D
-## Four fishing spots round the pond, each with a little signpost. Where to stand was
-## measured on the real terrain: the waterline is about 4.2 m from the pond centre, so
-## the standing spots are 5.3 m out and the cast (3.2 m) lands in water about 2 m deep.
-## Angles were picked where no tree or rock is within 5.5 m.
+## Fishing spots round the lake, each with a little signpost. Where to stand is measured on the real terrain
+## (the shoreline is irregular: 12 to 18 m from the centre, with steep banks on some sides and a long shallow
+## beach on others): for every candidate bearing the pond walks outward from the waterline to dry ground
+## (0.35 m above the water), stands the player there, and sets the cast to reach water at least 1 m deep. A bearing
+## where that takes a cast longer than MAX_CAST gets no spot.
 ##
 ## Each spot is a `FishingSpot` (an Interactable) placed 1 m in front of where you stand.
 
+const MAX_CAST := 6.5
+const MIN_CAST := 3.2
+const DEEP_ENOUGH := 1.0
+const DRY_ENOUGH := 0.35
+
 @export var terrain_path: NodePath = ^"../Terrain"
-@export var spot_angles_degrees: Array[float] = [60.0, 135.0, 240.0, 315.0]
-@export var stand_radius: float = 5.3
-@export var cast_distance: float = 3.2
+## Bearings tried, in degrees (0 = +X); only the feasible ones become spots.
+@export var candidate_angles_degrees: Array[float] = [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0]
 
 var spots: Array[FishingSpot] = []
 var _terrain: Terrain
@@ -21,11 +26,36 @@ func _ready() -> void:
 	if _terrain == null:
 		push_warning("FishingPond: no Terrain at %s" % terrain_path)
 		return
-	for i in spot_angles_degrees.size():
-		_build_spot(i, Vector2.from_angle(deg_to_rad(spot_angles_degrees[i])))
+	for degrees in candidate_angles_degrees:
+		var plan := plan_spot(deg_to_rad(degrees))
+		if not plan.is_empty():
+			_build_spot(spots.size(), Vector2.from_angle(deg_to_rad(degrees)), plan["stand_radius"], plan["cast"])
 
 
-func _build_spot(index: int, outward: Vector2) -> void:
+## Where to stand and how far to cast along `angle` (radians), or {} if no cast of at most MAX_CAST reaches deep water.
+func plan_spot(angle: float) -> Dictionary:
+	var outward := Vector2.from_angle(angle)
+	var stand_r := _terrain.waterline_at(angle)
+	var limit := stand_r + 8.0
+	while stand_r < limit:
+		var p := _terrain.pond_center + outward * stand_r
+		if _terrain.height_at(p.x, p.y) >= _terrain.water_level + DRY_ENOUGH:
+			break
+		stand_r += 0.1
+	stand_r += 0.15
+	var r := stand_r - 1.0
+	while r > 0.0:
+		var q := _terrain.pond_center + outward * r
+		if _terrain.water_depth_at(q.x, q.y) >= DEEP_ENOUGH:
+			break
+		r -= 0.1
+	var cast := maxf(MIN_CAST, stand_r - r)
+	if cast > MAX_CAST or stand_r >= limit:
+		return {}
+	return {"stand_radius": stand_r, "cast": cast}
+
+
+func _build_spot(index: int, outward: Vector2, stand_radius: float, cast_distance: float) -> void:
 	var stand_xz := _terrain.pond_center + outward * stand_radius
 	var ground := Vector3(stand_xz.x, _terrain.height_at(stand_xz.x, stand_xz.y), stand_xz.y)
 	var toward_water := Vector3(-outward.x, 0.0, -outward.y)

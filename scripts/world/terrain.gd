@@ -72,15 +72,17 @@ signal rebuilt
 	set(value):
 		path_lines = value
 		_rebuild()
-@export var pond_center: Vector2 = Vector2(16, -12):
+## The lake. Far enough from the village (its flat zone ends 38 m from the plaza) and inside the hill rim (which
+## starts 78 m from the origin): centre 57 m from the origin plus radius 20 m = 77 m.
+@export var pond_center: Vector2 = Vector2(46, -34):
 	set(value):
 		pond_center = value
 		_rebuild()
-@export var pond_radius: float = 8.0:
+@export var pond_radius: float = 20.0:
 	set(value):
 		pond_radius = value
 		_rebuild()
-@export var pond_depth: float = 2.2:
+@export var pond_depth: float = 3.4:
 	set(value):
 		pond_depth = value
 		_rebuild()
@@ -90,10 +92,12 @@ signal rebuilt
 		water_level = value
 		_rebuild()
 
+const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")
+const DEPTH_MAP_SIZE := 256
 const GRASS_LOW := Color(0.40, 0.62, 0.27)
 const GRASS_HIGH := Color(0.55, 0.70, 0.30)
 const DIRT := Color(0.52, 0.42, 0.30)
-const SAND := Color(0.80, 0.74, 0.55)
+const SAND := Color(0.72, 0.66, 0.49)
 const COBBLE := Color(0.72, 0.70, 0.66)
 const PATH_DIRT := Color(0.63, 0.51, 0.37)
 
@@ -121,6 +125,12 @@ func height_at(x: float, z: float) -> float:
 
 	# Hill ring around the edge.
 	h += smoothstep(rim_start, 1.0, edge) * rim_height
+
+	# Near the lake the hills' dips are filled in (to 0.5 m above the water), fading out over 6 m beyond the
+	# bowl: otherwise a low patch of hills at the edge puts the true waterline OUTSIDE the water disc, and a
+	# bank only 0.3 m high leaves no dry ground to fish from on that side.
+	var lake_distance := Vector2(x, z).distance_to(pond_center)
+	h = lerpf(h, maxf(h, water_level + 0.5), 1.0 - smoothstep(pond_radius, pond_radius + 6.0, lake_distance))
 
 	# Pond: a smooth bowl, with the hills flattened around it.
 	var pond_t := 1.0 - smoothstep(0.0, pond_radius, Vector2(x, z).distance_to(pond_center))
@@ -245,27 +255,66 @@ func _build_collision(heights: PackedFloat32Array, verts: int) -> void:
 
 
 func _build_water() -> void:
-	# A round disc, slightly wider than the bowl: a square plane's corners
-	# would poke out of the meadow wherever the ground dips below the water.
+	# A round disc, slightly wider than the bowl: a square plane's corners would poke out of the meadow wherever
+	# the ground dips below the water. The look comes from assets/shaders/water.gdshader and a baked depth map.
 	var disc := CylinderMesh.new()
 	disc.top_radius = pond_radius + 0.5
 	disc.bottom_radius = pond_radius + 0.5
 	disc.height = 0.02
-	disc.radial_segments = 48
+	disc.radial_segments = 64
 	disc.rings = 1
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.30, 0.55, 0.70, 0.75)
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.roughness = 0.08
-	material.metallic = 0.2
+	var material := ShaderMaterial.new()
+	material.shader = WATER_SHADER
+	if _water and _water.material_override is ShaderMaterial:  # a rebuild (editor) keeps the clock's look
+		for key in ["daylight", "sky_tint"]:
+			var kept = (_water.material_override as ShaderMaterial).get_shader_parameter(key)
+			if kept != null:
+				material.set_shader_parameter(key, kept)
+	var extent := pond_radius + 2.0
+	material.set_shader_parameter("depth_map", _bake_depth_map(extent))
+	material.set_shader_parameter("map_half_extent", extent)
+	material.set_shader_parameter("max_depth", pond_depth + 1.0)
 	if _water == null:
 		_water = MeshInstance3D.new()
 		_water.name = "PondWater"
 		_water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_water.add_to_group(&"water")
 		add_child(_water)
 	_water.mesh = disc
 	_water.material_override = material
 	_water.position = Vector3(pond_center.x, water_level, pond_center.y)
+
+
+## A DEPTH_MAP_SIZE square image of the ground under the lake: 0 at (or above) the water surface, 1 at the deepest
+## point the shader shows. The shader samples it so the shore, shallows and foam match the real terrain.
+func _bake_depth_map(extent: float) -> ImageTexture:
+	var image := Image.create(DEPTH_MAP_SIZE, DEPTH_MAP_SIZE, false, Image.FORMAT_R8)
+	var deepest := pond_depth + 1.0
+	for iy in DEPTH_MAP_SIZE:
+		for ix in DEPTH_MAP_SIZE:
+			var x := pond_center.x + ((ix + 0.5) / DEPTH_MAP_SIZE * 2.0 - 1.0) * extent
+			var z := pond_center.y + ((iy + 0.5) / DEPTH_MAP_SIZE * 2.0 - 1.0) * extent
+			var depth := clampf((water_level - height_at(x, z)) / deepest, 0.0, 1.0)
+			image.set_pixel(ix, iy, Color(depth, 0.0, 0.0))
+	return ImageTexture.create_from_image(image)
+
+
+## Distance from the lake centre to the waterline along `angle` (radians, 0 = +X, as Vector2.from_angle):
+## the first point walking outward where the ground rises above the water.
+func waterline_at(angle: float) -> float:
+	var outward := Vector2.from_angle(angle)
+	var r := 0.0
+	while r < pond_radius + 4.0:
+		var p := pond_center + outward * r
+		if height_at(p.x, p.y) > water_level:
+			return r
+		r += 0.05
+	return pond_radius + 4.0
+
+
+## How deep the water is at a world point (0 on land).
+func water_depth_at(x: float, z: float) -> float:
+	return maxf(0.0, water_level - height_at(x, z))
 
 
 func _ground_color(x: float, z: float, h: float) -> Color:
@@ -277,7 +326,9 @@ func _ground_color(x: float, z: float, h: float) -> Color:
 	# Sand and mud only around the pond (dips elsewhere in the meadow stay
 	# grass), blended with smooth gradients so the shoreline has no hard edge.
 	var shore := Vector2(x, z).distance_to(pond_center)
-	var near_pond := 1.0 - smoothstep(pond_radius, pond_radius + 2.5, shore)
+	# A beach a few metres wide: the raised bank is only 0.5 m above the water, so without this limit the whole
+	# plateau around the lake would count as sand.
+	var near_pond := 1.0 - smoothstep(pond_radius * 0.72, pond_radius * 0.9, shore)
 	var sand := (1.0 - smoothstep(water_level + 0.1, water_level + 1.0, h)) * near_pond
 	var mud := (1.0 - smoothstep(water_level - 1.2, water_level + 0.1, h)) * near_pond
 	color = color.lerp(SAND, sand)
