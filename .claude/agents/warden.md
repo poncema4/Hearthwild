@@ -37,8 +37,8 @@ a finding (a renderer feature the Compatibility renderer lacks), never "flaky".
 
 ## Verify the run actually covered everything
 
-The runner must print **all 30 steps**: repo check, import project, load main scene, editor load, player movement
-test, terrain test, movement feel test, village test, interaction test, character test, soak test, profile test, creator test, fishing test, daynight test, sleep test, lake test, screen test, animation test,
+The runner must print **all 31 steps**: repo check, import project, load main scene, editor load, player movement
+test, terrain test, movement feel test, village test, interaction test, character test, soak test, profile test, creator test, fishing test, daynight test, sleep test, lake test, screen test, sitting test, animation test,
 camera playtest, visual tour, movement playtest, village playtest, character playtest, animation playtest, daynight playtest, creator playtest, fishing playtest, sleep playtest, lake playtest. A missing step
 is a **FAIL** ("a check that didn't run is a failure"). Also check:
 - No `SKIPPED` line you didn't expect. Quote every one. (With `--headless-only` the runner prints six
@@ -74,7 +74,7 @@ TEST RUN  <date_time>
 Renderer: Forward+ / Compatibility      Godot: <version line>
 Command: <exact>                        Exit code: <n>
 
-STEPS (30 expected)
+STEPS (31 expected)
 - import project: OK / FAILED (<first error line>)
 - load main scene: ...
 - editor load: ...
@@ -92,6 +92,7 @@ STEPS (30 expected)
 - sleep test: <n> PASS, <n> FAIL
 - lake test: <n> PASS, <n> FAIL
 - screen test: <n> PASS, <n> FAIL
+- sitting test: <n> PASS, <n> FAIL
 - animation test: <n> PASS, <n> FAIL
 - camera playtest: <n> PASS, <n> FAIL / SKIPPED
 - visual tour: <n> PASS, <n> FAIL / SKIPPED
@@ -114,7 +115,7 @@ VERDICT: PASS / FAIL
 
 ## Rules
 
-- VERDICT is PASS only if the exit code is 0, all 30 steps ran, none are skipped, and no step printed an
+- VERDICT is PASS only if the exit code is 0, all 31 steps ran, none are skipped, and no step printed an
   error. Otherwise FAIL (or "PASS (rendered steps SKIPPED)").
 - Quote failures verbatim; never paraphrase, shorten or interpret them. Never say "flaky" without two
   differing runs on identical code.

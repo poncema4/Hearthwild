@@ -22,6 +22,8 @@ const SHOTS := {
 	"village/screen_night": ["The same view at 9 PM.", "The screen's face glows softly (emissive) and its text is readable in the dark; benches and posts dark but visible; no black void."],
 	"village/screen_dialog": ["The paste-a-link box open in front of the screen.", "A centred rounded panel 'What shall we watch?' with a text field, three buttons (Watch, Clear the screen, Close (Esc)) and the hint line; the whole panel is inside the window and nothing overlaps; the world dimmed behind it."],
 	"village/screen_showing": ["After pasting a YouTube link: the screen shows the chosen video.", "The screen's face reads 'NOW SHOWING / youtu.be/dQw4w9WgXcQ / (playing it together comes with multiplayer)', readable, not cut off; the HUD message about the big screen is visible."],
+	"village/sit_plaza": ["Sitting on the bench nearest the plaza centre, camera at its side.", "The dog sits upright on the bench seat with its legs stretched straight out forward over the seat's edge, paws resting in its lap, facing the way the bench faces; its back near the backrest; the bench is not sunk into the dog nor the dog floating above the seat; the name tag above its head."],
+	"village/sit_screen": ["Sitting on the middle front bench facing the big screen, camera behind.", "The dog seen from behind sitting on the bench looking at the screen text; legs forward; the screen fully visible in front of it."],
 	"village/notice_board": ["Standing south-west of the notice board at (-18.5, 10.8), camera aimed so the board is right of the player.", "The board is fully visible beside the capsule: two wooden posts and three pale notes; flat ground; nothing floating."],
 }
 
@@ -105,6 +107,28 @@ func _run() -> void:
 	kit.check("after a good link the mouse is captured again", Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "mouse %d" % Input.mouse_mode)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await _take("screen_showing")
+
+	screen.clear()
+	kit.player.get_node("HUD").show_message("", 0.1)
+	var plaza_bench: Node3D = null
+	for prop in kit.village.props:
+		if prop.get_meta("kind", "") == "Bench" and (plaza_bench == null or prop.global_position.distance_to(kit.village.center()) < plaza_bench.global_position.distance_to(kit.village.center())):
+			plaza_bench = prop
+	var plaza_seat: Seat = plaza_bench.get_node("Seat")
+	await _frame(plaza_seat.stand_point(), -plaza_seat.front(), 4.0, -8.0)
+	plaza_seat.interact(kit.player)
+	kit.face(plaza_seat.front().rotated(Vector3.UP, deg_to_rad(90.0)))
+	await kit.frames(40)
+	await _take("sit_plaza")
+	plaza_seat.stand_up(kit.player)
+	var front_bench: Node3D = screen.benches[1]
+	var front_seat: Seat = front_bench.get_node("Seat")
+	await _frame(front_seat.stand_point(), -front_seat.front(), 3.4, -12.0)
+	front_seat.interact(kit.player)
+	kit.face(front_seat.front())  # the camera looks the way the bench faces: from behind the sitter, at the screen
+	await kit.frames(40)
+	await _take("sit_screen")
+	front_seat.stand_up(kit.player)
 
 	print("SCREENSHOTS: %s/village/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()

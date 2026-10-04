@@ -43,7 +43,7 @@ func _run() -> void:
 	# 2. End to end: drop the player on non-flat ground (hill, hill ring, pond
 	#    bed, slope); it must come to rest on the visible ground. Two-sided
 	#    bounds: a 0.15 m tolerance covers the capsule resting on a slope.
-	for spot in [["hill", Vector2(-45, 10)], ["hill ring", Vector2(0, 44)],
+	for spot in [["hill", Vector2(-45, 10)], ["hill ring", Vector2(0, terrain.half_size() * 0.85)],  # derived: on the real rim (it was a literal from the 120 m world and ended up under a cottage roof)
 			["pond bed", terrain.pond_center], ["slope", Vector2(30, -20)]]:
 		var p: Vector2 = spot[1]
 		await kit.teleport(Vector3(p.x, terrain.height_at(p.x, p.y) + 3.0, p.y), 90)

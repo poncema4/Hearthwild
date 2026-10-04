@@ -13,11 +13,11 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | Feature | What you get |
 |---|---|
 | **Shared screen** | A big screen with benches on the north side of the village: press E, paste a YouTube link, and the screen shows what you chose (watching it together comes with multiplayer) |
-| **Village** | Eight cottages: three round a cobbled plaza with a well, lamps, clock and notice board, and five more in a ring, each with its own dirt path, lamp post and bench |
+| **Village** | Eleven cottages: three round a cobbled plaza with a well, lamps, clock and notice board, five more in a ring and three in an outer ring, each with its own dirt path, lamp post and bench; every bench can be sat on (E to sit, E, Space or a move key to stand) |
 | **Meadow world** | A 240 × 240 m valley (four times the area, room for many players) with rolling hills, a ring of taller hills around the edge, a lake with reeds and lily pads, and a flat clearing where you spawn |
 | **Nature** | 90 trees (round and pine), 45 rocks, thousands of grass tufts and wildflowers, in a soft low-poly style |
 | **Daytime lighting** | Warm sun with shadows, soft sky, gentle fog for depth, ambient occlusion and glow |
-| **Village** | A flat village green at the north-west with a cobble plaza, a well, eight cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
+| **Village** | A flat village green at the north-west with a cobble plaza, a well, eleven cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
 | **Your character** | A cute dog with big eyes, floppy ears and a wagging tail, animated as you move (walk, sprint, jump), ready for outfits (a cap and a scarf are in) and for more animals later |
 | **Third-person player** | Walk, hold Shift to sprint, hold Space to keep hopping; trees, rocks and walls are solid; fall out of the world and you respawn |
 | **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |
@@ -50,7 +50,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (30 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (31 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 

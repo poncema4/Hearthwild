@@ -56,6 +56,10 @@ var _name_tag: Label3D
 var _tag_height := 0.0
 var _fishing := false
 var _sleeping := false
+## How much higher (m) the rig rides while seated: thighs rest on a 0.5 m seat.
+const SEAT_HIP_LIFT := 0.12
+var _seated := false
+var _seat_amount := 0.0
 var _sleep_amount := 0.0
 var _zzz: Label3D
 var _fishing_amount := 0.0
@@ -195,9 +199,52 @@ func is_sleeping() -> bool:
 	return _sleeping
 
 
+## Sits on a bench: legs straight out forward over the seat, hands resting in the lap. A sleeping model stays lying
+## down. `instant` snaps back to the standing pose (used when the player is put on their feet in front of the
+## bench, so the legs do not kick out in mid-air while the pose blends).
+func set_seated(on: bool, instant := false) -> void:
+	if on and _sleeping:
+		return
+	_seated = on
+	if instant and not on:
+		_seat_amount = 0.0
+		_leg_l.rotation.x = 0.0
+		_leg_r.rotation.x = 0.0
+		_arm_l.rotation.x = 0.0
+		_arm_r.rotation.x = 0.0
+		_arm_l.rotation.z = 0.0
+		_arm_r.rotation.z = 0.0
+		_rig.rotation.x = 0.0
+		_rig.position.y = 0.0
+
+
+func is_seated() -> bool:
+	return _seated
+
+
+## 0 = standing, 1 = fully seated.
+func seat_amount() -> float:
+	return _seat_amount
+
+
+## The lowest world y of the two legs (thighs while seated), for tests.
+func leg_bottom_y() -> float:
+	var lowest := INF
+	for leg in [_leg_l, _leg_r]:
+		for mesh in _meshes_under(leg):
+			if mesh.name == "Limb":  # the thigh, not the paw
+				lowest = minf(lowest, (mesh.global_transform * mesh.get_aabb()).position.y)
+	return lowest
+
+
 ## 0 = standing, 1 = fully lying down.
 func sleep_amount() -> float:
 	return _sleep_amount
+
+
+## True while the fishing rod is in the character's hand (visible).
+func rod_visible() -> bool:
+	return _rod != null and _rod.visible
 
 
 func is_fishing() -> bool:
@@ -300,7 +347,7 @@ func _physics_process(delta: float) -> void:
 	# Fishing: both arms forward, the right one holding the rod up (only while standing; moving cancels it).
 	_fishing_amount = move_toward(_fishing_amount, 1.0 if _fishing and _grounded and _speed < 0.5 else 0.0, delta * 6.0)
 	if _rod:  # the rod is only in hand while the arms hold the fishing pose (no dangling through the ground)
-		_rod.visible = _fishing and _fishing_amount > 0.25
+		_rod.visible = _fishing and _fishing_amount > 0.25 and _seat_amount < 0.1  # no rod through the thigh of a sitter
 	_arm_l.rotation.x = _slew(_arm_l.rotation.x, lerpf(lerpf(-arm_swing, 0.15, _air_amount), 0.55, _fishing_amount), delta)
 	_arm_r.rotation.x = _slew(_arm_r.rotation.x, lerpf(lerpf(arm_swing, 0.15, _air_amount), 1.25, _fishing_amount), delta)
 	_arm_l.rotation.z = _slew(_arm_l.rotation.z, lerpf(0.0, arms_up, _air_amount), delta)
@@ -327,6 +374,23 @@ func _physics_process(delta: float) -> void:
 	_tail.rotation.y = sin(_tail_phase) * lerpf(0.5, 0.35, _walk_amount) * (1.0 - _sleep_amount)  # a sleeping animal does not wag
 	_ear_l.rotation.z = _ear_base(1.0) + sin(_phase * 2.0) * 0.12 * on_foot + sin(_time * 1.3) * 0.03
 	_ear_r.rotation.z = _ear_base(-1.0) - sin(_phase * 2.0) * 0.12 * on_foot - sin(_time * 1.3 + 1.0) * 0.03
+
+	# Sitting: the hips stay at the height they have standing (that is the height of a bench seat), the legs point
+	# straight forward over the seat edge and the hands rest on the lap.
+	_seat_amount = move_toward(_seat_amount, 1.0 if _seated else 0.0, delta * 4.0)
+	var sit := _seat_amount
+	if sit > 0.0:
+		_leg_l.rotation.x = lerpf(_leg_l.rotation.x, 1.45, sit)
+		_leg_r.rotation.x = lerpf(_leg_r.rotation.x, 1.45, sit)
+		_arm_l.rotation.x = lerpf(_arm_l.rotation.x, 0.2, sit)  # the arms are short: hands rest beside the thighs
+		_arm_r.rotation.x = lerpf(_arm_r.rotation.x, 0.2, sit)
+		_tail.rotation.y = lerpf(_tail.rotation.y, 1.45, sit)  # the tail lies sideways along the seat (it would poke through the backrest)
+		_arm_l.rotation.z = lerpf(_arm_l.rotation.z, 0.12, sit)
+		_arm_r.rotation.z = lerpf(_arm_r.rotation.z, -0.12, sit)
+		_rig.rotation.x = lerpf(_rig.rotation.x, 0.05, sit)
+		# The hips ride 12 cm higher than standing so the thighs REST on the seat instead of sinking into it (the
+		# hip joint is at seat height, and a tilted thigh is 0.25 m thick).
+		_rig.position.y = lerpf(_rig.position.y, SEAT_HIP_LIFT, sit)
 
 	# Sleeping: lie on the back (the rig turns 90 degrees about X, head toward +Z), arms and legs relaxed.
 	_sleep_amount = move_toward(_sleep_amount, 1.0 if _sleeping else 0.0, delta * 2.2)

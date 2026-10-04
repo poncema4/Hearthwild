@@ -71,6 +71,9 @@ func can_sleep_now() -> bool:
 func try_sleep(who: Node3D, bed: Bed) -> String:
 	if is_sleeping():
 		return ""
+	var sitting := who as PlayerController
+	if sitting != null and sitting.seat != null:
+		return "Stand up first."
 	if not can_sleep_now():
 		return "You're not tired yet. Beds work after 7 PM."
 	_player = who as PlayerController
