@@ -50,6 +50,20 @@ var sleeping := false:
 			shape.set_deferred("disabled", value)
 
 
+## The seat being sat on (a `Seat`), or null. While seated: no collision, no movement; a fresh press of E, Space or a
+## move key stands the player up in front of the bench.
+var seat: Seat = null:
+	set(value):
+		seat = value
+		velocity = Vector3.ZERO
+		_seat_frame = Engine.get_physics_frames()
+		var shape := get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if shape:
+			shape.set_deferred("disabled", value != null)
+var _seat_frame := -1  ## the physics frame the seat last changed: that frame's key press is not a second command
+var _jump_blocked := false  ## Space was held to stand up: it is not also a jump until it is let go
+
+
 func _ready() -> void:
 	_spawn_position = global_position
 	# Stay glued to the ground when running downhill or over bumps (a sprint at
@@ -65,6 +79,14 @@ func _physics_process(delta: float) -> void:
 	if sleeping:
 		velocity = Vector3.ZERO
 		_model.set_motion(0.0, true, 0.0)
+		return
+	if seat != null:
+		velocity = Vector3.ZERO
+		_model.set_motion(0.0, true, 0.0)
+		if wants_stand_up():
+			_jump_blocked = Input.is_action_pressed("jump")  # Space stood us up and may still be held: no hop off the bench
+			_coyote = 0.0
+			seat.stand_up(self)
 		return
 	if global_position.y < fall_limit_y:
 		respawn()
@@ -101,6 +123,8 @@ func _physics_process(delta: float) -> void:
 
 ## Puts the player back at the spawn point, standing still.
 func respawn() -> void:
+	if seat != null:
+		seat.stand_up(self)
 	global_position = _spawn_position
 	velocity = Vector3.ZERO
 
@@ -113,7 +137,9 @@ func _read_move_input() -> Vector2:
 
 ## Held, not just pressed: keep holding Space and the character hops on every landing.
 func wants_jump() -> bool:
-	return not input_locked and Input.is_action_pressed("jump")
+	if _jump_blocked and not Input.is_action_pressed("jump"):
+		_jump_blocked = false
+	return not input_locked and not _jump_blocked and Input.is_action_pressed("jump")
 
 
 func wants_sprint() -> bool:
@@ -121,7 +147,21 @@ func wants_sprint() -> bool:
 
 
 func wants_interact() -> bool:
-	return not input_locked and Input.is_action_just_pressed("interact")
+	# Not while seated (E stands up instead), and not on the frame a seat just changed: the press that sat or stood
+	# the player must not also be read as a second command (that would sit them straight back down).
+	return not input_locked and seat == null and Engine.get_physics_frames() != _seat_frame and Input.is_action_just_pressed("interact")
+
+
+## A FRESH press of E, Space or a move key (a key still held from before sitting does not count). No frame stamp
+## is needed here: the Interactor is a child node and ticks AFTER the player, so the press that sat the player is
+## never seen again as "just pressed" on the next tick (a guard here would be dead code, untestable).
+func wants_stand_up() -> bool:
+	if input_locked:
+		return false
+	for action in ["interact", "jump", "move_forward", "move_back", "move_left", "move_right"]:
+		if Input.is_action_just_pressed(action):
+			return true
+	return false
 
 
 func wants_customize() -> bool:

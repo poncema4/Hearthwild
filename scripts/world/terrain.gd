@@ -52,7 +52,7 @@ signal rebuilt
 		village_center = value
 		_rebuild()
 ## Inside this radius the ground is perfectly flat (height 0) so buildings sit true.
-@export var village_flat_radius: float = 30.0:
+@export var village_flat_radius: float = 42.0:
 	set(value):
 		village_flat_radius = value
 		_rebuild()
@@ -72,7 +72,7 @@ signal rebuilt
 	set(value):
 		path_lines = value
 		_rebuild()
-## The lake. Far enough from the village (its flat zone ends 38 m from the plaza) and inside the hill rim (which
+## The lake. Far enough from the village (its flat zone and blend end 50 m from the plaza) and inside the hill rim (which
 ## starts 78 m from the origin): centre 57 m from the origin plus radius 20 m = 77 m.
 @export var pond_center: Vector2 = Vector2(46, -34):
 	set(value):

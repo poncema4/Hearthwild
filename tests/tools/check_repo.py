@@ -127,6 +127,12 @@ if pond_center and pond_radius:
 else:
     check("AGENTS.md landmarks state the lake centre and radius", False, "could not read pond_center / pond_radius from terrain.gd")
 
+intentional = read("docs/INTENTIONAL.md")
+if flat:
+    stated = [int(n) for n in re.findall(r"[Ff]lat(?: \(y = 0\))? within (\d+) m of \(-20, 14\)|village zone is flat within (\d+) m|Inside the (\d+) m flat zone", intentional) for n in n if n]
+    check("docs/INTENTIONAL.md states the village flat radius everywhere it mentions it", bool(stated) and all(n == int(float(flat.group(1))) for n in stated),
+          f"terrain.gd says {flat.group(1)}; INTENTIONAL.md says {stated}")
+
 print(f"repo check: {passed} passed, {len(failures)} failed")
 for line in failures:
     print(line)

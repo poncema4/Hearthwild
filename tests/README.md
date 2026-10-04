@@ -21,6 +21,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_sleep.gd` | Sleep: a bed in every cottage, 7 PM-6 AM window (both edges), full night sequence, clock forward to 6:30, lock/unlock, pose, wake-up spot. | no |
 | `functional/test_lake.gd` | Lake decoration and coverage: reeds on the bank, lily pads on the water, clear of fishing spots and casting lines, deterministic, spots spread all round. | no |
 | `functional/test_screen.gd` | The shared screen: the YouTube link parser (17 accepted forms, 28 hostile or malformed links), the place (flat, facing the plaza, solid, 6 benches) and the paste-a-link box (open, bad link, good link, clear, Esc, player locked). | no |
+| `functional/test_sitting.gd` | Sitting on benches: every bench has a seat, E sits (pose geometry, no collision), every stand-up key, held keys ignored, E never re-sits, occupied seat, freed bench / respawn / bed release the sitter. | no |
 | `functional/test_daynight.gd` | Day/night: clock, noon vs midnight light, sun path, dusk colour, smoothness, signals, lamps, clock hands, HUD clock. | no |
 | `functional/test_animation.gd` | Animation geometry: feet and hands, skating, snaps, physics tick. | no |
 | `playtests/` | Rendered tests that save screenshots into `qa_output/`. | yes (Xvfb is fine) |

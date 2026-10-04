@@ -2,8 +2,8 @@
 class_name Village
 extends Node3D
 ## The village: three cottages around a plaza with a well, lamp posts, benches,
-## a notice board and a bit of fence, and a ring of five more cottages about 24 m out,
-## each with its own dirt path to the plaza, a lamp post and a bench.
+## a notice board and a bit of fence, and a ring of five more cottages about 24 m out
+## and three more 36 m out, each with its own dirt path to the plaza, a lamp post and a bench.
 ##
 ## Everything is placed relative to `Terrain.village_center`, on the flat
 ## village ground (y = 0). Houses face the plaza. The dirt paths that link the
@@ -26,10 +26,16 @@ const HOUSES := [
 	[Vector2(-12.0, 20.8), 150.0, Color(0.85, 0.93, 0.82), Color(0.82, 0.45, 0.25)],
 	[Vector2(-22.6, 8.2), 109.9, Color(0.95, 0.93, 0.88), Color(0.28, 0.34, 0.55)],
 	[Vector2(-15.4, -18.4), 39.9, Color(0.90, 0.86, 0.95), Color(0.55, 0.25, 0.32)],
+	[Vector2(22.2, 28.4), -142.0, Color(0.98, 0.90, 0.78), Color(0.62, 0.30, 0.30)],
+	[Vector2(-5.0, 35.6), 172.0, Color(0.86, 0.92, 0.95), Color(0.30, 0.42, 0.58)],
+	[Vector2(-27.6, 23.1), 129.9, Color(0.93, 0.95, 0.84), Color(0.45, 0.52, 0.28)],
 ]
 
-## The first CORE_HOUSES entries stand right at the plaza (their props are placed by hand below);
-## the rest form the outer ring, whose lamp post and bench are placed from each door.
+## The first CORE_HOUSES entries stand right at the plaza (their props are placed by hand below); the next five
+## form the ring 24 m out and the last three an outer ring 36 m out (bearings 52, 98 and 140 degrees: the windows whose
+## straight path to the plaza clears every other cottage; a fourth, at 310 degrees, was dropped because its path ran
+## along the spawn path for 12 m). Each ring cottage's lamp
+## post and bench are placed from its door.
 const CORE_HOUSES := 3
 
 ## Where the shared screen stands, relative to the plaza (the open north side), facing the plaza.

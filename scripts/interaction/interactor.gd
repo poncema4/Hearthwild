@@ -37,6 +37,8 @@ func find_target() -> Interactable:
 	forward = forward.normalized()
 	var best: Interactable = null
 	var best_distance := INF
+	if _player is PlayerController and (_player as PlayerController).seat != null:
+		return null  # E stands a sitter up: no other prompt may invite it to do something else
 	for node in get_tree().get_nodes_in_group(&"interactable"):
 		var item := node as Interactable
 		if item == null or not item.is_visible_in_tree() or not item.can_interact(_player):

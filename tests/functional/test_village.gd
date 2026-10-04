@@ -40,8 +40,8 @@ func _check_layout(kit: PlaytestKit, terrain: Terrain, village: Village) -> void
 	for prop in village.props:
 		var kind: String = prop.get_meta("kind", "?")
 		tally[kind] = tally.get(kind, 0) + 1
-	kit.check("village has 8 houses (3 at the plaza, 5 in the ring) and exactly 1 well, 9 lamp posts, 7 benches, 1 notice board, 3 fences, 1 clock",
-			village.houses.size() == 8 and tally == {"Well": 1, "LampPost": 9, "Bench": 7, "NoticeBoard": 1, "Fence": 3, "Clock": 1},
+	kit.check("village has 11 houses (3 at the plaza, 5 in the ring, 3 in the outer ring) and exactly 1 well, 12 lamp posts, 10 benches, 1 notice board, 3 fences, 1 clock",
+			village.houses.size() == 11 and tally == {"Well": 1, "LampPost": 12, "Bench": 10, "NoticeBoard": 1, "Fence": 3, "Clock": 1},
 			"%d houses, props %s" % [village.houses.size(), tally])
 
 	# Ground under every house corner and prop is flat (height 0): a slope here

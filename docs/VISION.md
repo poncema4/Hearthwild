@@ -75,4 +75,5 @@ COZY (day)  →  ALIVE (evening)  →  DANGEROUS (night)  →  RELIEF (morning)
   needs multiplayer sync (`SharedScreen.url_changed` is the hook). A real player (WebView or video stream) is a later
   decision.
 - **A realistic lake:** a bigger shoreline with depth, ripples and reflections for fishing.
+- **Sitting (done) and more houses (done):** every bench can be sat on; the village has 11 cottages. Sitting together (several players per bench) and sitting facing the screen come with multiplayer.
 - **Better UI/UX:** HUD, prompts and menus polished for real players (hotbar and health bar come with combat).

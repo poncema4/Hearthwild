@@ -82,6 +82,10 @@ static func bench() -> Node3D:
 	for sign_x in [-1.0, 1.0]:
 		_box(body, "Leg", Vector3(0.08, 0.46, 0.46), Vector3(sign_x * 0.7, 0.23, 0), DARK_WOOD)
 	_collider(body, "BenchCollision", Vector3(1.6, 0.5, 0.5), Vector3(0, 0.25, 0))
+	var seat := Seat.new()  # E at the bench sits down
+	seat.name = "Seat"
+	seat.position = Vector3(0, 0.5, 0.55)
+	root.add_child(seat)
 	return root
 
 

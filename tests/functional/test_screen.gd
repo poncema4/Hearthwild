@@ -149,7 +149,7 @@ func _check_dialog(screen: SharedScreen) -> void:
 	var interactor: Interactor = player.get_node("Interactor")
 	screen.url_changed.connect(func(id): _emitted.append(id))
 	var failures := []
-	for stand_z in [0.7, 1.8, 3.0]:  # right under the screen, midway, and next to the first row of benches
+	for stand_z in [0.7, 1.7, 2.2]:  # right under the screen, midway, and just before the first row of benches (their seats are the nearer target beyond that)
 		var spot := screen.to_global(Vector3(0, 0, stand_z))
 		await kit.teleport(Vector3(spot.x, NAN, spot.z), 20)
 		kit.face(Vector3.FORWARD)
