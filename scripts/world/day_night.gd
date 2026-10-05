@@ -73,7 +73,8 @@ func _ready() -> void:
 	_moon.shadow_enabled = true
 	_moon.shadow_blur = 2.0
 	_moon.shadow_opacity = 0.5
-	_moon.directional_shadow_max_distance = 80.0
+	_moon.directional_shadow_max_distance = 60.0
+	_moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(_moon)
 	hour = start_hour
 	_apply()

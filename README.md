@@ -52,7 +52,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (40 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (41 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 

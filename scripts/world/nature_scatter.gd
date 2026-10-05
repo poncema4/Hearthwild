@@ -37,6 +37,11 @@ var _terrain: Terrain
 var _rng := RandomNumberGenerator.new()
 var _generated: Node3D
 
+const GRASS_CHUNK := 16.0  ## metres per grass chunk
+const GRASS_CULL_DISTANCE := 70.0  ## chunks farther than this are not drawn
+const TREE_CULL_DISTANCE := 95.0
+const ROCK_CULL_DISTANCE := 70.0
+
 
 func _ready() -> void:
 	_terrain = get_node_or_null(terrain_path) as Terrain
@@ -83,6 +88,16 @@ func _generate() -> void:
 	_generated.add_child(_make_flowers())
 
 
+## Smoothness: the GPU only draws what is near. Every mesh of a tree or rock fades out at `distance` metres (and costs nothing beyond it),
+## which more than halves the draw calls and the shadow pass on a big map. The colliders are unaffected.
+func _cull_far(thing: Node, distance: float) -> void:
+	for node in thing.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		mesh.visibility_range_end = distance
+		mesh.visibility_range_end_margin = 10.0
+		mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+
+
 func _place_trees() -> void:
 	var parent := Node3D.new()
 	parent.name = "Trees"
@@ -104,6 +119,7 @@ func _place_trees() -> void:
 		tree.position = spot
 		tree.rotation.y = _rng.randf() * TAU
 		tree.scale = Vector3.ONE * _rng.randf_range(0.8, 1.35)
+		_cull_far(tree, TREE_CULL_DISTANCE)
 		parent.add_child(tree)
 		placed += 1
 
@@ -129,16 +145,15 @@ func _place_rocks() -> void:
 		rock.scale = Vector3.ONE * _rng.randf_range(0.6, 1.6)
 		var mesh := rock.get_node("RockMesh") as Node3D
 		mesh.scale = Vector3(_rng.randf_range(0.9, 1.4), _rng.randf_range(0.6, 1.0), 1.0)
+		_cull_far(rock, ROCK_CULL_DISTANCE)
 		parent.add_child(rock)
 		placed += 1
 
 
-func _make_grass() -> MultiMeshInstance3D:
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = _grass_tuft_mesh()
-	mm.instance_count = grass_count
+## The grass is split into square chunks, one MultiMesh each, and a chunk fades out beyond GRASS_CULL_DISTANCE. One big MultiMesh is drawn
+## whole or not at all, so the GPU used to shade all 48,000 tufts (about 480,000 triangles) every frame even when only a few hundred were near.
+func _make_grass() -> Node3D:
+	var chunks := {}  # Vector2i -> Array of [Transform3D, Color]
 	var i := 0
 	var attempts := 0
 	while i < grass_count and attempts < grass_count * 4:
@@ -149,23 +164,42 @@ func _make_grass() -> MultiMeshInstance3D:
 		if not _is_open_ground(spot, 0.0, 1.6):
 			continue
 		var basis := Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.3))
-		mm.set_instance_transform(i, Transform3D(basis, spot))
 		# A little deeper and more saturated than the ground, so tufts read
 		# as blades against it instead of ghostly pale patches.
-		mm.set_instance_color(i, Color(0.27, 0.55, 0.18).lerp(Color(0.46, 0.70, 0.24), _rng.randf()))
+		var color := Color(0.27, 0.55, 0.18).lerp(Color(0.46, 0.70, 0.24), _rng.randf())
+		var cell := Vector2i(floori(spot.x / GRASS_CHUNK), floori(spot.z / GRASS_CHUNK))
+		if not chunks.has(cell):
+			chunks[cell] = []
+		chunks[cell].append([Transform3D(basis, spot), color])
 		i += 1
-	mm.visible_instance_count = i
 
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	material.vertex_color_is_srgb = true
 	material.roughness = 1.0
-	var node := MultiMeshInstance3D.new()
-	node.name = "Grass"
-	node.multimesh = mm
-	node.material_override = material
-	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return node
+	var tuft := _grass_tuft_mesh()
+	var root := Node3D.new()
+	root.name = "Grass"
+	for cell in chunks:
+		var items: Array = chunks[cell]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = tuft
+		mm.instance_count = items.size()
+		for k in items.size():
+			mm.set_instance_transform(k, items[k][0])
+			mm.set_instance_color(k, items[k][1])
+		var node := MultiMeshInstance3D.new()
+		node.name = "Chunk_%d_%d" % [cell.x, cell.y]
+		node.multimesh = mm
+		node.material_override = material
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visibility_range_end = GRASS_CULL_DISTANCE
+		node.visibility_range_end_margin = 8.0
+		node.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		root.add_child(node)
+	return root
 
 
 func _make_flowers() -> MultiMeshInstance3D:

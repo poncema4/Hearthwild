@@ -38,6 +38,15 @@ changed files). Do not explore the repo or re-review unchanged images.
   (Forward+ and Compatibility, `--rendering-driver opengl3 --rendering-method gl_compatibility`). Additive blending bleaches on bright daylight.
 - Walk cycle: legs swing in opposition, only while moving; `leg_swing(0)` is exactly 0; no NaN with a stationary variant (`walk_speed` 0).
 
+## Smoothness checklist (Marco's rule of thumb: the game must NEVER be jittery; build it so it cannot be)
+Ask of every new model, effect, light, prop or system, BEFORE it ships:
+- How many draw calls does it add per frame, and at what distance? Anything repeated (trees, grass, props, particles) is a MultiMesh in CHUNKS or has `visibility_range_end`; a single big MultiMesh is drawn whole from everywhere.
+- Does it cast a shadow it does not need to? Small, flat or far things get `cast_shadow = OFF`. Never a shadow-casting point light. The sun's shadow reach stays 70 m or less with 2 splits.
+- Is anything created at runtime that the GPU has never seen (a new light, material, particle system)? That can hitch for a frame in some renderers: create it hidden at start, or reuse a pool, instead of building it at the moment of use.
+- Does it move in `_process` using raw physics positions? Use the interpolated transform (lesson 66).
+- Run `functional/test_render_budget.gd`; if you add a repeated thing, add its line to that test with a negative control.
+- Hawkeye/Animator cannot time the GPU on the lead's machine (llvmpipe is a CPU proxy): judge by the counts above, and report draw calls and triangles from `RenderingServer.get_rendering_info` when a window is available.
+
 ## Transitions checklist (every review; the geometry test cannot see these)
 
 Probe each of these once and report errors, dangling references and pops: `set_species()` while holding a pose (fishing),
