@@ -1,7 +1,8 @@
 class_name InteractionPrompt
 extends CanvasLayer
 ## The player's on-screen text: a "[E] Open door" prompt at the bottom of the
-## screen and a message box near the top (notice boards etc.). Built in code so
+## screen, a message box near the top (notice boards etc.), the clock and the
+## HP bar (under the clock, following the sibling node "Health"). Built in code so
 ## the player scene stays small. Lives on the player, so a networked game shows
 ## each player only their own prompt (the HUD is created per local player).
 
@@ -11,6 +12,8 @@ var _message_panel: PanelContainer
 var _message_label: Label
 var _message_timer: Timer
 var _clock: Label
+var _hp_bar: ProgressBar
+var _hp_label: Label
 
 
 func _ready() -> void:
@@ -55,10 +58,51 @@ func _ready() -> void:
 	_clock.add_theme_constant_override("outline_size", 6)
 	root.add_child(_clock)
 
+	_build_hp_bar(root)
+
 	_message_timer = Timer.new()
 	_message_timer.one_shot = true
 	_message_timer.timeout.connect(func(): _message_panel.visible = false)
 	add_child(_message_timer)
+
+
+func _build_hp_bar(root: Control) -> void:
+	_hp_bar = ProgressBar.new()
+	_hp_bar.position = Vector2(20, 54)
+	_hp_bar.custom_minimum_size = Vector2(220, 24)
+	_hp_bar.size = _hp_bar.custom_minimum_size
+	_hp_bar.show_percentage = false
+	_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(0.1, 0.12, 0.16, 0.78)
+	back.set_corner_radius_all(8)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.86, 0.22, 0.27)
+	fill.set_corner_radius_all(8)
+	_hp_bar.add_theme_stylebox_override("background", back)
+	_hp_bar.add_theme_stylebox_override("fill", fill)
+	root.add_child(_hp_bar)
+	_hp_label = Label.new()
+	_hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hp_label.add_theme_font_size_override("font_size", 16)
+	_hp_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	_hp_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_hp_label.add_theme_constant_override("outline_size", 4)
+	_hp_bar.add_child(_hp_label)
+	var health := get_parent().get_node_or_null("Health") as Health
+	if health:
+		health.changed.connect(_on_health_changed)
+		_on_health_changed(health.current, health.max_health)
+	else:
+		_hp_bar.visible = false
+
+
+func _on_health_changed(current: float, maximum: float) -> void:
+	_hp_bar.max_value = maximum
+	_hp_bar.value = current
+	_hp_label.text = "%d / %d" % [ceili(current), ceili(maximum)]
 
 
 func _process(_delta: float) -> void:
@@ -68,6 +112,16 @@ func _process(_delta: float) -> void:
 
 func clock_text() -> String:
 	return _clock.text
+
+
+## "37 / 100" while the HP bar shows; empty when the player has no Health node.
+func hp_text() -> String:
+	return _hp_label.text if _hp_bar.visible else ""
+
+
+## How full the bar is drawn, 0.0 to 1.0 (what the player sees, not the Health value).
+func hp_fraction() -> float:
+	return _hp_bar.ratio
 
 
 ## Shows "[E] <text>" at the bottom of the screen; empty text hides it.

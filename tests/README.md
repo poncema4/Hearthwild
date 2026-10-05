@@ -18,6 +18,8 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_profile.gd` | Player profile: save/load round trip, damaged and hostile saves, name rules, wardrobe catalog consistency. | no |
 | `functional/test_creator.gd` | Character screen: opens on first launch, locks the player, animal and outfit pickers, Start saves and dresses the player, reopen with F2. | no |
 | `functional/test_fishing.gd` | Fishing: spots on real terrain, reachable, cast/bite/reel timings, every way it ends, visuals, day/night fish, saved journal. | no |
+| `functional/test_keys.gd` | The REAL keyboard: Input Map has W/A/S/D, Space, Shift, E, F2 each on its own action; real key events walk every direction (distances measured), diagonals, W+S cancel, Shift sprints farther, Space jumps and lands, release stops, no stuck actions. 6 negative controls. | no |
+| `functional/test_health.gd` | Health: damage / heal / revive maths, clamping, bad numbers (NaN, infinity, negative), `died` exactly once, a repaired maximum; the player's HP bar text, fill and on-screen position. 7 negative controls. | no |
 | `functional/test_sleep.gd` | Sleep: a bed in every cottage, 7 PM-6 AM window (both edges), full night sequence, clock forward to 6:30, lock/unlock, pose, wake-up spot. | no |
 | `functional/test_lake.gd` | Lake decoration and coverage: reeds on the bank, lily pads on the water, clear of fishing spots and casting lines, deterministic, spots spread all round. | no |
 | `functional/test_screen.gd` | The shared screen: the YouTube link parser (17 accepted forms, 28 hostile or malformed links), the place (flat, facing the plaza, solid, 6 benches) and the paste-a-link box (open, bad link, good link, clear, Esc, player locked). | no |
@@ -31,11 +33,13 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `playtests/playtest_character.gd` | 7 screenshots of the dog (all sides, face close-up, walking, jumping, outfit). | yes |
 | `playtests/playtest_creator.gd` | The character screen with the dog, cat and bunny, and the result in the world; panel fits the window; mouse captured after Start. | yes |
 | `playtests/playtest_fishing.gd` | Fishing: ready, cast, bite, caught, night; bobber and ! on screen. | yes |
+| `playtests/playtest_health.gd` | Health: the HP bar at full, 50% (text straddles red and dark), 35%, 1 hp and dead (5 shots, topic `health`), with the bar's fill read back from the real pixels. | yes |
 | `playtests/playtest_sleep.gd` | Sleep: bed prompt, lying down, waking, morning. | yes |
 | `playtests/playtest_lake.gd` | The lake: wide view by day, dusk and night, reeds, lily pads, aerial view. | yes |
 | `playtests/playtest_daynight.gd` | 6 times of day in the village plus a whole-day filmstrip. | yes |
 | `playtests/playtest_animation.gd` | Filmstrips: walk, sprint, hop (side and front), idle. | yes |
 | `playtests/playtest_movement.gd` | Movement filmstrips (contact sheets) for visual review. | yes |
+| `tools/mutate.py` | Negative controls in one call: reads a JSON list of deliberate breaks, applies each, runs the test, expects CAUGHT (non-zero exit or a FAIL line), restores the file byte-for-byte. MISSED means a check that cannot fail; BAD means the target text was not found exactly once. | no |
 | `tools/check_repo.py` | Free hygiene checks (runner step 1): every test in the runner and this map, step counts, agents documented, .uid files, no loose or debug files, lessons numbered and cited ones exist. | no |
 | `tools/review_pack.py` | Prints the REVIEW PACK for agent briefs: diff summary, only the CHANGED screenshots, which agents are needed. | no |
 | `support/playtest_kit.gd` | `PlaytestKit`: shared helpers (load world, input, shots, manifests, filmstrips). | no |

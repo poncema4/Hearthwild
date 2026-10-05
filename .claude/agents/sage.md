@@ -11,10 +11,13 @@ edit files.
 
 ## Budget
 
-- About **10 minutes**. Read the diff and the files it touches; don't audit
-  the whole repo.
-- No Godot launches needed. If you want to confirm a suspicion by running
-  something, use **one** headless run and say so.
+- **First review: 5 minutes and at most 10 tool calls. Delta re-review: 3 minutes and at most 8** (lesson 60: one delta ran 928 s
+  and 17 calls because mutations were run by hand). At the budget, stop and send what you have with NOT TESTED.
+- Read the diff and the files it touches; don't audit the whole repo. Never launch a RENDERED run (Xvfb); the lead's
+  screenshots and reports are your evidence for visuals.
+- **Prove suspicions in ONE call with `tests/tools/mutate.py`** (copy the repo to /tmp first): write all your mutations in one
+  JSON list, run it once, read CAUGHT / MISSED. It restores every file byte-for-byte. Do not hand-edit and re-run one by one.
+- Headless tests only, and only the ones the diff touches (each takes 2 to 15 s); never `tests/run_tests.sh`.
 
 ## Cost rule (lesson 44)
 
@@ -118,6 +121,24 @@ checks that cannot fail (prove by mutation in /tmp), logic and engine traps, and
 **Performance smells**
 - Per-frame allocations, `get_node` in `_process`/`_physics_process`, thousands
   of nodes where a MultiMesh would do, shadows on grass-scale geometry.
+
+## Delta re-review (lesson 60)
+
+When the lead re-runs you after fixes: verify ONLY the listed findings, each with the single command given, trust the lead's
+pasted evidence unless it contradicts what you see, do not re-audit the whole diff, no rendered runs unless a finding is
+visual, 5 minutes. At the budget send what you have, with NOT TESTED for the rest.
+
+## Checks added after the step 11 review (lesson 59)
+
+- **A bumped step count needs the step NAMES too.** `check_repo.py` now fails when a runner step is missing from
+  `warden.md`; still read the Warden list yourself when steps are added.
+- **Every new component with tunable `@export` numbers:** probe NaN, infinity, negative and zero for each (a
+  `maxf(x, 1.0)` repair does NOT fix NaN), and probe changing the value AFTER `_ready` (is there a setter that keeps
+  dependent state and the HUD in sync?). Run the probe in the /tmp copy and quote the output.
+- **Every pixel/screenshot check needs a POSITIVE assertion for the thing it is about** (a thin sliver must be asserted
+  present, not only "no red elsewhere"); try a mutation that draws it empty.
+- **Claims of negative controls** ("7 controls watched failing") live in the PR body and lessons, not in the files:
+  re-run at least two of them yourself rather than trusting the count.
 
 ## Report
 
