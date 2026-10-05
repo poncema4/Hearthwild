@@ -77,6 +77,7 @@ run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --sc
 run_step "keys test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_keys.gd
 run_step "camera input test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_camera_input.gd
 run_step "smoothness test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_smoothness.gd
+run_step "render budget test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_render_budget.gd
 run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_terrain.gd
 run_step "movement feel test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_movement_feel.gd
 run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_village.gd
