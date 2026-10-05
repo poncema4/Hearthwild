@@ -79,9 +79,31 @@ func _run() -> void:
 	z._walk_phase = 1.0
 	kit.check("a stationary zombie (walk_speed 0) still has finite leg swings (0/0 gave NaN and an engine ERROR flood)", is_finite(z.leg_swing(0.0)) and is_finite(z.leg_swing(3.0)) and z.leg_swing(0.0) == 0.0,
 			"swing(0) %s, swing(3) %s" % [z.leg_swing(0.0), z.leg_swing(3.0)])
+	# Pose geometry (what an image alone cannot show): both arms reach FORWARD (the way the eyes face), level; legs hang down.
+	var facing := -z.global_transform.basis.z
+	var pose_problems := []
+	# Measure the MESHES that are drawn (their centres), not an imaginary point on the pivot: a flipped mesh offset must fail too.
+	for arm_name in ["ArmL", "ArmR"]:
+		var arm := z.get_node("Model/" + arm_name) as Node3D
+		var arm_mesh := arm.get_node("Mesh") as Node3D
+		var reach: Vector3 = arm_mesh.global_position - arm.global_position  # shoulder to the middle of the arm
+		if reach.dot(facing) < 0.2 or absf(reach.y) > 0.1 or reach.length() < 0.25:
+			pose_problems.append("%s middle is %s from the shoulder (dot facing %.2f)" % [arm_name, reach, reach.dot(facing)])
+	for leg_name in ["LegL", "LegR"]:
+		var leg := z.get_node("Model/" + leg_name) as Node3D
+		var leg_mesh := leg.get_node("Mesh") as Node3D
+		var drop: Vector3 = leg_mesh.global_position - leg.global_position  # hip to the middle of the leg
+		if drop.y > -0.25 or absf(drop.x) > 0.1 or absf(drop.z) > 0.1:
+			pose_problems.append("%s middle is %s from the hip" % [leg_name, drop])
+	var eye_side := (z.get_node("Model/Head/EyeL") as Node3D).global_position - (z.get_node("Model/Head") as Node3D).global_position
+	if eye_side.dot(facing) < 0.1:
+		pose_problems.append("eyes are not on the facing side")
+	kit.check("pose (the drawn meshes): both arms extend FORWARD from the shoulders (middle 0.2+ m along the facing direction, level), both legs hang straight down from the hips, the eyes are on the front", pose_problems.is_empty(), str(pose_problems))
+	var calm_fire := z.get_node("Model/Flames") as CPUParticles3D
+	kit.check("a calm zombie is not on fire: flames and smoke are off", not calm_fire.emitting and not (z.get_node("Model/Smoke") as CPUParticles3D).emitting)
 	var calm := (z.get_node("Model/Torso") as MeshInstance3D).material_override as StandardMaterial3D
-	kit.check("a calm zombie at night has a faint self-lit lift in its own colour (so it reads in the dark): emission on, equal to its albedo, energy 0.3 to 0.7",
-			calm.emission_enabled and calm.emission == calm.albedo_color and calm.emission_energy_multiplier >= 0.3 and calm.emission_energy_multiplier <= 0.7, "emission %s x%.2f" % [calm.emission, calm.emission_energy_multiplier])
+	kit.check("a calm zombie at night has a faint self-lit lift in its own colour (so it reads in the dark): emission on, equal to its albedo, energy 0.5 to 0.9",
+			calm.emission_enabled and calm.emission == calm.albedo_color and calm.emission_energy_multiplier >= 0.5 and calm.emission_energy_multiplier <= 0.9, "emission %s x%.2f" % [calm.emission, calm.emission_energy_multiplier])
 	_clear_zombies()
 
 	# 2. Chase: at night it walks toward the player at about 2.4 m/s, facing them.
@@ -244,7 +266,15 @@ func _run() -> void:
 	kit.check("at noon in the open a zombie loses about 2 hp per second (15.4 to 16.6 of 20 after 2 s: 8 ticks of 0.5) and is burning", hp_start == 20.0 and hp_2s >= 15.4 and hp_2s <= 16.6 and z.is_burning(), "hp %.1f -> %.1f, burning %s" % [hp_start, hp_2s, z.is_burning()])
 	var torso_material := (z.get_node("Model/Torso") as MeshInstance3D).material_override as StandardMaterial3D
 	var glow := torso_material
-	kit.check("a burning zombie glows (emission on)", glow.emission_enabled and glow.emission_energy_multiplier > 0.3, "emission %s x%.2f" % [glow.emission_enabled, glow.emission_energy_multiplier])
+	kit.check("a burning zombie is scorched, not painted orange: its torso colour moves toward burnt brown (red up 0.05 to 0.3, blue down 0.1 to 0.4 from the base, and darker overall) with a faint orange glow",
+			glow.emission_enabled and glow.emission_energy_multiplier > 0.2 and glow.albedo_color.r > 0.34 + 0.05 and glow.albedo_color.r < 0.34 + 0.3 and glow.albedo_color.b < 0.66 - 0.1 and glow.albedo_color.b > 0.66 - 0.4
+			and glow.albedo_color.get_luminance() < Color(0.34, 0.42, 0.66).get_luminance(),
+			"emission %s x%.2f, albedo %s" % [glow.emission_enabled, glow.emission_energy_multiplier, glow.albedo_color])
+	var flames := z.get_node("Model/Flames") as CPUParticles3D
+	var smoke := z.get_node("Model/Smoke") as CPUParticles3D
+	kit.check("and it really burns: flames (40 squares, additive) and smoke (14, grey) are emitting and rise (gravity up), and they sit on the body",
+			flames.emitting and smoke.emitting and flames.amount == 40 and smoke.amount == 14 and flames.gravity.y > 0.0 and smoke.gravity.y > 0.0,
+			"flames %s x%d, smoke %s x%d" % [flames.emitting, flames.amount, smoke.emitting, smoke.amount])
 	var eye_material := (z.get_node("Model/Head/EyeL") as MeshInstance3D).material_override as StandardMaterial3D
 	kit.check("its eyes are a deep red that glows (emission pure red, energy 1.0 to 2.0), not an overbright pink", eye_material.emission_enabled and eye_material.emission.r > 0.9 and eye_material.emission.g < 0.1 and eye_material.emission.b < 0.1
 			and eye_material.emission_energy_multiplier >= 1.0 and eye_material.emission_energy_multiplier <= 2.0, "emission %s x%.1f" % [eye_material.emission, eye_material.emission_energy_multiplier])

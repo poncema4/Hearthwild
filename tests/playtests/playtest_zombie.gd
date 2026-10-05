@@ -42,6 +42,19 @@ func _in_view(zombie: Zombie) -> bool:
 	return hit.is_empty() or hit["collider"] == zombie
 
 
+## How many flame-coloured pixels (bright, warm: red high, green mid, blue low) lie in a box around the zombie, from its feet to well above its head.
+func _flame_pixels(image: Image, zombie: Zombie) -> int:
+	var feet := _screen_point(zombie.global_position, image)
+	var above := _screen_point(zombie.global_position + Vector3.UP * 2.6, image)
+	var count := 0
+	for y in range(maxi(int(above.y), 0), mini(int(feet.y), image.get_height())):
+		for x in range(maxi(int(feet.x) - 70, 0), mini(int(feet.x) + 70, image.get_width())):
+			var c := image.get_pixel(x, y)
+			if c.r > 0.88 and c.g > 0.4 and c.g < 0.92 and c.b < 0.55 and c.r - c.b > 0.4:
+				count += 1
+	return count
+
+
 ## Average colour of a small square of the image around a point.
 func _average(image: Image, center: Vector2, half: int = 6) -> Color:
 	var sum := Color(0, 0, 0, 0)
@@ -81,11 +94,15 @@ func _run() -> void:
 	kit.check_rendered("zombies/night_approach", image)
 	var chest := _screen_point(z.global_position + Vector3.UP * 1.2, image)
 	kit.check("night approach: the zombie is on the screen (40 px inside every edge) and nothing hides it from the camera", _on_screen(chest, image) and _in_view(z), "chest at %s" % chest)
+	var night_flames := _flame_pixels(image, z)
 	var night_color := _average(image, chest)
 	kit.check("night approach: it is not glowing (no sun at night): the chest is not more red than blue", night_color.r <= night_color.b + 0.03, "chest colour %s" % night_color)
-	var ground := (_average(image, chest + Vector2(-80, 40), 8) + _average(image, chest + Vector2(80, 40), 8)) * 0.5
-	kit.check("night approach: it is readable, the chest is clearly lighter than the ground around it (luminance at least 0.06 higher)",
-			night_color.get_luminance() >= ground.get_luminance() + 0.06, "chest %.3f vs ground %.3f" % [night_color.get_luminance(), ground.get_luminance()])
+	# Compare with what is directly BEHIND and BESIDE the zombie (same height, 34 px to each side, past its arms), not the ground below it:
+	# at 8 m it is seen against the distant hillside (lesson 63: the first version compared with the near ground and could not fail).
+	var ground := (_average(image, chest + Vector2(-34, 0), 4) + _average(image, chest + Vector2(34, 0), 4)) * 0.5
+	var separation := Vector3(night_color.r - ground.r, night_color.g - ground.g, night_color.b - ground.b).length()
+	kit.check("night approach: it is readable, the chest is clearly apart from what is beside it (colour distance at least 0.25) AND lighter than it (luminance at least 0.04 higher): a dark hole is not 'readable', and Compatibility draws a lighter background than Forward+",
+			separation >= 0.25 and night_color.get_luminance() >= ground.get_luminance() + 0.04, "chest %s vs ground %s: distance %.3f, luminance %.3f vs %.3f" % [night_color, ground, separation, night_color.get_luminance(), ground.get_luminance()])
 	z.free()
 
 	# 2. Close-up of the model.
@@ -110,19 +127,19 @@ func _run() -> void:
 	# 3. Noon, the open meadow: a zombie standing in the sun glows orange as it burns.
 	kit.day_night.set_time(12.0)
 	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
-	_aim_past(Vector3(0, 0, -1))
-	z = _zombie(0.0, -6.0)
+	_aim_past(Vector3(0, 0, -1), 30.0)
+	z = _zombie(0.0, -4.5)
 	z.walk_speed = 0.0
 	await kit.physics_frames(90)  # about 1.5 s of sun: it is burning and has lost some hp
 	await kit.frames(6)
-	image = await kit.shot("zombies", "burning", "Noon: a zombie 6 m ahead stands in full sunlight and is burning (it has lost hit points).",
-			"The same figure in bright daylight, now with a warm orange glow over its skin and clothes (visibly redder than the night shot); still upright and intact.")
+	image = await kit.shot("zombies", "burning", "Noon: a zombie 4.5 m ahead stands in full sunlight and is burning (it has lost hit points): flames and smoke rise off it.",
+			"The same figure in bright daylight, scorched a little toward orange, with square orange-red flames and grey smoke rising from its body; arms still stretched forward, upright and intact.")
 	kit.check_rendered("zombies/burning", image)
 	chest = _screen_point(z.global_position + Vector3.UP * 1.2, image)
-	var burn_color := _average(image, chest)
-	kit.check("burning: it is on the screen, really burning (hp under 20, is_burning), and its chest is clearly redder than blue (glow visible in the pixels)",
-			_on_screen(chest, image) and _in_view(z) and z.is_burning() and (z.get_node("Health") as Health).current < 20.0 and burn_color.r > burn_color.b + 0.08,
-			"chest colour %s, hp %.1f" % [burn_color, (z.get_node("Health") as Health).current])
+	var burn_flames := _flame_pixels(image, z)
+	kit.check("burning: it is on the screen, really burning (hp under 20, is_burning), and FLAMES are visible around it: at least 25 flame-coloured pixels and more than 3 times the night control (the glowing eyes alone give about 10; flames give 43 in Forward+, up to 867 in Compatibility)",
+			_on_screen(chest, image) and _in_view(z) and z.is_burning() and (z.get_node("Health") as Health).current < 20.0 and burn_flames >= 25 and burn_flames > night_flames * 3,
+			"flame pixels %d (night control %d), hp %.1f" % [burn_flames, night_flames, (z.get_node("Health") as Health).current])
 	z.free()
 
 	# 4. Evening in the village: lit lamps, a zombie coming down the path.

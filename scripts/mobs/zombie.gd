@@ -22,11 +22,13 @@ signal hit_player(who: Node3D, amount: float)
 @export var turn_speed: float = 8.0
 
 const GRAVITY := 20.0
-const HEAD_HEIGHT := 1.7
+const HEAD_HEIGHT := 1.7  ## where the sun ray starts (the head actually reaches 1.93 m, 0.13 m above the 1.8 m capsule: a known Nit, INTENTIONAL.md)
 const SUN_RAY_LENGTH := 80.0
 const SUN_MIN_ELEVATION := 0.05  ## the sun must be this far above the horizon to burn (0 = exactly sunrise)
 const SUN_TICK := 0.25  ## seconds between sunlight checks (one ray each)
-const NIGHT_LIFT := 0.45  ## how strongly the body glows in its own colour when not burning
+const NIGHT_LIFT := 0.7  ## how strongly the body glows in its own colour when not burning
+const BURN_TINT := Color(0.62, 0.26, 0.08)  ## a burning body is scorched toward this burnt orange-brown (Animator: orange alone read as pale pink)
+const BURN_GLOW := Color(1.0, 0.4, 0.1)
 
 var health: Health
 var hits_landed := 0
@@ -38,6 +40,9 @@ var _legs: Array[Node3D] = []
 var _arms: Array[Node3D] = []
 var _walk_phase := 0.0
 var _glow_materials: Array[StandardMaterial3D] = []
+var _flames: CPUParticles3D
+var _smoke: CPUParticles3D
+var _base_colors: Array[Color] = []  ## each body material's own colour, restored when the burning stops
 
 
 func _ready() -> void:
@@ -183,14 +188,22 @@ func leg_swing(speed: float) -> float:
 ## Burning (amount 1) glows orange; otherwise the body gets a faint self-lit lift of its own colour, so a zombie stands out against a
 ## moonlit meadow instead of vanishing into it (Hawkeye, step 12). Emission is always on, so toggling never changes the look abruptly.
 func _set_glow(amount: float) -> void:
-	for material in _glow_materials:
+	for i in _glow_materials.size():
+		var material := _glow_materials[i]
 		material.emission_enabled = true
 		if amount > 0.0:
-			material.emission = Color(1.0, 0.35, 0.08)
-			material.emission_energy_multiplier = 0.55 * amount
+			# Burning: the colour itself moves toward orange, because an additive glow alone washes out to pale pink in the
+			# bright Compatibility-renderer daylight (CI caught it, lesson 63).
+			material.albedo_color = _base_colors[i].lerp(BURN_TINT, 0.4 * amount)  # a scorched look; the FIRE below carries the effect
+			material.emission = BURN_GLOW
+			material.emission_energy_multiplier = 0.3 * amount
 		else:
-			material.emission = material.albedo_color
+			material.albedo_color = _base_colors[i]
+			material.emission = _base_colors[i]
 			material.emission_energy_multiplier = NIGHT_LIFT
+	if _flames != null:
+		_flames.emitting = amount > 0.0
+		_smoke.emitting = amount > 0.0
 
 
 func _build_model() -> void:
@@ -199,8 +212,10 @@ func _build_model() -> void:
 	add_child(model)
 	var skin := _material(Color(0.55, 0.76, 0.50))  # light enough to read against a moonlit meadow
 	var cloth := _material(Color(0.34, 0.42, 0.66))
-	var pants := _material(Color(0.26, 0.29, 0.42))
+	var pants := _material(Color(0.34, 0.37, 0.54))
 	_glow_materials = [skin, cloth, pants]
+	for material in _glow_materials:
+		_base_colors.append(material.albedo_color)
 	_box(model, "Torso", Vector3(0.6, 0.8, 0.34), Vector3(0, 1.1, 0), cloth)
 	_box(model, "Head", Vector3(0.42, 0.42, 0.42), Vector3(0, 1.72, 0), skin)
 	for side in [-1.0, 1.0]:
@@ -209,7 +224,7 @@ func _build_model() -> void:
 		var arm := Node3D.new()
 		arm.name = "Arm%s" % ("L" if side < 0 else "R")
 		arm.position = Vector3(0.4 * side, 1.45, 0)
-		arm.rotation.x = deg_to_rad(-85.0)  # held straight out in front, the classic zombie reach
+		arm.rotation.x = deg_to_rad(85.0)  # held straight out in FRONT (-Z, where the eyes face): +85 about X turns a downward limb forward; -85 pointed backward (lesson 63)
 		model.add_child(arm)
 		_box(arm, "Mesh", Vector3(0.16, 0.7, 0.16), Vector3(0, -0.3, 0), skin)
 		_arms.append(arm)
@@ -219,7 +234,58 @@ func _build_model() -> void:
 		model.add_child(leg)
 		_box(leg, "Mesh", Vector3(0.22, 0.7, 0.22), Vector3(0, -0.35, 0), pants)
 		_legs.append(leg)
+	_build_fire(model)
 	_set_glow(0.0)
+
+
+## Flames (square, additive, yellow to red) and smoke (grey, growing) that rise off the body while the sun burns it. CPU particles, so they
+## work in every renderer and headless; the squares match the blocky art. Off unless burning (`_set_glow`).
+func _build_fire(model: Node3D) -> void:
+	var flame_ramp := Gradient.new()
+	flame_ramp.offsets = PackedFloat32Array([0.0, 0.35, 0.75, 1.0])
+	flame_ramp.colors = PackedColorArray([Color(1.0, 0.85, 0.2, 1.0), Color(1.0, 0.45, 0.05, 1.0), Color(0.8, 0.15, 0.02, 0.75), Color(0.2, 0.03, 0.0, 0.0)])
+	# Normal alpha blending, not additive: additive flames bleach to pale yellow on a bright noon sky (CI's Compatibility renderer showed it).
+	_flames = _particles("Flames", 40, 0.7, 0.3, flame_ramp, 0.9, 1.8, 0.8, false)
+	model.add_child(_flames)
+	var smoke_ramp := Gradient.new()
+	smoke_ramp.offsets = PackedFloat32Array([0.0, 0.2, 1.0])
+	smoke_ramp.colors = PackedColorArray([Color(0.2, 0.2, 0.2, 0.0), Color(0.22, 0.22, 0.22, 0.85), Color(0.1, 0.1, 0.1, 0.0)])
+	_smoke = _particles("Smoke", 14, 1.7, 0.36, smoke_ramp, 0.5, 1.0, 0.5, false)
+	_smoke.position.y = 1.6
+	_smoke.scale_amount_max = 2.4
+	model.add_child(_smoke)
+
+
+func _particles(node_name: String, amount: int, lifetime: float, size: float, ramp: Gradient, speed_min: float, speed_max: float, rise: float, additive: bool) -> CPUParticles3D:
+	var particles := CPUParticles3D.new()
+	particles.name = node_name
+	particles.amount = amount
+	particles.lifetime = lifetime
+	particles.emitting = false
+	particles.local_coords = false  # embers stay where they were released when the zombie walks
+	particles.position = Vector3(0.0, 0.97, 0.0)
+	particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	particles.emission_box_extents = Vector3(0.3, 0.97, 0.2)  # covers the body from the feet (0) to the top of the head (1.94)
+	particles.direction = Vector3.UP
+	particles.spread = 22.0
+	particles.initial_velocity_min = speed_min
+	particles.initial_velocity_max = speed_max
+	particles.gravity = Vector3(0.0, rise, 0.0)
+	particles.color_ramp = ramp
+	particles.scale_amount_min = 0.6
+	particles.scale_amount_max = 1.2
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(size, size)
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
+	material.no_depth_test = false
+	mesh.material = material
+	particles.mesh = mesh
+	return particles
 
 
 func _box(parent: Node3D, node_name: String, size: Vector3, offset: Vector3, material: StandardMaterial3D) -> MeshInstance3D:
