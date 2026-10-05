@@ -128,10 +128,16 @@ func _run() -> void:
 	kit.check("after 25 damage the HUD says '75 / 100' and draws the bar 75% full", hud.hp_text() == "75 / 100" and is_equal_approx(hud.hp_fraction(), 0.75), "'%s' %.2f" % [hud.hp_text(), hud.hp_fraction()])
 	health.damage(74.6)  # 0.4 left: alive, so the number must not read 0
 	kit.check("with 0.4 hit points left the player is alive and the HUD reads '1 / 100', not '0'", not health.is_dead() and hud.hp_text() == "1 / 100", "'%s' current %.2f" % [hud.hp_text(), health.current])
+	# Since step 12 the player's own handler turns 0 hp into a respawn at full hp at once, so unplug it to look at the empty bar.
+	var knock_out := Callable(player, "_on_died")
+	health.died.disconnect(knock_out)
 	health.damage(1.0)
 	kit.check("at 0 the player is dead and the HUD reads '0 / 100' with an empty bar", health.is_dead() and hud.hp_text() == "0 / 100" and hud.hp_fraction() == 0.0, "'%s' %.2f" % [hud.hp_text(), hud.hp_fraction()])
 	health.revive()
+	health.died.connect(knock_out)
 	kit.check("after a revive the HUD is full again", hud.hp_text() == "100 / 100" and hud.hp_fraction() == 1.0, "'%s'" % hud.hp_text())
+	health.damage(1000.0)
+	kit.check("with the knock-out handler plugged in, 0 hp is a respawn at full hp (alive, '100 / 100'): death is never a dead end", not health.is_dead() and health.current == 100.0 and hud.hp_text() == "100 / 100", "dead %s, hp %.0f, '%s'" % [health.is_dead(), health.current, hud.hp_text()])
 	health.set_max(200.0)
 	kit.check("after set_max(200) the HUD follows the new maximum: '100 / 200', half full", hud.hp_text() == "100 / 200" and is_equal_approx(hud.hp_fraction(), 0.5), "'%s' %.2f" % [hud.hp_text(), hud.hp_fraction()])
 	health.set_max(100.0)

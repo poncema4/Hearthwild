@@ -91,6 +91,7 @@ run_step "screen test" "$GODOT" --headless --path . --fixed-fps 60 --script res:
 run_step "sitting test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_sitting.gd
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 run_step "health test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_health.gd
+run_step "zombie test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_zombie.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
 # (CI runs this whole script under xvfb-run and sets HW_NO_REAL_MOUSE=1).
@@ -137,6 +138,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "health playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_health.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "zombie playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_zombie.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else

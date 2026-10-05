@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/ui/character_creator.gd" id="6_creator"]
 [ext_resource type="Script" path="res://scripts/world/sleep_system.gd" id="8_sleep"]
 [ext_resource type="Script" path="res://scripts/world/fishing_pond.gd" id="7_fishing"]
+[ext_resource type="Script" path="res://scripts/mobs/zombie_spawner.gd" id="10_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_day"]
@@ -108,3 +109,6 @@ script = ExtResource("6_creator")
 
 [node name="SleepSystem" type="CanvasLayer" parent="."]
 script = ExtResource("8_sleep")
+
+[node name="ZombieSpawner" type="Node" parent="."]
+script = ExtResource("10_spawner")

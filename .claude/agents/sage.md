@@ -128,6 +128,16 @@ When the lead re-runs you after fixes: verify ONLY the listed findings, each wit
 pasted evidence unless it contradicts what you see, do not re-audit the whole diff, no rendered runs unless a finding is
 visual, 5 minutes. At the budget send what you have, with NOT TESTED for the rest.
 
+## Checks added after the step 12 review (lessons 61 and 62)
+
+- **Circular tests:** does a check compute its expected value from the object under test (`spawner.edge_margin`, `zombie.attack_range`)?
+  Mutate that setting: if the test still passes, it is circular. Tests use literals.
+- **Every tunable pinned from BOTH sides, and every code path of a timer or counter separately** (the first interval and the repeating one
+  are different lines). One call of `mutate.py` with +/- mutations of each tunable finds the loose ones.
+- **Lists and counters in a test:** never index a list that may be empty (a crashed coroutine hangs until the step timeout); count inside a
+  lambda through a member variable; set every piece of state a check depends on (a leftover timer hid a missing gate).
+- **Occluder and line-of-sight checks must count the player** (the biggest occluder on screen).
+
 ## Checks added after the step 11 review (lesson 59)
 
 - **A bumped step count needs the step NAMES too.** `check_repo.py` now fails when a runner step is missing from

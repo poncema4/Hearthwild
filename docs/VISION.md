@@ -66,7 +66,7 @@ COZY (day)  →  ALIVE (evening)  →  DANGEROUS (night)  →  RELIEF (morning)
   clocks you can read (HUD and plaza clock done; a craftable pocket watch when crafting exists).
 - **Sleep and morning (step 8 done, multiplayer later):** beds work at night; the morning only comes when ALL players are
   asleep (sleep voting once there is multiplayer). A day is 20 real minutes (Minecraft-like), about 10 of them night.
-- **Mobs and the sun (Minecraft logic):** zombies spawn at night; when the sun rises the light slowly burns them (they have
+- **Mobs and the sun (Minecraft logic; basic zombie done, step 12):** zombies spawn at night; when the sun rises the light slowly burns them (they have
   HP), but a mob standing where the sun cannot reach (shade, caves, indoors) survives the day. The player has HP too.
   Weapons come later.
 - **A bigger world for multiplayer:** a much larger world and village with room for many players and other jobs.

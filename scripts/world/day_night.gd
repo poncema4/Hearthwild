@@ -112,6 +112,13 @@ func sun_elevation() -> float:
 	return sin((hour - 6.0) / 24.0 * TAU)
 
 
+## The unit vector from the ground toward the sun right now (east at sunrise, overhead at noon, below the horizon at night).
+## Zombies cast a ray along it to find out whether the sun can reach them.
+func toward_sun() -> Vector3:
+	var angle := (hour - 6.0) / 24.0 * TAU
+	return Vector3(cos(angle) * 0.85, sin(angle), 0.5).normalized()
+
+
 ## 1 in full daylight, 0 in the dead of night, smooth through dawn and dusk.
 func daylight() -> float:
 	return smoothstep(-0.12, 0.25, sun_elevation())
@@ -140,19 +147,18 @@ func _apply() -> void:
 	if _moon == null:
 		return
 	_applied_hour = hour
-	var angle := (hour - 6.0) / 24.0 * TAU
-	var toward_sun := Vector3(cos(angle) * 0.85, sin(angle), 0.5).normalized()
+	var to_sun := toward_sun()
 	var elevation := sun_elevation()
 	var day := daylight()
 	var night := 1.0 - day
 	var low := 1.0 - clampf(elevation * 3.0, 0.0, 1.0)  # 1 near the horizon, 0 high up
 
 	if _sun:
-		_sun.global_transform.basis = Basis.looking_at(-toward_sun, Vector3.UP)
+		_sun.global_transform.basis = Basis.looking_at(-to_sun, Vector3.UP)
 		_sun.light_energy = SUN_ENERGY * day * clampf(elevation * 4.0, 0.0, 1.0)
 		_sun.light_color = SUN_NOON.lerp(SUN_LOW, low)
 		_sun.visible = _sun.light_energy > 0.01
-	_moon.global_transform.basis = Basis.looking_at(toward_sun, Vector3.UP)  # the moon sits opposite the sun
+	_moon.global_transform.basis = Basis.looking_at(to_sun, Vector3.UP)  # the moon sits opposite the sun
 	_moon.light_energy = MOON_ENERGY * night * clampf(-elevation * 4.0, 0.0, 1.0)
 	_moon.visible = _moon.light_energy > 0.01
 
