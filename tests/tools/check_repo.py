@@ -61,6 +61,11 @@ for rel, pattern in (("README.md", r"\((\d+) steps"), (".claude/agents/warden.md
     check(f"{rel} states the right step count ({steps})", bool(found) and all(int(n) == steps for n in found),
           f"says {found}, runner has {steps} run_step lines")
 
+# 3b. Warden's check list names every runner step (a bumped count with a stale list lets a missing step go unnoticed).
+warden = read(".claude/agents/warden.md").lower()
+for step_name in re.findall(r'^\s*run_step "([^"]+)"', runner, re.M):
+    check(f"warden.md names the runner step '{step_name}'", step_name.lower() in warden, f"add '{step_name}' to the step list and the report template in .claude/agents/warden.md")
+
 # 4. Every GDScript file has its .uid (Godot writes them on import; the repo tracks them).
 for folder in ("scripts", "tests"):
     for path in sorted((ROOT / folder).rglob("*.gd")):

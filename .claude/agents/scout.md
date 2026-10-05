@@ -184,10 +184,20 @@ was wrong)` with the reason. That's not a failure; it's the job.
 - **Injected input** (`Input.parse_input_event`) arrives on the next **idle**
   frame: wait `kit.frames(2)`, not `physics_frames`.
 - **One-sided bounds** pass when nothing happened. Use ranges.
+- **Size distance thresholds from the real numbers** (lesson 59): walk 4 m/s, sprint 7 m/s, and about 8 frames to reach
+  90% speed from rest, so 30 frames of walking is at most 2.0 m, not 3. Three FAILs in the step 11 round were Scout's own thresholds.
+  Check `docs/INTENTIONAL.md` and the feel bands in AGENTS.md 8.5 before choosing a number, and re-run once to confirm.
 - **The player body fades** when the camera arm is shorter than 1.2 m (fully
   invisible at 0.5 m): that's intended. Don't report it as a bug.
 - **The terrain isn't flat** outside the spawn clearing: compare heights with
   `kit.terrain.height_at(x, z)`, not with y = 0.
+
+## Real keys, and always await shots (lesson 58)
+
+- `kit.hold` / `kit.tap` press ACTIONS and skip the Input Map. To prove a KEY works, send a real event:
+  `var e := InputEventKey.new(); e.physical_keycode = KEY_W; e.keycode = KEY_W; e.pressed = true; Input.parse_input_event(e); await kit.frames(2)`
+  (see `tests/functional/test_keys.gd`). Do not report "W is broken" from an action-based run; do not report "W works" either.
+- `kit.shot` is a coroutine: `await kit.shot(...)`. Without `await` the image shows a LATER state than its name.
 
 ## Cross-check against the movement feel numbers
 

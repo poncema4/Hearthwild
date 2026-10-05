@@ -90,7 +90,10 @@ Style judgements ("not cozy enough") are Low or Medium at most and must cite `do
 
 ## False-positive traps (check these BEFORE reporting)
 
-- Anything in `docs/INTENTIONAL.md` (placeholder dog shapes, hill border, fade near walls).
+- Anything in `docs/INTENTIONAL.md` (placeholder dog shapes, hill border, fade near walls, the translucent HUD bar
+  showing a darker world object behind it: prove it with pixel samples, do not report it as a glitch).
+- HUD bars and text: judge the text on BOTH backgrounds, and ask for the in-between frame (about 50%) when the pack has none,
+  because that is where centred text crosses from the fill to the background (lesson 59).
 - **Perspective is not overlap:** a rock "touching" a trunk may be metres behind it. Don't report overlaps
   from one angle; check a second frame or the positions the lead gives you.
 - **Renderer differences:** CI (Compatibility) screenshots lack SSAO/glow and look flatter. Compare only
