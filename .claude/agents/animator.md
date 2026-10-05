@@ -29,6 +29,15 @@ changed files). Do not explore the repo or re-review unchanged images.
   torso instead (the scarf sits on the rig and does not follow head tilt: 1 cm).
 - The curled, white-tipped tail reads as a raised hand in a side view (see INTENTIONAL.md): check the front strip first.
 
+## Mobs (zombies) and particles (lesson 63)
+
+- A zombie is a model that moves: measure the DRAWN MESH centres (not pivots) against the facing direction `-global_basis.z`: arms must reach forward and
+  level, legs hang down from the hips, the eyes sit on the front. In step 12 the arms pointed backward (-85 degrees about X maps down to +Z) and every
+  other check and agent passed it.
+- Burning/other particles (`CPUParticles3D`): check they emit only when they should, sit on the body, rise (gravity up) and read in BOTH renderers
+  (Forward+ and Compatibility, `--rendering-driver opengl3 --rendering-method gl_compatibility`). Additive blending bleaches on bright daylight.
+- Walk cycle: legs swing in opposition, only while moving; `leg_swing(0)` is exactly 0; no NaN with a stationary variant (`walk_speed` 0).
+
 ## Transitions checklist (every review; the geometry test cannot see these)
 
 Probe each of these once and report errors, dangling references and pops: `set_species()` while holding a pose (fishing),

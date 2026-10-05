@@ -60,6 +60,10 @@ EXERCISED with numbers, what you did NOT test, budget used, VERDICT: SHIP or FIX
   checked over fewer than 2 ticks is noise (lesson 59).
 - Test clocks are paused: set the hour with `kit.day_night.set_time(h)`; the spawner is disabled by the kit unless a test enables it.
 
+## Animator pairing
+
+A zombie is also a model: arm/leg direction, the walk cycle and particles belong to Animator (lesson 63). If you notice a pose problem, report it and name Animator.
+
 ## Rules
 
 Never edit the repo; never claim a behaviour you did not measure; report ties and near misses as UNCONFIRMED, not findings.

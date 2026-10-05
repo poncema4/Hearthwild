@@ -92,6 +92,9 @@ Style judgements ("not cozy enough") are Low or Medium at most and must cite `do
 
 - Anything in `docs/INTENTIONAL.md` (placeholder dog shapes, hill border, fade near walls, the translucent HUD bar
   showing a darker world object behind it: prove it with pixel samples, do not report it as a glitch).
+- **Direction cannot be seen in a thumbnail:** for any model, crop and zoom the limbs and say which way the arms/legs/eyes point relative to the way the
+  body faces (the camera view of a zombie that faces the camera has its arms pointing AT the camera). Ask for the Animator's mesh measurements when unsure.
+- Burning/particles: judge the effect in the Compatibility screenshot too (CI's renderer); a bleached or invisible effect is a finding.
 - HUD bars and text: judge the text on BOTH backgrounds, and ask for the in-between frame (about 50%) when the pack has none,
   because that is where centred text crosses from the fill to the background (lesson 59).
 - **Perspective is not overlap:** a rock "touching" a trunk may be metres behind it. Don't report overlaps

@@ -8,6 +8,7 @@ mutations.json is a list of objects:
   {"name": "W rebound to Q", "file": "project.godot", "old": "\"physical_keycode\":87,", "new": "\"physical_keycode\":81,",
    "cmd": "godot --headless --path . --fixed-fps 60 --script res://tests/functional/test_keys.gd"}
 `old` must occur EXACTLY ONCE in `file` (else the mutation is reported as BAD so a typo can never pass as a control).
+Use "edits": [[old, new], [old, new]] instead of old/new to break several places at once (each `old` exactly once).
 A mutation is CAUGHT when the command exits non-zero or prints a line starting with FAIL, and MISSED otherwise (a check that
 cannot fail: fix the test). After every mutation the file is written back from memory and compared with the original bytes;
 a mismatch is reported as RESTORE FAILED. Exit code 0 only when every mutation is CAUGHT and every file restored.
@@ -25,10 +26,14 @@ def run_one(root: Path, m: dict) -> tuple[str, str]:
     path = root / m["file"]
     original = path.read_bytes()
     text = original.decode("utf-8")
-    if text.count(m["old"]) != 1:
-        return "BAD", f"'old' occurs {text.count(m['old'])} times in {m['file']} (must be exactly 1)"
+    edits = m.get("edits") or [[m["old"], m["new"]]]
+    for old, _new in edits:
+        if text.count(old) != 1:
+            return "BAD", f"'old' occurs {text.count(old)} times in {m['file']} (must be exactly 1): {old[:50]!r}"
     try:
-        path.write_bytes(text.replace(m["old"], m["new"]).encode("utf-8"))
+        for old, new in edits:
+            text = text.replace(old, new)
+        path.write_bytes(text.encode("utf-8"))
         try:
             done = subprocess.run(m["cmd"], shell=True, cwd=root, capture_output=True, text=True, timeout=TIMEOUT)
             output = done.stdout + done.stderr
