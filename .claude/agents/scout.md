@@ -207,6 +207,12 @@ was wrong)` with the reason. That's not a failure; it's the job.
 - Set the clock explicitly with `kit.day_night.set_time(h)`; night begins about 17.7 h, so a clock set at 17.8 has already fired `night_started`.
 - Never index an empty list or an unchecked node in a scenario: a crashed coroutine leaves Godot running until the step timeout.
 
+## Cross-renderer runs (lesson 65)
+
+If you run anything under CI's renderer, pass the flags LITERALLY (`--rendering-driver opengl3 --rendering-method gl_compatibility --audio-driver Dummy`)
+and quote the renderer line from the output (`OpenGL API ... Compatibility`). zsh does not split an unquoted `$FLAGS`, so a "Compatibility" run can silently be Forward+.
+Seed anything random (`z._rng.seed = 5`, `z.set_fire_seed(7)`) before comparing two runs.
+
 ## Cross-check against the movement feel numbers
 
 `tests/functional/test_movement_feel.gd` already measures walk/sprint/stop/turn/strafe/jump against bands

@@ -104,7 +104,7 @@ func _run() -> void:
 	await _take("screen_dialog")
 	screen.submit("https://youtu.be/dQw4w9WgXcQ")
 	await kit.frames(5)
-	kit.check("after a good link the mouse is captured again", Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "mouse %d" % Input.mouse_mode)
+	kit.check("after a good link the mouse goes back to the free cursor (the camera hands it back)", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mouse %d" % Input.mouse_mode)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await _take("screen_showing")
 

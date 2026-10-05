@@ -134,7 +134,32 @@ func _run() -> void:
 	var species_ids := {}
 	for species in AnimalSpecies.all():
 		species_ids[species.id] = true
-	check("there are 3 animals with unique ids; an unknown id gives the dog", species_ids.size() == 3 and AnimalSpecies.by_id(&"nope").id == &"dog" and AnimalSpecies.by_id(&"bunny").id == &"bunny")
+	var animals := AnimalSpecies.all()
+	check("there are 9 animals with unique ids, the first three still dog, cat, bunny (saves and tests rely on it); an unknown id gives the dog",
+			species_ids.size() == 9 and animals.size() == 9 and animals[0].id == &"dog" and animals[1].id == &"cat" and animals[2].id == &"bunny"
+			and AnimalSpecies.by_id(&"nope").id == &"dog" and AnimalSpecies.by_id(&"raccoon").id == &"raccoon" and AnimalSpecies.by_id(&"panda").id == &"panda",
+			str(species_ids.keys()))
+	# Every animal must LOOK different from every other: at least two of fur colour, ears, tail, snout, accent colour must differ clearly.
+	var look_problems := []
+	for i in animals.size():
+		for j in range(i + 1, animals.size()):
+			var a: AnimalSpecies = animals[i]
+			var b: AnimalSpecies = animals[j]
+			var differences := 0
+			differences += 1 if Vector3(a.fur_color.r - b.fur_color.r, a.fur_color.g - b.fur_color.g, a.fur_color.b - b.fur_color.b).length() >= 0.12 else 0
+			differences += 1 if a.ear_style != b.ear_style else 0
+			differences += 1 if a.tail_style != b.tail_style else 0
+			differences += 1 if absf(a.snout_length - b.snout_length) >= 0.1 else 0
+			differences += 1 if Vector3(a.accent_color.r - b.accent_color.r, a.accent_color.g - b.accent_color.g, a.accent_color.b - b.accent_color.b).length() >= 0.15 else 0
+			differences += 1 if a.eye_patch != b.eye_patch else 0
+			if differences < 2:
+				look_problems.append("%s and %s differ in only %d way(s)" % [a.id, b.id, differences])
+	check("every pair of animals differs in at least 2 clear ways (fur, ears, tail, snout, accent, eye patch): no two look alike", look_problems.is_empty(), str(look_problems))
+	var bad_names := []
+	for species in animals:
+		if species.species_name.strip_edges() == "" or species.species_name.length() > 12 or String(species.id) != String(species.id).to_lower():
+			bad_names.append(species.id)
+	check("every animal has a short readable name (1 to 12 letters) and a lower-case id", bad_names.is_empty(), str(bad_names))
 
 	print("RESULT: %s" % ("ALL PASS (0 failures)" if failures == 0 else "FAILED (%d failures)" % failures))
 	quit(failures)

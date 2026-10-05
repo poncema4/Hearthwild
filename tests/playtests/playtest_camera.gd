@@ -36,8 +36,9 @@ func _run() -> void:
 	var pitch := rig.get_node("Pitch") as Node3D
 	var arm := kit.spring_arm
 
-	# The camera captures the mouse on start. Release it straight away: while
-	# captured, REAL mouse movement turns the camera and corrupts the test.
+	# The cursor is FREE on start (Roblox-style: the right mouse button looks around, Alt is shift lock). Make sure of it: while captured, REAL mouse
+	# movement turns the camera and corrupts the test.
+	kit.check("the cursor is free right after the world loads (not captured)", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mode %d" % Input.mouse_mode)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await kit.physics_frames(5)
 	rig.rotation.y = 0.0
@@ -85,6 +86,48 @@ func _run() -> void:
 	else:
 		print("SKIPPED captured-mouse routing (a real mouse can leak in; runs with HW_NO_REAL_MOUSE=1)")
 	pitch.rotation.x = deg_to_rad(-15.0)
+
+	# The real cursor under the Roblox-style controls (needs a window that can capture a mouse: this runs on Xvfb / CI only).
+	if OS.get_environment("HW_NO_REAL_MOUSE") == "1":
+		var right_down := InputEventMouseButton.new()
+		right_down.button_index = MOUSE_BUTTON_RIGHT
+		right_down.pressed = true
+		right_down.position = Vector2(300, 200)
+		Input.parse_input_event(right_down)
+		await kit.frames(3)
+		var held_mode := Input.mouse_mode
+		var right_up := InputEventMouseButton.new()
+		right_up.button_index = MOUSE_BUTTON_RIGHT
+		right_up.pressed = false
+		right_up.position = Vector2(300, 200)
+		Input.parse_input_event(right_up)
+		await kit.frames(3)
+		kit.check("holding the right mouse button captures the cursor to look around; letting go frees it again", held_mode == Input.MOUSE_MODE_CAPTURED and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE,
+				"held mode %d, after release %d" % [held_mode, Input.mouse_mode])
+		var alt_down := InputEventKey.new()
+		alt_down.physical_keycode = KEY_ALT
+		alt_down.keycode = KEY_ALT
+		alt_down.pressed = true
+		Input.parse_input_event(alt_down)
+		await kit.frames(3)
+		var lock_mode := Input.mouse_mode
+		var alt_up := InputEventKey.new()
+		alt_up.physical_keycode = KEY_ALT
+		alt_up.keycode = KEY_ALT
+		alt_up.pressed = false
+		Input.parse_input_event(alt_up)
+		await kit.frames(3)
+		kit.check("Alt (shift lock) captures the cursor and keeps it captured with no button held", lock_mode == Input.MOUSE_MODE_CAPTURED and rig.shift_lock and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED,
+				"mode %d, shift_lock %s" % [lock_mode, rig.shift_lock])
+		alt_down.pressed = true
+		Input.parse_input_event(alt_down)
+		await kit.frames(3)
+		alt_up.pressed = false
+		Input.parse_input_event(alt_up)
+		await kit.frames(3)
+		kit.check("Alt again frees the cursor", not rig.shift_lock and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mode %d" % Input.mouse_mode)
+	else:
+		print("SKIPPED right-mouse / shift-lock cursor modes (a real mouse can leak in; runs with HW_NO_REAL_MOUSE=1)")
 
 	# Zoom: wheel up = closer, wheel down = farther, both clamped.
 	var length_before := arm.spring_length

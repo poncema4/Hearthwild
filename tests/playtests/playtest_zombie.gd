@@ -15,8 +15,10 @@ func _initialize() -> void:
 
 func _zombie(x: float, z: float) -> Zombie:
 	var zombie := Zombie.new()
+	zombie.wander = false
 	zombie.position = Vector3(x, kit.terrain.height_at(x, z) + 0.2, z)
 	kit.world.add_child(zombie)
+	zombie.set_fire_seed(1234)  # the same flames every run: a pixel count must not depend on luck
 	return zombie
 
 
@@ -42,15 +44,34 @@ func _in_view(zombie: Zombie) -> bool:
 	return hit.is_empty() or hit["collider"] == zombie
 
 
-## How many flame-coloured pixels (bright, warm: red high, green mid, blue low) lie in a box around the zombie, from its feet to well above its head.
-func _flame_pixels(image: Image, zombie: Zombie) -> int:
-	var feet := _screen_point(zombie.global_position, image)
-	var above := _screen_point(zombie.global_position + Vector3.UP * 2.6, image)
+## How many pixels in the zombie's column CHANGE when its flames and smoke are hidden (same frame, same pose). This works whatever colour the
+## effect has: Forward+ draws it hazy and pastel, Compatibility vivid, and no colour filter fitted both (lesson 65). The zombie must be standing still.
+func _effect_pixels(zombie: Zombie, _unused: Image) -> int:
+	var flames := zombie.get_node("Model/Flames") as Node3D
+	var smoke := zombie.get_node("Model/Smoke") as Node3D
+	var player_body := kit.player.get_node("Body") as Node3D
+	zombie.set_physics_process(false)  # frozen while measuring: a walking zombie would change pixels by moving, not by burning
+	player_body.visible = false  # zoomed in the player stands in the middle of the picture, in front of the zombie: its idle motion must not count
+	await kit.frames(3)
+	await RenderingServer.frame_post_draw
+	var with_effect := kit.tree.root.get_texture().get_image()
+	flames.visible = false
+	smoke.visible = false
+	await kit.frames(3)
+	await RenderingServer.frame_post_draw
+	var without := kit.tree.root.get_texture().get_image()
+	flames.visible = true
+	smoke.visible = true
+	player_body.visible = true
+	zombie.set_physics_process(true)
+	var feet := _screen_point(zombie.global_position, with_effect)
+	var above := _screen_point(zombie.global_position + Vector3.UP * 2.6, with_effect)
 	var count := 0
-	for y in range(maxi(int(above.y), 0), mini(int(feet.y), image.get_height())):
-		for x in range(maxi(int(feet.x) - 70, 0), mini(int(feet.x) + 70, image.get_width())):
-			var c := image.get_pixel(x, y)
-			if c.r > 0.88 and c.g > 0.4 and c.g < 0.92 and c.b < 0.55 and c.r - c.b > 0.4:
+	for y in range(maxi(int(above.y), 0), mini(int(feet.y), with_effect.get_height())):
+		for x in range(maxi(int(feet.x) - 38, 0), mini(int(feet.x) + 38, with_effect.get_width())):
+			var c1 := with_effect.get_pixel(x, y)
+			var c2 := without.get_pixel(x, y)
+			if maxf(absf(c1.r - c2.r), maxf(absf(c1.g - c2.g), absf(c1.b - c2.b))) > 0.1:
 				count += 1
 	return count
 
@@ -94,7 +115,7 @@ func _run() -> void:
 	kit.check_rendered("zombies/night_approach", image)
 	var chest := _screen_point(z.global_position + Vector3.UP * 1.2, image)
 	kit.check("night approach: the zombie is on the screen (40 px inside every edge) and nothing hides it from the camera", _on_screen(chest, image) and _in_view(z), "chest at %s" % chest)
-	var night_flames := _flame_pixels(image, z)
+	var night_flames := await _effect_pixels(z, image)
 	var night_color := _average(image, chest)
 	kit.check("night approach: it is not glowing (no sun at night): the chest is not more red than blue", night_color.r <= night_color.b + 0.03, "chest colour %s" % night_color)
 	# Compare with what is directly BEHIND and BESIDE the zombie (same height, 34 px to each side, past its arms), not the ground below it:
@@ -136,10 +157,29 @@ func _run() -> void:
 			"The same figure in bright daylight, scorched a little toward orange, with square orange-red flames and grey smoke rising from its body; arms still stretched forward, upright and intact.")
 	kit.check_rendered("zombies/burning", image)
 	chest = _screen_point(z.global_position + Vector3.UP * 1.2, image)
-	var burn_flames := _flame_pixels(image, z)
-	kit.check("burning: it is on the screen, really burning (hp under 20, is_burning), and FLAMES are visible around it: at least 25 flame-coloured pixels and more than 3 times the night control (the glowing eyes alone give about 10; flames give 43 in Forward+, up to 867 in Compatibility)",
-			_on_screen(chest, image) and _in_view(z) and z.is_burning() and (z.get_node("Health") as Health).current < 20.0 and burn_flames >= 25 and burn_flames > night_flames * 3,
-			"flame pixels %d (night control %d), hp %.1f" % [burn_flames, night_flames, (z.get_node("Health") as Health).current])
+	var burn_flames := await _effect_pixels(z, image)
+	kit.check("burning: it is on the screen, really burning (hp under 20, is_burning), and its flames and smoke visibly change the picture: 800+ pixels in its column differ with the effect hidden (Forward+ 4118, Compatibility 4697), against a still, unburning zombie's 3 to 4 (noise)",
+			_on_screen(chest, image) and _in_view(z) and z.is_burning() and (z.get_node("Health") as Health).current < 20.0 and burn_flames >= 800 and burn_flames > night_flames * 20 + 100,
+			"effect pixels %d (calm control %d), hp %.1f" % [burn_flames, night_flames, (z.get_node("Health") as Health).current])
+	z.free()
+
+	# 3b. Sunrise: a zombie caught by the first light burns, and its own fire lights the ground around it (like a burning mob in Minecraft).
+	kit.day_night.set_time(6.5)
+	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	_aim_past(Vector3(0, 0, -1), 30.0)
+	z = _zombie(0.0, -4.5)
+	z.walk_speed = 0.0
+	await kit.physics_frames(90)
+	await kit.frames(6)
+	image = await kit.shot("zombies", "dawn_fire", "Sunrise (6:30 AM): low amber light, a zombie 4.5 m ahead caught by the first sun is burning, its flames and smoke rising and an orange fire light flickering on the grass around it.",
+			"Warm dim dawn light; the zombie with square orange-red flames and grey smoke rising from it; the grass and ground right around its feet tinted warm orange by its fire; arms stretched toward the player.")
+	kit.check_rendered("zombies/dawn_fire", image)
+	chest = _screen_point(z.global_position + Vector3.UP * 1.2, image)
+	var dawn_flames := await _effect_pixels(z, image)
+	var dawn_light := z.get_node("Model/FireLight") as OmniLight3D
+	kit.check("dawn fire: the zombie is on the screen and in view, burning (hp under 20), its fire light is on, and the flames and smoke change 800+ pixels of its column (Forward+ 4464, Compatibility 4708)",
+			_on_screen(chest, image) and _in_view(z) and z.is_burning() and (z.get_node("Health") as Health).current < 20.0 and dawn_light.visible and dawn_flames >= 800,
+			"effect pixels %d, light %s, hp %.1f" % [dawn_flames, dawn_light.visible, (z.get_node("Health") as Health).current])
 	z.free()
 
 	# 4. Evening in the village: lit lamps, a zombie coming down the path.

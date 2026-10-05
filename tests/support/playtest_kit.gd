@@ -84,6 +84,7 @@ func teleport(position: Vector3, settle_frames: int = 10) -> void:
 		position.y = terrain.height_at(position.x, position.z) + 0.5
 	player.global_position = position
 	player.velocity = Vector3.ZERO
+	player.reset_physics_interpolation()  # a teleport is a jump, not a glide (the camera follows the interpolated position)
 	await physics_frames(settle_frames)
 
 

@@ -9,7 +9,7 @@ extends SceneTree
 
 const EXPECTED_KEYS := {
 	"move_forward": KEY_W, "move_back": KEY_S, "move_left": KEY_A, "move_right": KEY_D,
-	"jump": KEY_SPACE, "sprint": KEY_SHIFT, "interact": KEY_E, "customize": KEY_F2,
+	"jump": KEY_SPACE, "sprint": KEY_SHIFT, "interact": KEY_E, "customize": KEY_F2, "shift_lock": KEY_ALT, "toggle_input_debug": KEY_F3,
 }
 
 var kit: PlaytestKit
@@ -72,7 +72,7 @@ func _run() -> void:
 				codes.append((event as InputEventKey).physical_keycode)
 		if not InputMap.has_action(action) or codes != [EXPECTED_KEYS[action]]:
 			problems.append("%s: %s (wanted [%s])" % [action, codes, EXPECTED_KEYS[action]])
-	kit.check("W A S D, Space, Shift, E and F2 are each bound to exactly their own action", problems.is_empty(), str(problems))
+	kit.check("W A S D, Space, Shift, E, F2, Alt (shift lock) and F3 (input overlay) are each bound to exactly their own action", problems.is_empty(), str(problems))
 	kit.check("a fresh world starts with the player free to move (not input_locked)", not kit.player.input_locked)
 
 	# 2. Each direction key moves the player the right way (camera looks north, so W = -z, D = +x).
@@ -109,6 +109,50 @@ func _run() -> void:
 	kit.check("and lands again (on the floor, back near the start height)", kit.player.is_on_floor(), "y=%.2f on_floor=%s" % [kit.player.global_position.y, kit.player.is_on_floor()])
 	var walk_jump := await _press([KEY_W, KEY_SPACE], 45)
 	kit.check("W + Space jumps while moving forward (rose over 0.5 m and travelled over 2 m)", walk_jump.y > 0.5 and walk_jump.z < -2.0, "rose %.2f m, moved z %.2f" % [walk_jump.y, walk_jump.z])
+
+	# 5b. Pressing ANY other key while moving never interrupts the movement or the jumping (a reported bug: "I hold W + Space, press E or T or P, and I
+	# stop until I let go"). Real key events, about 50 different keys, one after another, while W + Space (and then W + Shift + Space) stay held.
+	var other_keys := [KEY_E, KEY_T, KEY_P, KEY_Q, KEY_R, KEY_F, KEY_G, KEY_H, KEY_Z, KEY_X, KEY_C, KEY_V, KEY_B, KEY_N, KEY_M, KEY_Y, KEY_U, KEY_I, KEY_O, KEY_J, KEY_K, KEY_L,
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0, KEY_TAB, KEY_ENTER, KEY_BACKSPACE, KEY_ALT, KEY_CTRL, KEY_CAPSLOCK, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
+			KEY_F1, KEY_F3, KEY_F5, KEY_F6, KEY_COMMA, KEY_PERIOD, KEY_SLASH, KEY_SEMICOLON, KEY_APOSTROPHE, KEY_BRACKETLEFT]
+	var interrupt_report := {}
+	for sprinting in [false, true]:
+		await _reset()
+		var start_z := kit.player.global_position.z
+		await _key(KEY_W, true)
+		await _key(KEY_SPACE, true)
+		if sprinting:
+			await _key(KEY_SHIFT, true)
+		await kit.physics_frames(40)  # up to full speed first
+		var slowest := 99.0
+		var takeoffs := 0
+		var was_on_floor := kit.player.is_on_floor()
+		var worst_key := ""
+		for code in other_keys:
+			await _key(code, true)
+			for i in 12:
+				await kit.physics_frames(1)
+				var speed := kit.horizontal_speed()
+				if speed < slowest:
+					slowest = speed
+					worst_key = OS.get_keycode_string(code)
+				if was_on_floor and not kit.player.is_on_floor():
+					takeoffs += 1
+				was_on_floor = kit.player.is_on_floor()
+			await _key(code, false)
+		var travelled := start_z - kit.player.global_position.z
+		interrupt_report[sprinting] = {"slowest": slowest, "takeoffs": takeoffs, "travelled": travelled, "worst_key": worst_key}
+		await _key(KEY_SHIFT, false)
+		await _key(KEY_SPACE, false)
+		await _key(KEY_W, false)
+	kit.camera_rig.set_shift_lock(false)  # the list above includes Alt (shift lock) and F3 (the overlay): put both back
+	var overlay := kit.player.get_node("HUD") as InteractionPrompt
+	if overlay.input_debug_visible():
+		await _key(KEY_F3, true)
+		await _key(KEY_F3, false)
+	kit.check("holding W + Space and pressing ~50 other keys in turn (E, T, P, letters, digits, Tab, Alt, Ctrl, arrows, F-keys...): the player never slows below 3.5 m/s while walking, and keeps hopping (7+ take-offs)",
+			interrupt_report[false]["slowest"] >= 3.5 and interrupt_report[false]["takeoffs"] >= 7, str(interrupt_report[false]))
+	kit.check("and the same with Shift held (sprint): never below 6.4 m/s, still hopping", interrupt_report[true]["slowest"] >= 6.4 and interrupt_report[true]["takeoffs"] >= 7, str(interrupt_report[true]))
 
 	# 6. Nothing is left stuck afterwards.
 	await _release_all()

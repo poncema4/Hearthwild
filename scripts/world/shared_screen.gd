@@ -152,7 +152,11 @@ func close_dialog() -> void:
 	_layer.visible = false
 	if _player:
 		_player.input_locked = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	var rig := get_tree().get_first_node_in_group(&"camera_rig") as ThirdPersonCamera
+	if rig:
+		rig.refresh_mouse()
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 ## The on-screen rectangle of the box (for the fit-in-window check).

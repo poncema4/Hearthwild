@@ -38,12 +38,17 @@ func _run() -> void:
 	var after_next := creator.profile.species_id
 	creator.next_species(1)
 	var after_two := creator.profile.species_id
-	creator.next_species(1)
-	kit.check("next animal goes dog -> cat -> bunny -> dog (wraps)", after_next == &"cat" and after_two == &"bunny" and creator.profile.species_id == &"dog",
-			"%s, %s, %s" % [after_next, after_two, creator.profile.species_id])
+	var visited := [creator.profile.species_id]
+	for i in 7:
+		creator.next_species(1)
+		visited.append(creator.profile.species_id)
+	kit.check("next animal visits all 9 in order (dog, cat, bunny, fox, bear, panda, pig, mouse, raccoon) and wraps back to the dog",
+			after_next == &"cat" and after_two == &"bunny" and visited == [&"bunny", &"fox", &"bear", &"panda", &"pig", &"mouse", &"raccoon", &"dog"] and creator.profile.species_id == &"dog",
+			"%s, %s, %s, visited %s" % [after_next, after_two, creator.profile.species_id, visited])
 	creator.next_species(-1)
-	kit.check("previous animal wraps backwards (dog -> bunny)", creator.profile.species_id == &"bunny" and creator.preview_model.species.id == &"bunny" and creator._species_label.text == "Bunny",
+	kit.check("previous animal wraps backwards (dog -> raccoon) and the preview and label follow", creator.profile.species_id == &"raccoon" and creator.preview_model.species.id == &"raccoon" and creator._species_label.text == "Raccoon",
 			"%s / preview %s / label %s" % [creator.profile.species_id, creator.preview_model.species.id, creator._species_label.text])
+	creator.select_species(&"bunny")  # the rest of this test carries on with the bunny
 
 	# 3. Choosing clothes: each slot cycles none -> items -> none, and the preview wears them.
 	var hats := Outfits.items_for_slot(&"head_top")
@@ -51,12 +56,17 @@ func _run() -> void:
 	for i in hats.size() + 1:
 		creator.next_item(&"head_top", 1)
 		seen.append(creator._item_labels[&"head_top"].text)
-	kit.check("a slot cycles through every item and back to None", seen == ["Red cap", "Straw hat", "None"], str(seen))
+	var expected_seen: Array = []
+	for hat in hats:
+		expected_seen.append(Outfits.label_of(hat))
+	expected_seen.append("None")
+	kit.check("a slot cycles through every hat in catalog order and back to None (7 hats + None)", seen == expected_seen and hats.size() >= 7, str(seen))
+	var last_neck: StringName = Outfits.items_for_slot(&"neck").back()
 	creator.next_item(&"head_top", 1)
 	creator.next_item(&"neck", -1)  # backwards from None lands on the LAST neck item
 	creator.next_item(&"back", 1)
 	await kit.physics_frames(2)
-	kit.check("the preview wears the chosen items", creator.preview_model.worn_items() == {&"head_top": &"red_cap", &"neck": &"bow_tie", &"back": &"explorer_pack"}, str(creator.preview_model.worn_items()))
+	kit.check("the preview wears the chosen items", creator.preview_model.worn_items() == {&"head_top": &"red_cap", &"neck": last_neck, &"back": &"explorer_pack"}, str(creator.preview_model.worn_items()))
 
 	# 4. The name.
 	creator.enter_name("  Marco\u0001 the Great and Mighty  ")
@@ -73,7 +83,7 @@ func _run() -> void:
 	kit.check("Start emits `finished` with the profile", finished[0] == saved)
 	# The box keeps the first 16 typed characters ("  Marco" + control + " the Gre"), then the name is cleaned.
 	kit.check("the profile name is exactly the cleaned first 16 characters typed", saved.display_name == "Marco the Gre", "'%s'" % saved.display_name)
-	kit.check("the real player is now the bunny wearing the chosen items", model.species.id == &"bunny" and model.worn_items() == {&"head_top": &"red_cap", &"neck": &"bow_tie", &"back": &"explorer_pack"},
+	kit.check("the real player is now the bunny wearing the chosen items", model.species.id == &"bunny" and model.worn_items() == {&"head_top": &"red_cap", &"neck": last_neck, &"back": &"explorer_pack"},
 			"%s %s" % [model.species.id, model.worn_items()])
 	var tag := model.find_child("NameTag", true, false) as Label3D
 	kit.check("the player's name floats over their head", tag != null and tag.text == saved.display_name and tag.visible, "tag '%s'" % (tag.text if tag else "none"))
@@ -105,7 +115,7 @@ func _run() -> void:
 	var cancelled := creator.cancel()
 	await kit.physics_frames(2)
 	kit.check("Cancel closes the screen, unlocks the player and changes nothing", cancelled and not creator.is_open and not player.input_locked and model.species.id == &"bunny"
-			and model.worn_items() == {&"head_top": &"red_cap", &"neck": &"bow_tie", &"back": &"explorer_pack"} and PlayerProfile.current().species_id == &"bunny",
+			and model.worn_items() == {&"head_top": &"red_cap", &"neck": last_neck, &"back": &"explorer_pack"} and PlayerProfile.current().species_id == &"bunny",
 			"%s %s" % [model.species.id, model.worn_items()])
 	creator.open(PlayerProfile.make_default(), false)
 	kit.check("a first launch (no Cancel) cannot be cancelled: the button is hidden and cancel() does nothing", not creator._cancel_button.visible and not creator.cancel() and creator.is_open)

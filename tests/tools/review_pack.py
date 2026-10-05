@@ -38,6 +38,10 @@ code = [c for c in changed if c.endswith((".gd", ".tscn", ".sh", ".py", ".godot"
 needs = []
 if any_path("scripts/player/animal_", "scripts/player/outfits", "scripts/player/player_controller", "tests/functional/test_animation", "tests/playtests/playtest_animation", "tests/functional/test_movement_feel"):
     needs.append("**Animator**: character, animation or movement-feel files changed")
+if any_path("scripts/mobs/", "scripts/player/health", "scripts/world/day_night", "scripts/world/sleep_system", "tests/functional/test_zombie"):
+    needs.append("**Ghoul**: zombie, spawner, sun, sleep or health files changed (also **Animator** if the zombie model or its fire moved)")
+if any_path("scripts/mobs/", "scripts/player/outfits", "scripts/player/animal_"):
+    needs.append("**Animator**: a mob model or the wardrobe/animals changed (measure mesh geometry, not pivots; lesson 63)")
 if any_path("scripts/world/", "scenes/world/", "scripts/interaction/"):
     needs.append("**Mason**: world, village, door or interaction files changed")
 if any_path("scripts/", "scenes/", "tests/playtests/"):
@@ -83,3 +87,4 @@ for n in needs:
     print(f"- {n}")
 print("- Warden: **skip** when the lead ran BOTH renderers green and CI will run on the PR (CI is the independent gate)")
 print("- Scout: only for a new controls/physics system the soak test does not walk")
+print("- Write each brief with `python3 tests/tools/make_brief.py AGENT [--delta]` (budget, evidence, traps included)")

@@ -125,7 +125,7 @@ func confirm() -> PlayerProfile:
 	_root.visible = false
 	if _player:
 		_player.input_locked = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_return_mouse()
 	finished.emit(profile)
 	var hud := _player.get_node_or_null("HUD") as InteractionPrompt if _player else null
 	if hud:
@@ -147,7 +147,7 @@ func cancel() -> bool:
 	_root.visible = false
 	if _player:
 		_player.input_locked = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_return_mouse()
 	return true
 
 
@@ -312,3 +312,12 @@ func _label(text: String, size: int, color := Color(1, 1, 1)) -> Label:
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
 	return label
+
+
+## Hands the mouse back to the camera, which decides (free cursor, or captured for right-mouse look / shift lock).
+func _return_mouse() -> void:
+	var rig := get_tree().get_first_node_in_group(&"camera_rig") as ThirdPersonCamera
+	if rig:
+		rig.refresh_mouse()
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
