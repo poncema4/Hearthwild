@@ -19,6 +19,7 @@ func _initialize() -> void:
 
 func _zombie(x: float, z: float) -> Zombie:
 	var z_node := Zombie.new()
+	z_node.wander = false  # the older checks assume a zombie with no target stands still; the AI checks switch wandering on themselves
 	z_node.position = Vector3(x, kit.terrain.height_at(x, z) + 0.2, z)
 	kit.world.add_child(z_node)
 	return z_node
@@ -100,7 +101,7 @@ func _run() -> void:
 		pose_problems.append("eyes are not on the facing side")
 	kit.check("pose (the drawn meshes): both arms extend FORWARD from the shoulders (middle 0.2+ m along the facing direction, level), both legs hang straight down from the hips, the eyes are on the front", pose_problems.is_empty(), str(pose_problems))
 	var calm_fire := z.get_node("Model/Flames") as CPUParticles3D
-	kit.check("a calm zombie is not on fire: flames and smoke are off", not calm_fire.emitting and not (z.get_node("Model/Smoke") as CPUParticles3D).emitting)
+	kit.check("a calm zombie is not on fire: flames, smoke and the fire light are off", not calm_fire.emitting and not (z.get_node("Model/Smoke") as CPUParticles3D).emitting and not (z.get_node("Model/FireLight") as OmniLight3D).visible)
 	var calm := (z.get_node("Model/Torso") as MeshInstance3D).material_override as StandardMaterial3D
 	kit.check("a calm zombie at night has a faint self-lit lift in its own colour (so it reads in the dark): emission on, equal to its albedo, energy 0.5 to 0.9",
 			calm.emission_enabled and calm.emission == calm.albedo_color and calm.emission_energy_multiplier >= 0.5 and calm.emission_energy_multiplier <= 0.9, "emission %s x%.2f" % [calm.emission, calm.emission_energy_multiplier])
@@ -278,6 +279,16 @@ func _run() -> void:
 	var eye_material := (z.get_node("Model/Head/EyeL") as MeshInstance3D).material_override as StandardMaterial3D
 	kit.check("its eyes are a deep red that glows (emission pure red, energy 1.0 to 2.0), not an overbright pink", eye_material.emission_enabled and eye_material.emission.r > 0.9 and eye_material.emission.g < 0.1 and eye_material.emission.b < 0.1
 			and eye_material.emission_energy_multiplier >= 1.0 and eye_material.emission_energy_multiplier <= 2.0, "emission %s x%.1f" % [eye_material.emission, eye_material.emission_energy_multiplier])
+	var light := z.get_node("Model/FireLight") as OmniLight3D
+	var light_lo := 99.0
+	var light_hi := 0.0
+	for i in 45:
+		await kit.physics_frames(1)
+		light_lo = minf(light_lo, light.light_energy)
+		light_hi = maxf(light_hi, light.light_energy)
+	kit.check("a burning zombie casts a flickering orange light (visible, red above green above blue, energy swinging by 0.6+ between 0.7 and 2.4 in 0.75 s)",
+			light.visible and light.light_color.r > light.light_color.g and light.light_color.g > light.light_color.b and light_hi - light_lo >= 0.6 and light_lo >= 0.7 and light_hi <= 2.4,
+			"visible %s, energy %.2f to %.2f" % [light.visible, light_lo, light_hi])
 	var burned_up := false
 	for i in 720:
 		await kit.physics_frames(1)
@@ -308,6 +319,18 @@ func _run() -> void:
 	kit.check("inside a cottage at noon (under its roof) a zombie takes no damage and is not burning", house.is_inside(z.global_position) and (z.get_node("Health") as Health).current == 20.0 and not z.is_burning(),
 			"inside %s, hp %.1f, burning %s" % [house.is_inside(z.global_position), (z.get_node("Health") as Health).current, z.is_burning()])
 	z.free()
+	# Steady fire: in the open the burning never drops out for a single frame over 3 s (no flicker), and the fire goes out after shade.
+	z = _zombie(0.0, 0.0)
+	await kit.physics_frames(30)
+	var dropouts := 0
+	var flames_off := 0
+	for i in 180:
+		await kit.physics_frames(1)
+		if not z.is_burning():
+			dropouts += 1
+		if not z.flames_active():
+			flames_off += 1
+	kit.check("in open sunlight the burning is CONSTANT: 180 frames in a row burning and flaming, no gaps", dropouts == 0 and flames_off == 0, "%d frames not burning, %d without flames" % [dropouts, flames_off])
 	z = _zombie(0.0, 0.0)
 	await kit.physics_frames(60)
 	var open_air_sun := z.is_in_sunlight()
@@ -450,6 +473,113 @@ func _run() -> void:
 			_died == 1 and player.global_position.distance_to(Vector3(0, 1, 0)) < 1.5 and health.current == 100.0 and not health.is_dead() and not player.input_locked,
 			"died x%d, at %s, hp %.0f" % [_died, player.global_position, health.current])
 	kit.check("and the HUD says what happened", hud.message_text().contains("knocked out"), "'%s'" % hud.message_text())
+	_clear_zombies()
+
+	# 11. The brain: strolling, going around things, getting unstuck.
+	clock.set_time(23.0)
+	await _player_to(80.0, 80.0)  # far away: nobody to chase
+	var stroll_end := Vector3.ZERO
+	var stroll := {}
+	for run in 2:
+		z = _zombie(0.0, 0.0)
+		z.wander = true
+		z._rng.seed = 11
+		await kit.physics_frames(5)
+		var home := z.global_position
+		var last := z.global_position
+		var path := 0.0
+		var farthest := 0.0
+		var top_speed := 0.0
+		var rest := 0
+		var longest_rest := 0
+		var rests := 0
+		var has_moved := false
+		var end_10s := Vector3.ZERO
+		for i in 1500:
+			await kit.physics_frames(1)
+			var step := Vector2(z.global_position.x - last.x, z.global_position.z - last.z).length()
+			last = z.global_position
+			path += step
+			top_speed = maxf(top_speed, step * 60.0)
+			farthest = maxf(farthest, Vector2(z.global_position.x - home.x, z.global_position.z - home.z).length())
+			if step * 60.0 < 0.05:
+				rest += 1
+				longest_rest = maxi(longest_rest, rest) if has_moved else longest_rest
+			else:
+				if rest >= 60 and has_moved:
+					rests += 1
+				rest = 0
+				has_moved = true
+			if i == 599:
+				end_10s = z.global_position
+		if run == 0:
+			stroll = {"path": path, "farthest": farthest, "top": top_speed, "rest": longest_rest, "rests": rests, "end": end_10s}
+			stroll_end = end_10s
+		else:
+			kit.check("with the same seed a second zombie strolls to the same place (within 0.3 m after 10 s): the stroll is random but repeatable",
+					end_10s.distance_to(stroll_end) < 0.3, "%s vs %s" % [end_10s, stroll_end])
+		z.free()
+	kit.check("with nobody to chase a zombie strolls: 6 to 30 m of walking in 25 s, never farther than 10.5 m from where it spawned, never faster than 1.2 m/s (40% of walk speed), and it stops to rest for 1.7 to 5.5 s at least twice",
+			stroll["path"] > 6.0 and stroll["path"] < 30.0 and stroll["farthest"] <= 10.5 and stroll["top"] <= 1.2 and stroll["rest"] >= 100 and stroll["rest"] <= 330 and stroll["rests"] >= 2,
+			str(stroll))
+
+	await _player_to(0.0, 0.0)
+	var wall_y := kit.terrain.height_at(6.0, 0.0)
+	var wall := StaticBody3D.new()
+	var wall_shape := CollisionShape3D.new()
+	var wall_box := BoxShape3D.new()
+	wall_box.size = Vector3(0.5, 4.0, 24.0)
+	wall_shape.shape = wall_box
+	wall.add_child(wall_shape)
+	wall.position = Vector3(6.0, wall_y + 1.5, 0.0)  # a wall 24 m long between the zombie (x 12) and the player (x 0): the way round is long, so it only works if the zombie picks a side and sticks to it
+	kit.world.add_child(wall)
+	await kit.physics_frames(3)
+	var around := {}
+	for variant in ["avoids", "no_avoidance", "neither"]:
+		z = _zombie(12.0, 0.0)
+		z.avoid_obstacles = variant == "avoids"
+		z.unstick = variant == "avoids"
+		var widest := 0.0
+		var closest := 99.0
+		for i in (1500 if variant == "avoids" else 480):
+			await kit.physics_frames(1)
+			widest = maxf(widest, absf(z.global_position.z))
+			closest = minf(closest, _flat_distance(z, player))
+		around[variant] = {"widest": widest, "closest": closest}
+		z.free()
+		health.heal(100.0)
+		await _player_to(0.0, 0.0)
+	kit.check("a zombie chasing round a 24 m wall walks AROUND it: within 25 s it swings out past the wall's end (12.5 m+ to the side) and reaches the player (under 2.2 m)",
+			around["avoids"]["widest"] > 12.5 and around["avoids"]["closest"] < 2.2, str(around["avoids"]))
+	kit.check("control: with avoidance and unsticking both off the same zombie stays pressed against the wall for 8 s (never reaches 5 m of the player, never goes wide)",
+			around["neither"]["closest"] > 5.0 and around["neither"]["widest"] < 2.0, str(around["neither"]))
+	wall.free()
+
+	var long_wall := StaticBody3D.new()
+	var long_shape := CollisionShape3D.new()
+	var long_box := BoxShape3D.new()
+	long_box.size = Vector3(0.5, 4.0, 60.0)
+	long_shape.shape = long_box
+	long_wall.add_child(long_shape)
+	long_wall.position = Vector3(6.0, wall_y + 1.5, 0.0)
+	kit.world.add_child(long_wall)
+	await kit.physics_frames(3)
+	var wiggle := {}
+	for variant in ["unstick", "off"]:
+		z = _zombie(8.0, 0.0)
+		z.avoid_obstacles = false
+		z.unstick = variant == "unstick"
+		z._rng.seed = 5
+		var excursion := 0.0
+		for i in 6 * 60:
+			await kit.physics_frames(1)
+			excursion = maxf(excursion, absf(z.global_position.z))  # the LARGEST sideways distance: the random side of each sidestep can cancel out in the end
+		wiggle[variant] = excursion
+		z.free()
+		health.heal(100.0)
+	kit.check("pressed against a 60 m wall with no way round, a zombie sidesteps loose: at some point 1.4 m+ to the side within 6 s", wiggle["unstick"] > 1.4, str(wiggle))
+	kit.check("control: with unsticking off it stays where it hit the wall (under 0.5 m sideways)", wiggle["off"] < 0.5, str(wiggle))
+	long_wall.free()
 	_clear_zombies()
 
 	kit.finish()

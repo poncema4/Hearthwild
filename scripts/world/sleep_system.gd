@@ -138,6 +138,9 @@ func _physics_process(delta: float) -> void:
 				_player.sleeping = false
 				_player.input_locked = false
 				state = State.AWAKE
+				var health := _player.get_node_or_null("Health") as Health
+				if health != null:
+					health.heal(health.max_health)  # a night's sleep restores full health
 				var hud := _player.get_node_or_null("HUD") as InteractionPrompt
 				if hud:
 					hud.show_message("Good morning, %s!" % PlayerProfile.current().display_name, 4.0)

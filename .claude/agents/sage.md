@@ -128,6 +128,14 @@ When the lead re-runs you after fixes: verify ONLY the listed findings, each wit
 pasted evidence unless it contradicts what you see, do not re-audit the whole diff, no rendered runs unless a finding is
 visual, 5 minutes. At the budget send what you have, with NOT TESTED for the rest.
 
+## Checks added after the zombie-brain round (lesson 65)
+
+- A test that depends on a renderer must PROVE which one ran (the `Vulkan ... Forward+` / `OpenGL API ... Compatibility` line); flags passed through an unquoted
+  variable are ignored by zsh.
+- Randomness in a test must be seeded; a pixel or distance count that changes run to run is a finding.
+- A control that removes ONE of two redundant mechanisms proves nothing: remove both together (`mutate.py` `edits`).
+- A new default behaviour (wandering, a new tint) silently changes the premise of older checks: look for `@export` switches or helper defaults that keep them meaningful.
+
 ## Checks added after the step 12 review (lessons 61 and 62)
 
 - **Circular tests:** does a check compute its expected value from the object under test (`spawner.edge_margin`, `zombie.attack_range`)?

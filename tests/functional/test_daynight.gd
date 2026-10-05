@@ -184,6 +184,32 @@ func _run() -> void:
 		hands_detail += " [%.2f h: hour %.0f (want %.0f), minute %.0f (want %.0f)]" % [entry[0], angles.x, entry[1], angles.y, entry[2]]
 	kit.check("the plaza clock's hands show the game time (3:00, 3:30 PM, 12:00, 9:15)", hands_ok, hands_detail)
 
+	# 8b2. The clock is put together right: the wooden post stops below the clock, a bracket joins them, the hands sit in front of the face.
+	var clock_problems := []
+	if clock != null:
+		var post := _mesh_box(clock, "Post")
+		var bracket := _mesh_box(clock, "Bracket")
+		var rim := _mesh_box(clock, "Rim")
+		var face := _mesh_box(clock, "Face")
+		if post.size == Vector3.ZERO or bracket.size == Vector3.ZERO or rim.size == Vector3.ZERO or face.size == Vector3.ZERO:
+			clock_problems.append("a clock part is missing or empty (post %s, bracket %s, rim %s, face %s)" % [post.size, bracket.size, rim.size, face.size])
+		else:
+			if post.end.y > rim.position.y + 0.01:
+				clock_problems.append("the post runs %.2f m up INTO the clock (post top %.2f, rim bottom %.2f)" % [post.end.y - rim.position.y, post.end.y, rim.position.y])
+			for part_name in ["Face", "Rim", "Tick", "HourHand", "MinuteHand"]:
+				var part := _mesh_box(clock, part_name)
+				if part.size != Vector3.ZERO and post.grow(-0.002).intersects(part.grow(-0.002)):
+					clock_problems.append("the post overlaps the %s" % part_name)
+			if _gap(post, bracket) > 0.02 or _gap(bracket, rim) > 0.02:
+				clock_problems.append("the bracket does not join post and clock (gaps %.3f and %.3f m)" % [_gap(post, bracket), _gap(bracket, rim)])
+			for hand_name in ["HourHand", "MinuteHand"]:
+				var blade := _mesh_box(clock, hand_name)
+				if blade.size == Vector3.ZERO or blade.position.z < face.end.z - 0.001:
+					clock_problems.append("%s is not in front of the face (hand back %.3f, face front %.3f)" % [hand_name, blade.position.z, face.end.z])
+	else:
+		clock_problems.append("no plaza clock found")
+	kit.check("the plaza clock is built right: the wooden post stops below the clock (no wood through the face), a bracket joins them, and both hands sit in front of the face", clock_problems.is_empty(), str(clock_problems))
+
 	# 8c. A world that starts (or loads) at night while the clock is paused still has its lamps lit.
 	var night_world: Node = load("res://scenes/world/world.tscn").instantiate()
 	(night_world.get_node("DayNight") as DayNight).start_hour = 0.0
@@ -209,3 +235,31 @@ func _run() -> void:
 
 func _colour_gap(a: Color, b: Color) -> float:
 	return Vector3(a.r, a.g, a.b).distance_to(Vector3(b.r, b.g, b.b))
+
+
+## The bounding box, in `root`'s local space, of the mesh named `part_name` under `root` (or the first of that name; an empty box when there is none). The box
+## of a lone mesh counts: find_children never returns the node itself (lesson 64).
+func _mesh_box(root: Node, part_name: String) -> AABB:
+	var found := root.find_child(part_name, true, false)
+	var mesh := found as MeshInstance3D
+	if mesh == null and found != null:  # a named pivot (the clock hands): measure the blade inside it
+		var inside := found.find_children("*", "MeshInstance3D", true, false)
+		if not inside.is_empty():
+			mesh = inside[0] as MeshInstance3D
+	if mesh == null:
+		for child in root.find_children("*", "MeshInstance3D", true, false):
+			if String(child.name).begins_with(part_name):
+				mesh = child as MeshInstance3D
+				break
+	if mesh == null:
+		return AABB()
+	# In `root`'s OWN space (one combined transform, so a rotated part is not inflated twice): the clock is yawed to face the plaza, so world axes mean nothing.
+	var local_box: AABB = (root.global_transform.affine_inverse() * mesh.global_transform) * mesh.get_aabb()
+	return local_box
+
+
+func _gap(a: AABB, b: AABB) -> float:
+	var dx := maxf(0.0, maxf(a.position.x - b.end.x, b.position.x - a.end.x))
+	var dy := maxf(0.0, maxf(a.position.y - b.end.y, b.position.y - a.end.y))
+	var dz := maxf(0.0, maxf(a.position.z - b.end.z, b.position.z - a.end.z))
+	return Vector3(dx, dy, dz).length()

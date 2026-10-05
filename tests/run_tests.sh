@@ -75,6 +75,8 @@ run_step "editor load" "$GODOT" --headless --path . -e --quit-after 300
 # but as fast as the machine can go (13.7 s -> 0.8 s for the movement test).
 run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_player_movement.gd
 run_step "keys test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_keys.gd
+run_step "camera input test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_camera_input.gd
+run_step "smoothness test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_smoothness.gd
 run_step "terrain test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_terrain.gd
 run_step "movement feel test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_movement_feel.gd
 run_step "village test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_village.gd
@@ -92,6 +94,7 @@ run_step "sitting test" "$GODOT" --headless --path . --fixed-fps 60 --script res
 run_step "animation test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_animation.gd
 run_step "health test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_health.gd
 run_step "zombie test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_zombie.gd
+run_step "wardrobe test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_wardrobe.gd
 
 # Wrap windowed runs in a virtual display unless one is already provided
 # (CI runs this whole script under xvfb-run and sets HW_NO_REAL_MOUSE=1).
@@ -141,6 +144,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	# shellcheck disable=SC2086
 	run_step "zombie playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_zombie.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+	# shellcheck disable=SC2086
+	run_step "wardrobe playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_wardrobe.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	echo
 	echo "Screenshots: $QA_OUTPUT/<topic>/$RUN_STAMP/  (index: $QA_OUTPUT/INDEX.md)"
 else

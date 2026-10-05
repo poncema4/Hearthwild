@@ -48,8 +48,11 @@ static func clock_post() -> Node3D:
 	var root := WorldClock.new()
 	root.name = "Clock"
 	var body := _body(root)
-	_box(body, "Post", Vector3(0.28, 2.6, 0.28), Vector3(0, 1.3, 0), DARK_WOOD)
+	# The post ENDS below the clock (the rim starts at y 2.03) and a bracket carries the clock: before, the post ran up inside the face and its front
+	# surface lay in the same plane as the glass (z-fighting: "wood through the clock").
+	_box(body, "Post", Vector3(0.28, 1.95, 0.28), Vector3(0, 0.975, 0), DARK_WOOD)
 	_box(body, "Base", Vector3(0.6, 0.25, 0.6), Vector3(0, 0.125, 0), STONE)
+	_box(body, "Bracket", Vector3(0.2, 0.14, 0.2), Vector3(0, 2.0, -0.02), DARK_WOOD)
 	var rim := _cylinder(body, "Rim", 0.62, 0.14, Vector3(0, 2.65, 0.05), DARK_WOOD, false)
 	rim.rotation = Vector3(deg_to_rad(90), 0, 0)
 	var face := _cylinder(body, "Face", 0.54, 0.16, Vector3(0, 2.65, 0.06), Color(0.97, 0.94, 0.85), false)
@@ -69,7 +72,7 @@ static func clock_post() -> Node3D:
 		blade.material_override = _material(IRON)
 		blade.position = Vector3(0, hand[1] * 0.5, 0)
 		pivot.add_child(blade)
-	_collider(body, "ClockCollision", Vector3(0.4, 2.6, 0.4), Vector3(0, 1.3, 0))
+	_collider(body, "ClockCollision", Vector3(0.4, 2.1, 0.4), Vector3(0, 1.05, 0))
 	return root
 
 

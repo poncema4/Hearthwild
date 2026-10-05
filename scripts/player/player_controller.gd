@@ -119,9 +119,13 @@ func _physics_process(delta: float) -> void:
 	var forward := Vector2(-_body.global_transform.basis.z.x, -_body.global_transform.basis.z.z)
 	# 1 = moving the way the body faces; below 0 = sliding backwards (a sharp turn at speed).
 	var alignment := flat.normalized().dot(forward.normalized()) if flat.length() > 0.5 else 1.0
-	_model.set_motion(flat.length(), is_on_floor(), velocity.y, alignment)
+	# With shift lock the character faces the camera, not its movement, so strafing and backing up are normal: keep the walk cycle running.
+	_model.set_motion(flat.length(), is_on_floor(), velocity.y, 1.0 if _camera_rig.shift_lock else alignment)
 
-	if direction.length_squared() > 0.0:
+	if _camera_rig.shift_lock and not input_locked:
+		# Shift lock: the character faces where the camera looks, whether it walks, strafes, backs up or stands still.
+		_body.rotation.y = lerp_angle(_body.rotation.y, _camera_rig.get_yaw(), minf(turn_speed * 1.6 * delta, 1.0))
+	elif direction.length_squared() > 0.0:
 		_face_direction(direction, delta)
 
 
@@ -140,6 +144,7 @@ func respawn() -> void:
 		seat.stand_up(self)
 	global_position = _spawn_position
 	velocity = Vector3.ZERO
+	reset_physics_interpolation()  # a respawn is a jump, not a glide across the world
 
 
 func _read_move_input() -> Vector2:

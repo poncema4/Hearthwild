@@ -70,6 +70,8 @@ func _run() -> void:
 	var shape := player.get_node("CollisionShape3D") as CollisionShape3D
 	var clock_before := clock.hour
 	var start_position := player.global_position
+	var player_health := player.get_node("Health") as Health
+	player_health.damage(70.0)
 	await kit.tap("interact")
 	await kit.physics_frames(2)
 	kit.check("pressing E starts the night: locked, sleeping, collision off, clock paused at once",
@@ -150,6 +152,7 @@ func _run() -> void:
 		var hand: Vector3 = limbs[key]
 		hands_down = hands_down and hand.y < 0.8 and absf(hand.x) < 0.5
 	kit.check("after waking both hands hang by the hips (below 0.8 m, within 0.5 m of the body line) and both feet are on the ground", hands_down and (limbs["foot_l"] as Vector3).y < 0.2 and (limbs["foot_r"] as Vector3).y < 0.2, str(limbs))
+	kit.check("a night's sleep restores full health (hurt to 30 before bed, 100 after waking)", is_equal_approx(player_health.current, player_health.max_health) and player_health.max_health == 100.0, "hp %.1f of %.1f" % [player_health.current, player_health.max_health])
 	kit.check("a good-morning message greets the player by name", hud.message_text() == "Good morning, %s!" % PlayerProfile.current().display_name, "'%s'" % hud.message_text())
 	Input.action_press("move_back")
 	await kit.physics_frames(20)

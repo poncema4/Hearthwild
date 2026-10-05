@@ -64,7 +64,7 @@ func _run() -> void:
 	await _take("bunny_full")
 
 	creator.confirm()
-	kit.check("creator: after Start the real mouse is captured again (needs a real window; Xvfb has one)", Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "mouse mode %d" % Input.mouse_mode)
+	kit.check("creator: after Start the mouse is back to the FREE cursor (right-mouse look and Alt shift lock take it when wanted; needs a real window, Xvfb has one)", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mouse mode %d" % Input.mouse_mode)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await kit.teleport(Vector3(-10, NAN, 8), 20)
 	kit.face(Vector3.BACK)
