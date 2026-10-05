@@ -35,6 +35,7 @@ var day_night: DayNight
 var creator: CharacterCreator
 var fishing: FishingPond
 var sleep_system: SleepSystem
+var zombie_spawner: ZombieSpawner
 
 ## Tests never touch the player's real profile. The name carries the process id so two test runs at the same
 ## time (both renderers in parallel) never share a file (lesson 52).
@@ -71,6 +72,8 @@ func load_world(settle_frames: int = 60) -> void:
 	creator = world.get_node("CharacterCreator")
 	fishing = world.get_node("Fishing")
 	sleep_system = world.get_node("SleepSystem")
+	zombie_spawner = world.get_node("ZombieSpawner")
+	zombie_spawner.enabled = false  # like the frozen clock: night-time tests get no visitors unless they turn the spawner on
 	await physics_frames(settle_frames)
 
 

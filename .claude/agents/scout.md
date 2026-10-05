@@ -199,6 +199,14 @@ was wrong)` with the reason. That's not a failure; it's the job.
   (see `tests/functional/test_keys.gd`). Do not report "W is broken" from an action-based run; do not report "W works" either.
 - `kit.shot` is a coroutine: `await kit.shot(...)`. Without `await` the image shows a LATER state than its name.
 
+## Zombies and the sun (lessons 61, 62)
+
+- The kit turns the spawner OFF on load: enable it yourself (`kit.zombie_spawner.enabled = true`) and reset `kit.zombie_spawner._timer = 0.0`.
+- Zombies at 25 to 40 m spawn partly outside their 28 m detect range and stand still (no wandering until step 13): not a bug.
+- A normal jump (apex 1.3 m) does not escape melee (the height gate is 1.6 m); cottage walls do stop hits (line of sight).
+- Set the clock explicitly with `kit.day_night.set_time(h)`; night begins about 17.7 h, so a clock set at 17.8 has already fired `night_started`.
+- Never index an empty list or an unchecked node in a scenario: a crashed coroutine leaves Godot running until the step timeout.
+
 ## Cross-check against the movement feel numbers
 
 `tests/functional/test_movement_feel.gd` already measures walk/sprint/stop/turn/strafe/jump against bands

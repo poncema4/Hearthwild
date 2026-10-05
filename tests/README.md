@@ -19,6 +19,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `functional/test_creator.gd` | Character screen: opens on first launch, locks the player, animal and outfit pickers, Start saves and dresses the player, reopen with F2. | no |
 | `functional/test_fishing.gd` | Fishing: spots on real terrain, reachable, cast/bite/reel timings, every way it ends, visuals, day/night fish, saved journal. | no |
 | `functional/test_keys.gd` | The REAL keyboard: Input Map has W/A/S/D, Space, Shift, E, F2 each on its own action; real key events walk every direction (distances measured), diagonals, W+S cancel, Shift sprints farther, Space jumps and lands, release stops, no stuck actions. 6 negative controls. | no |
+| `functional/test_zombie.gd` | The zombie and its spawner in the real world: model and grounding, chase speed and facing, range, melee (8 damage every 1.2 s), a sleeping player left alone (with a positive control), sunlight burn, glow, shade under a real roof, characters and walls casting no shade, dawn/dusk edges, spawner rules (night only, burst, cap, 25-40 m, outside village/water/walls), player knock-out and respawn. 26 negative controls. | no |
 | `functional/test_health.gd` | Health: damage / heal / revive maths, clamping, bad numbers (NaN, infinity, negative), `died` exactly once, a repaired maximum; the player's HP bar text, fill and on-screen position. 7 negative controls. | no |
 | `functional/test_sleep.gd` | Sleep: a bed in every cottage, 7 PM-6 AM window (both edges), full night sequence, clock forward to 6:30, lock/unlock, pose, wake-up spot. | no |
 | `functional/test_lake.gd` | Lake decoration and coverage: reeds on the bank, lily pads on the water, clear of fishing spots and casting lines, deterministic, spots spread all round. | no |
@@ -33,6 +34,7 @@ Rules and the false-positive checklist: `AGENTS.md` section 8. What is intention
 | `playtests/playtest_character.gd` | 7 screenshots of the dog (all sides, face close-up, walking, jumping, outfit). | yes |
 | `playtests/playtest_creator.gd` | The character screen with the dog, cat and bunny, and the result in the world; panel fits the window; mouse captured after Start. | yes |
 | `playtests/playtest_fishing.gd` | Fishing: ready, cast, bite, caught, night; bobber and ! on screen. | yes |
+| `playtests/playtest_zombie.gd` | Zombies as the player sees them (topic `zombies`): night approach, close-up of the model, burning at noon, village at night; checks each zombie is on screen, not hidden (the player counts as an occluder) and that the burn glow is in the pixels. | yes |
 | `playtests/playtest_health.gd` | Health: the HP bar at full, 50% (text straddles red and dark), 35%, 1 hp and dead (5 shots, topic `health`), with the bar's fill read back from the real pixels. | yes |
 | `playtests/playtest_sleep.gd` | Sleep: bed prompt, lying down, waking, morning. | yes |
 | `playtests/playtest_lake.gd` | The lake: wide view by day, dusk and night, reeds, lily pads, aerial view. | yes |

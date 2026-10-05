@@ -60,6 +60,8 @@ func _run() -> void:
 	kit.check_rendered("health/nearly_dead", image)
 	kit.check("nearly dead: the thin red sliver IS drawn at the far left (0.5% of the width), no red at 25%, text '1 / 100'", _is_fill_at(image, bar, 0.005) and not _is_fill_at(image, bar, 0.25) and hud.hp_text() == "1 / 100", "text '%s'" % hud.hp_text())
 
+	var knock_out := Callable(kit.player, "_on_died")
+	health.died.disconnect(knock_out)  # step 12: the player respawns at 0 hp; unplugged here so the empty bar can be photographed
 	health.damage(5.0)
 	await kit.frames(10)
 	image = await kit.shot("health", "dead", "Zero hit points; the player is dead (nothing handles death yet, so the dog just stands there).",
@@ -68,5 +70,6 @@ func _run() -> void:
 	kit.check("dead: no red fill anywhere along the bar (3%, 50%, 97%) and the text reads '0 / 100'", not _is_fill_at(image, bar, 0.03) and not _is_fill_at(image, bar, 0.50) and not _is_fill_at(image, bar, 0.97) and hud.hp_text() == "0 / 100", "text '%s'" % hud.hp_text())
 
 	health.revive()
+	health.died.connect(knock_out)
 	print("SCREENSHOTS: %s/health/%s" % [kit.shots_base, kit.shots_stamp])
 	kit.finish()

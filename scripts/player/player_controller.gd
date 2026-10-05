@@ -65,7 +65,11 @@ var _jump_blocked := false  ## Space was held to stand up: it is not also a jump
 
 
 func _ready() -> void:
+	add_to_group(&"player")
 	_spawn_position = global_position
+	var health := get_node_or_null("Health") as Health
+	if health:
+		health.died.connect(_on_died)
 	# Stay glued to the ground when running downhill or over bumps (a sprint at
 	# 7 m/s otherwise hops off the ground for a frame) and keep speed on slopes.
 	floor_snap_length = 0.5
@@ -119,6 +123,15 @@ func _physics_process(delta: float) -> void:
 
 	if direction.length_squared() > 0.0:
 		_face_direction(direction, delta)
+
+
+## Dying (0 hp) is a knock-out, not a game over: back to the spawn point at full health, with a message.
+func _on_died() -> void:
+	respawn()
+	(get_node("Health") as Health).revive()
+	var hud := get_node_or_null("HUD") as InteractionPrompt
+	if hud:
+		hud.show_message("You were knocked out and woke up at the village spawn.", 4.0)
 
 
 ## Puts the player back at the spawn point, standing still.

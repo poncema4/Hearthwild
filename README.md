@@ -50,7 +50,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (34 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (36 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 
@@ -77,6 +77,7 @@ use low (dispatch matrix in `AGENTS.md` 9.6).
 | **Hawkeye** | Reviews the screenshots and movement filmstrips that changed |
 | **Sage** | Reviews the code, organization and docs before it merges |
 | **Mason** | Measures the world: flat foundations, door sizes, solid walls, paths, "can the player get stuck?" |
+| **Ghoul** | Judges the zombie AI: chase, melee, sleeping-player immunity, sunlight burn and shade, spawn rules, knock-out |
 | **Animator** | Judges the character's motion: limb directions, walk cycle, skating, snaps, the jump pose |
 
 Every mistake found while building something is written into `AGENTS.md` (section 14) and the relevant
