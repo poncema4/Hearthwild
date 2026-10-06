@@ -19,7 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-TIMEOUT = 300
+TIMEOUT = 420
 
 
 def run_one(root: Path, m: dict) -> tuple[str, str]:

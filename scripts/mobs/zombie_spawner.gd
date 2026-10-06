@@ -12,7 +12,7 @@ extends Node
 @export var initial_burst := 3
 @export var spawn_interval := 15.0
 @export var min_distance := 25.0
-@export var max_distance := 40.0
+@export var max_distance := 150.0  ## wide: the village is big, so near the spawn point most of the 25 to 40 m ring is inside it
 @export var village_margin := 6.0
 @export var edge_margin := 6.0
 @export var seed_value := 0  ## 0 = a different night every run; tests set a fixed seed
@@ -66,10 +66,10 @@ func try_spawn() -> Zombie:
 	return zombie
 
 
-## A valid spawn point near `around`, or Vector3(INF, INF, INF) when 16 tries found none.
+## A valid spawn point near `around`, or Vector3(INF, INF, INF) when 80 tries found none.
 func pick_spawn_point(around: Vector3) -> Vector3:
 	var limit := _terrain.half_size() - edge_margin
-	for attempt in 16:
+	for attempt in 80:
 		var angle := _rng.randf() * TAU
 		var distance := _rng.randf_range(min_distance, max_distance)
 		var x := around.x + cos(angle) * distance

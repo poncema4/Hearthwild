@@ -10,12 +10,15 @@ extends SceneTree
 ## Exit code = number of failures (0 = all pass).
 
 
+var kit: PlaytestKit
+
+
 func _initialize() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
-	var kit := PlaytestKit.new(self)
+	kit = PlaytestKit.new(self)
 	await kit.load_world()
 	var terrain := kit.terrain
 	var space: PhysicsDirectSpaceState3D = (kit.world as Node3D).get_world_3d().direct_space_state
@@ -45,7 +48,7 @@ func _run() -> void:
 	#    bounds: a 0.15 m tolerance covers the capsule resting on a slope.
 	for spot in [["hill", Vector2(-45, 10)], ["hill ring", Vector2(0, terrain.half_size() * 0.85)],  # derived: on the real rim (it was a literal from the 120 m world and ended up under a cottage roof)
 			["pond bed", terrain.pond_center], ["slope", Vector2(30, -20)]]:
-		var p: Vector2 = spot[1]
+		var p: Vector2 = _free_of_scenery(spot[1])  # a tree or a rock on the spot would hold the player up (1,500 trees now): slide to the nearest bare ground
 		await kit.teleport(Vector3(p.x, terrain.height_at(p.x, p.y) + 3.0, p.y), 90)
 		var ground := terrain.height_at(p.x, p.y)
 		# A capsule resting on a slope sits higher than the ground height under
@@ -86,8 +89,10 @@ func _run() -> void:
 	var stray := 0
 	var sandy := 0
 	var far := terrain.pond_radius + 2.6
-	for x in range(-58, 59, 2):
-		for z in range(-58, 59, 2):
+	for dx in range(-58, 59, 2):
+		for dz in range(-58, 59, 2):
+			var x := int(terrain.pond_center.x) + dx  # the window follows the lake (it moved out to (120, -100) with the 600 m map)
+			var z := int(terrain.pond_center.y) + dz
 			var c := terrain.ground_color_at(x, z)
 			var is_sandy := _distance(c, Terrain.SAND) < _distance(c, Terrain.GRASS_LOW) \
 					and _distance(c, Terrain.SAND) < _distance(c, Terrain.GRASS_HIGH)
@@ -185,3 +190,22 @@ func _run() -> void:
 
 func _distance(a: Color, b: Color) -> float:
 	return Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length()
+
+
+## The nearest point to `wanted` (within 30 m, searched in rings) at least 4 m from every tree and rock.
+func _free_of_scenery(wanted: Vector2) -> Vector2:
+	var things: Array[Node3D] = []
+	things.append_array(kit.nature.get_trees())
+	things.append_array(kit.nature.get_rocks())
+	for radius: float in [0.0, 4.0, 8.0, 12.0, 16.0, 22.0, 30.0]:
+		for step in (1 if radius == 0.0 else 12):
+			var angle := TAU * step / 12.0
+			var candidate := wanted + Vector2(cos(angle), sin(angle)) * radius
+			var clear := true
+			for thing in things:
+				if Vector2(thing.position.x, thing.position.z).distance_to(candidate) < 4.0:
+					clear = false
+					break
+			if clear:
+				return candidate
+	return wanted

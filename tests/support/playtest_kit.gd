@@ -473,3 +473,41 @@ func finish() -> void:
 			DirAccess.remove_absolute(leftover)
 	print("RESULT: %s (%d failures)" % ["ALL PASS" if failures == 0 else "FAILED", failures])
 	tree.quit(failures)
+
+
+## An open, flat patch of meadow for tests that need room (combat, shooting, long walks); trees and rocks within `radius` are REMOVED if there are any: the first spot on a grid, outside the village and well away from the lake, with no tree or
+## rock within `radius` metres and the ground within 0.6 m of level across it. The village now fills the area round the spawn (0, 0), so "straight ahead of the
+## spawn" is no longer open meadow.
+func find_open_arena(radius: float = 40.0, flat_tolerance: float = 0.25) -> Vector2:
+	var things: Array[Node3D] = []
+	things.append_array(nature.get_trees())
+	things.append_array(nature.get_rocks())
+	var slope_reach := minf(radius, 22.0)
+	var best := Vector2(160, 0)
+	var best_clearance := -1.0
+	for x in range(140, 260, 6):
+		for z in range(-200, 201, 6):
+			var spot := Vector2(x, z)
+			if spot.distance_to(terrain.village_center) < terrain.village_flat_radius + 25.0 or spot.distance_to(terrain.pond_center) < terrain.pond_radius + 40.0:
+				continue
+			var low := 1e9
+			var high := -1e9
+			for offset in [Vector2(0, 0), Vector2(slope_reach, 0), Vector2(-slope_reach, 0), Vector2(0, slope_reach), Vector2(0, -slope_reach), Vector2(slope_reach, slope_reach) * 0.7, Vector2(-slope_reach, -slope_reach) * 0.7]:
+				var h := terrain.height_at(spot.x + offset.x, spot.y + offset.y)
+				low = minf(low, h)
+				high = maxf(high, h)
+			if high - low > flat_tolerance:
+				continue
+			var nearest := 1e9
+			for thing in things:
+				nearest = minf(nearest, Vector2(thing.position.x, thing.position.z).distance_to(spot))
+			if nearest >= radius:
+				return spot
+			if nearest > best_clearance:
+				best_clearance = nearest
+				best = spot
+	# 1,500 trees leave no bare patch as big as a test wants: take the flat patch with the most room and clear the scenery off it (a test may remove trees).
+	for thing in things:
+		if Vector2(thing.position.x, thing.position.z).distance_to(best) < radius and is_instance_valid(thing):
+			thing.free()
+	return best

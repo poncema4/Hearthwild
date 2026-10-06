@@ -25,16 +25,23 @@ func _ready() -> void:
 	_build()
 
 
+## E on a bed ALWAYS makes this house your respawn point (Marco: "even if its not night they click on and that sets their spawnpoint there so that when
+## they die they respawn in their house"); from 7 PM it also puts you to sleep.
 func get_prompt() -> String:
 	var sleep := get_tree().get_first_node_in_group(&"sleep_system") as SleepSystem
-	return "Sleep until morning" if sleep == null or sleep.can_sleep_now() else "Too early to sleep (after 7 PM)"
+	return "Sleep until morning (also sets your spawn)" if sleep == null or sleep.can_sleep_now() else "Set your spawn point here"
 
 
 func interact(who: Node3D) -> void:
 	message = ""
+	var player := who as PlayerController
+	if player != null:
+		player.set_spawn_point(getting_up_point())
 	var sleep := get_tree().get_first_node_in_group(&"sleep_system") as SleepSystem
-	if sleep:
+	if sleep != null and sleep.can_sleep_now():
 		message = sleep.try_sleep(who, self)
+	else:
+		message = "Spawn point set: if you are knocked out you wake up here. (Beds let you sleep after 7 PM.)"
 	super.interact(who)
 
 

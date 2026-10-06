@@ -49,12 +49,14 @@ func _run() -> void:
 	kit.check("every spot stands on dry ground, the cast lands in water at least 0.8 m deep, nothing within 4 m", problems.is_empty(), str(problems))
 	var unreachable := []
 	for spot in spots:
-		await kit.teleport(Vector3(0, NAN, 0), 20)
+		# From 8 m back on the land side: the perimeter fence now rings the village, so a straight walk from the spawn would (rightly) stop at it, 1,500 trees make some long lines impassable, and a walk ALONG the shore bumps the neighbouring spot's signpost.
+		var start := spot.standing_spot() - spot.toward_water.normalized() * 8.0  # 8 m back from the water on the land side, straight behind the spot
+		await kit.teleport(Vector3(start.x, NAN, start.z), 20)
 		var ok := await kit.drive_to(spot.standing_spot(), 0.8, false, "fishing %s" % spot.name)
 		await kit.stop_driving()
 		if not ok:
 			unreachable.append(spot.name)
-	kit.check("the player can walk from the spawn to every spot", unreachable.is_empty(), str(unreachable))
+	kit.check("the player can walk to every spot from 8 m back on the land side", unreachable.is_empty(), str(unreachable))
 
 	# 2. Standing at a spot facing the water: the prompt appears.
 	var spot: FishingSpot = spots[1]

@@ -13,6 +13,7 @@ const EXPECTED_KEYS := {
 }
 
 var kit: PlaytestKit
+var arena := Vector2.ZERO
 
 
 func _initialize() -> void:
@@ -34,10 +35,12 @@ func _release_all() -> void:
 		await _key(code, false)
 
 
-## Back to the middle of the spawn clearing, camera looking north (-z), nothing held.
+## Back to the middle of an open meadow patch (the village now fills the spawn area), camera looking north (-z), nothing held.
 func _reset() -> void:
 	await _release_all()
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 30)
+	if arena == Vector2.ZERO:
+		arena = kit.find_open_arena(70.0, 0.25)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 30)
 	kit.face(Vector3(0, 0, -1))
 	await kit.physics_frames(10)
 

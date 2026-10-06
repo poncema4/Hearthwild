@@ -44,10 +44,10 @@ adjustment_enabled = true
 adjustment_saturation = 1.18
 
 [sub_resource type="BoxShape3D" id="Shape_wall_ns"]
-size = Vector3(238, 60, 1)
+size = Vector3(598, 60, 1)
 
 [sub_resource type="BoxShape3D" id="Shape_wall_ew"]
-size = Vector3(1, 60, 238)
+size = Vector3(1, 60, 598)
 
 [node name="World" type="Node3D"]
 
@@ -70,7 +70,7 @@ script = ExtResource("5_daynight")
 
 [node name="Terrain" type="StaticBody3D" parent="."]
 script = ExtResource("1_terrain")
-path_lines = Array[PackedVector2Array]([PackedVector2Array(0, 0, -6, 2, -12, 6.5, -16, 9.5, -20, 14), PackedVector2Array(-25.6, 12, -20, 14), PackedVector2Array(-14.4, 13, -20, 14), PackedVector2Array(-20, 7.4, -20, 14), PackedVector2Array(-2.14, 24.3, -20, 14), PackedVector2Array(-14.68, 33.92, -20, 14), PackedVector2Array(-30.3, 31.86, -20, 14), PackedVector2Array(-39.4, 21.04, -20, 14), PackedVector2Array(-33.22, -1.79, -20, 14), PackedVector2Array(0.11, 39.72, -20, 14), PackedVector2Array(-24.53, 46.23, -20, 14), PackedVector2Array(-44.99, 34.92, -20, 14)])
+path_lines = Array[PackedVector2Array]([PackedVector2Array(0, 0, -6, 2, -12, 6.5, -16, 9.5, -20, 14), PackedVector2Array(-25.6, 12, -20, 14), PackedVector2Array(-14.4, 13, -20, 14), PackedVector2Array(-20, 7.4, -20, 14), PackedVector2Array(-2.14, 24.3, -20, 14), PackedVector2Array(-14.68, 33.92, -20, 14), PackedVector2Array(-30.3, 31.86, -20, 14), PackedVector2Array(-39.4, 21.04, -20, 14), PackedVector2Array(-33.22, -1.79, -20, 14), PackedVector2Array(0.11, 39.72, -20, 14), PackedVector2Array(-24.53, 46.23, -20, 14), PackedVector2Array(-44.99, 34.92, -20, 14), PackedVector2Array(22.96, 25.33, -1.52, 37.64, -20, 14), PackedVector2Array(23.68, 11.80, -6.14, 21.99, -20, 14), PackedVector2Array(-57.88, -8.17, -36.92, 20.14, -20, 14), PackedVector2Array(-64.21, 10.01, -43.00, 33.26, -20, 14), PackedVector2Array(-63.79, 20.66, -43.00, 33.26, -20, 14), PackedVector2Array(-18.62, 72.89, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(-7.11, 72.53, -16.59, 68.35, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(7.90, 66.30, -11.73, 57.43, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(20.53, 58.73, 2.50, 63.86, -11.73, 57.43, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(31.64, 42.30, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(37.11, 31.95, 28.41, 38.05, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(39.84, 16.63, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(39.03, 1.29, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(33.82, -13.60, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(24.82, -26.56, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(12.81, -36.82, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-1.51, -43.58, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-17.01, -46.39, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-32.69, -45.11, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-47.60, -39.84, -16.36, -41.18, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-60.56, -30.83, -29.64, -40.61, -16.36, -41.18, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-70.82, -18.81, -42.78, -36.45, -29.64, -40.61, -16.36, -41.18, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-76.52, -2.36, -55.26, -4.63, -36.92, 20.14, -20.00, 14.00), PackedVector2Array(-80.29, 11.06, -72.27, -2.81, -55.26, -4.63, -36.92, 20.14, -20.00, 14.00), PackedVector2Array(-76.68, 28.92, -59.63, 23.18, -43.00, 33.26, -20.00, 14.00), PackedVector2Array(-73.87, 41.60, -74.55, 28.20, -59.63, 23.18, -43.00, 33.26, -20.00, 14.00), PackedVector2Array(-64.82, 54.56, -73.27, 27.77, -59.63, 23.18, -43.00, 33.26, -20.00, 14.00), PackedVector2Array(-47.60, 67.77, -16.59, 68.35, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(-34.11, 71.07, -32.10, 68.06, -16.59, 68.35, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(-10.52, 86.00, -9.72, 71.38, -16.59, 68.35, -2.41, 36.51, -20.00, 14.00), PackedVector2Array(37.75, 58.17, 14.39, 29.64, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(52.00, 4.62, 38.23, 4.30, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(24.14, -43.78, 13.69, -35.43, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-29.66, -58.02, -31.06, -44.71, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-77.78, -30.14, -69.42, -19.69, -42.78, -36.45, -29.64, -40.61, -16.36, -41.18, -0.03, -37.25, 12.52, -30.50, 22.89, -20.83, 30.34, -9.01, 34.43, 3.96, 34.87, 16.95, 32.64, 25.38, 25.43, 34.14, 19.90, 26.87, -1.52, 37.64, -20.00, 14.00), PackedVector2Array(-92.01, 23.51, -65.60, 25.19, -59.63, 23.18, -43.00, 33.26, -20.00, 14.00)])
 
 [node name="Nature" type="Node3D" parent="."]
 script = ExtResource("2_scatter")
@@ -87,19 +87,19 @@ script = ExtResource("9_lakedecor")
 [node name="Boundary" type="StaticBody3D" parent="." groups=["boundary"]]
 
 [node name="North" type="CollisionShape3D" parent="Boundary"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, -118.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, -298.5)
 shape = SubResource("Shape_wall_ns")
 
 [node name="South" type="CollisionShape3D" parent="Boundary"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 118.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 298.5)
 shape = SubResource("Shape_wall_ns")
 
 [node name="East" type="CollisionShape3D" parent="Boundary"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.5, 10, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 298.5, 10, 0)
 shape = SubResource("Shape_wall_ew")
 
 [node name="West" type="CollisionShape3D" parent="Boundary"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -118.5, 10, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -298.5, 10, 0)
 shape = SubResource("Shape_wall_ew")
 
 [node name="Player" parent="." instance=ExtResource("3_player")]

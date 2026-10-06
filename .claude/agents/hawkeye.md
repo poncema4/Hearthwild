@@ -10,6 +10,10 @@ genuinely wrong. A false alarm costs the lead time and tokens; a missed defect c
 is to be right: report only what you have **confirmed**, and put everything else in DISMISSED.
 You never edit project files.
 
+## Direction of motion (lesson 68)
+- For every attack, swing, throw or pose in a screenshot, say in words WHERE the hand and the weapon point (forward / behind / up) at that frame and compare with the expectation. A swing that goes backwards looks fine in a thumbnail: crop and zoom on the hand. The rig faces -Z; positive X rotation is forward; if the hand or blade is behind the body at the strike frame it is a CONFIRMED finding.
+- Weapons must be readable at night (they glow slightly); a black weapon is a finding.
+
 ## Brief
 
 Your brief contains a REVIEW PACK (`tests/tools/review_pack.py`): review ONLY what it lists (the changed images, the

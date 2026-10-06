@@ -53,7 +53,8 @@ func _run() -> void:
 	kit.check("physics interpolation is switched on for the project", ProjectSettings.get_setting("physics/common/physics_interpolation", false) == true)
 	kit.check("the camera rig is not interpolated itself (it turns with the mouse between ticks) and follows the player every drawn frame", kit.camera_rig.physics_interpolation_mode == Node.PHYSICS_INTERPOLATION_MODE_OFF and kit.camera_rig.top_level)
 	Engine.physics_ticks_per_second = 30  # half the drawn rate: every other drawn frame has no new physics step
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	var arena := kit.find_open_arena(50.0, 0.2)  # a two-second sprint needs 14 m of open meadow, and the village now fills the spawn area
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 20)
 	kit.face(Vector3(0, 0, -1))
 	Input.action_press("move_forward")
 	Input.action_press("sprint")

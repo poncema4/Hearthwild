@@ -23,6 +23,8 @@ var species_id: StringName = &"dog"
 var outfit: Dictionary = {}
 ## fish id -> {count, biggest_cm}
 var fish: Dictionary = {}
+## Where this player respawns (set by a bed): [x, y, z], or empty for the world spawn.
+var spawn: Array = []
 
 
 ## The profile in use right now (loaded from disk, or a fresh default). Fishing records catches here.
@@ -116,7 +118,10 @@ func to_dict() -> Dictionary:
 	var worn := {}
 	for slot in outfit:
 		worn[String(slot)] = String(outfit[slot])
-	return {"version": 1, "name": display_name, "species": String(species_id), "outfit": worn, "fish": fish}
+	var data := {"version": 1, "name": display_name, "species": String(species_id), "outfit": worn, "fish": fish}
+	if spawn.size() == 3:
+		data["spawn"] = spawn
+	return data
 
 
 static func from_dict(data: Dictionary) -> PlayerProfile:
@@ -138,8 +143,21 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 			var entry = journal[id]
 			if id is String and entry is Dictionary:
 				profile.fish[id] = {"count": int(_number(entry.get("count", 0))), "biggest_cm": _number(entry.get("biggest_cm", 0.0))}
+	var raw_spawn = data.get("spawn", [])
+	if raw_spawn is Array and raw_spawn.size() == 3 and (raw_spawn[0] is int or raw_spawn[0] is float) and (raw_spawn[1] is int or raw_spawn[1] is float) and (raw_spawn[2] is int or raw_spawn[2] is float):
+		var sx := float(raw_spawn[0])
+		var sz := float(raw_spawn[2])
+		if is_finite(sx) and is_finite(sz) and absf(sx) < 1000.0 and absf(sz) < 1000.0:
+			profile.spawn = [sx, float(raw_spawn[1]), sz]
 	profile.sanitize()
 	return profile
+
+
+## The saved respawn point, or Vector3.INF when there is none.
+func spawn_position() -> Vector3:
+	if spawn.size() != 3:
+		return Vector3.INF
+	return Vector3(float(spawn[0]), float(spawn[1]), float(spawn[2]))
 
 
 static func _number(value) -> float:

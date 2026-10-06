@@ -50,19 +50,27 @@ func _run() -> void:
 		edges[h] = sleep.can_sleep_now()
 	kit.check("beds work from 7 PM until 6 AM (18.9 no, 19.0 yes, 5.9 yes, 6.0 no)", not edges[18.9] and edges[19.0] and edges[5.9] and not edges[6.0], str(edges))
 
-	# 3. By day: not tired, nothing happens.
+	# 3. By day: not tired, so no sleep, but E on a bed still makes this house the respawn point (Marco: "even if its not night").
 	clock.set_time(12.0)
 	await _stand_beside(bed)
-	kit.check("by day the bed's prompt says it is too early", hud.prompt_text() == "Too early to sleep (after 7 PM)" and interactor.current_target == bed, "'%s' target=%s" % [hud.prompt_text(), interactor.current_target])
+	kit.check("by day the bed's prompt offers to set the spawn point", hud.prompt_text() == "Set your spawn point here" and interactor.current_target == bed, "'%s' target=%s" % [hud.prompt_text(), interactor.current_target])
+	var spawn_before := player.spawn_point()
 	await kit.tap("interact")
 	await kit.physics_frames(4)
-	kit.check("by day pressing E on the bed only says you are not tired: no sleep, clock unchanged, player free",
-			sleep.state == SleepSystem.State.AWAKE and clock.hour == 12.0 and not player.input_locked and hud.message_text().contains("not tired"), "state %d hour %.2f message '%s'" % [sleep.state, clock.hour, hud.message_text()])
+	kit.check("by day pressing E on the bed does not sleep: clock unchanged, player free, and the message says the spawn point is set",
+			sleep.state == SleepSystem.State.AWAKE and clock.hour == 12.0 and not player.input_locked and hud.message_text().contains("Spawn point set"), "state %d hour %.2f message '%s'" % [sleep.state, clock.hour, hud.message_text()])
+	kit.check("and the respawn point moved to the spot beside the bed (it was %s)" % spawn_before, player.spawn_point().distance_to(bed.getting_up_point()) < 0.05 and spawn_before.distance_to(bed.getting_up_point()) > 1.0, "now %s, bed side %s" % [player.spawn_point(), bed.getting_up_point()])
+	kit.check("it is saved in the profile (survives a restart)", PlayerProfile.current().spawn_position().distance_to(bed.getting_up_point()) < 0.05, str(PlayerProfile.current().spawn))
+	player.global_position = Vector3(30, 5, 30)
+	player.respawn()
+	kit.check("a knock-out puts the player in the house, beside the bed, not at the world spawn", player.global_position.distance_to(bed.getting_up_point()) < 0.1 and bed.get_parent() != null, "respawned at %s" % player.global_position)
+	var parsed := PlayerProfile.from_dict(PlayerProfile.current().to_dict())
+	kit.check("a saved profile reads the respawn point back, and a garbage one (text, NaN-sized, wrong length) is ignored", parsed.spawn_position().distance_to(bed.getting_up_point()) < 0.05 and PlayerProfile.from_dict({"spawn": ["x", 1, 2]}).spawn_position() == Vector3.INF and PlayerProfile.from_dict({"spawn": [1, 2]}).spawn_position() == Vector3.INF and PlayerProfile.from_dict({"spawn": [99999, 0, 0]}).spawn_position() == Vector3.INF)
 
 	# 4. At 9 PM: the full night. Record every frame.
 	clock.set_time(21.0)
 	await _stand_beside(bed)
-	kit.check("at night the prompt says Sleep until morning", hud.prompt_text() == "Sleep until morning", "'%s'" % hud.prompt_text())
+	kit.check("at night the prompt says Sleep until morning", hud.prompt_text() == "Sleep until morning (also sets your spawn)", "'%s'" % hud.prompt_text())
 	clock.night_started.connect(func(): _night_signals += 1)
 	clock.day_started.connect(func(): _day_signals += 1)
 	clock.set_time(21.0)

@@ -9,6 +9,9 @@ extends CanvasLayer
 
 var _prompt_panel: PanelContainer
 var _prompt_label: Label
+var _hotbar: HBoxContainer
+var _hotbar_hint: Label
+var _hotbar_selected := -1
 var _message_panel: PanelContainer
 var _message_label: Label
 var _message_timer: Timer
@@ -63,6 +66,7 @@ func _ready() -> void:
 	root.add_child(_clock)
 
 	_build_hp_bar(root)
+	_build_hotbar(root)
 	_build_reticle(root)
 	_input_label = Label.new()
 	_input_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -83,6 +87,160 @@ func _ready() -> void:
 	_message_timer.one_shot = true
 	_message_timer.timeout.connect(func(): _message_panel.visible = false)
 	add_child(_message_timer)
+
+
+## The Minecraft-style weapon bar along the bottom: one square slot per weapon with its key number, a little coloured icon and its name. The slot in
+## hand is bright with a gold border; a locked one is dim. With nothing in hand a hint line above the bar says the fists are ready (F or click).
+## Every weapon slot is exactly this wide and tall (a slot used to grow to fit the name of the weapon in it).
+const HOTBAR_SLOT := 90
+const ICON_COLORS := [Color(0.62, 0.45, 0.28), Color(0.62, 0.62, 0.64), Color(0.80, 0.70, 0.45), Color(0.72, 0.74, 0.80), Color(0.30, 0.31, 0.36)]
+
+func _build_hotbar(root: Control) -> void:
+	var column := VBoxContainer.new()
+	column.name = "HotbarColumn"
+	column.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	column.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	column.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	column.offset_top = -112
+	column.offset_bottom = -14
+	column.add_theme_constant_override("separation", 4)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(column)
+	_hotbar_hint = Label.new()
+	_hotbar_hint.name = "Hint"
+	_hotbar_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hotbar_hint.add_theme_font_size_override("font_size", 15)
+	_hotbar_hint.add_theme_color_override("font_color", Color(1, 1, 1))
+	_hotbar_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_hotbar_hint.add_theme_constant_override("outline_size", 4)
+	_hotbar_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_hotbar_hint)
+	_hotbar = HBoxContainer.new()
+	_hotbar.name = "Hotbar"
+	_hotbar.alignment = BoxContainer.ALIGNMENT_CENTER
+	_hotbar.add_theme_constant_override("separation", 6)
+	_hotbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_hotbar)
+	for i in Weapons.count():
+		var slot := PanelContainer.new()
+		slot.name = "Slot%d" % (i + 1)
+		slot.custom_minimum_size = Vector2(HOTBAR_SLOT, HOTBAR_SLOT)
+		slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		slot.clip_contents = true
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 2)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(box)
+		var number := Label.new()
+		number.name = "Number"
+		number.text = str(i + 1)
+		number.add_theme_font_size_override("font_size", 13)
+		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(number)
+		var icon := WeaponIcon.new(i)
+		icon.name = "Icon"
+		box.add_child(icon)
+		var label := Label.new()
+		label.name = "Name"
+		label.add_theme_font_size_override("font_size", 11)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.clip_text = true  # a long name ("Wooden Sword") must not make its slot wider than the others
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		label.custom_minimum_size = Vector2(HOTBAR_SLOT - 12, 0)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(label)
+		_hotbar.add_child(slot)
+	set_hotbar(-1, [true, false, false, false, false])
+
+
+## Refreshes the weapon bar: `selected` is the slot in hand (-1 = nothing, the fists), `unlocked` says which weapons the player has.
+func set_hotbar(selected: int, unlocked: Array) -> void:
+	if _hotbar == null:
+		return
+	_hotbar_selected = selected
+	for i in Weapons.count():
+		var slot := _hotbar.get_child(i) as PanelContainer
+		var box := slot.get_child(0) as VBoxContainer
+		var have: bool = unlocked[i]
+		(box.get_node("Name") as Label).text = String(Weapons.def(i)["name"]) if have else "locked"
+		var style := StyleBoxFlat.new()
+		style.set_corner_radius_all(6)
+		style.set_content_margin_all(5)
+		var chosen := i == selected
+		style.bg_color = Color(1.0, 0.92, 0.7, 0.95) if chosen else Color(0.1, 0.12, 0.16, 0.72 if have else 0.4)
+		style.set_border_width_all(3 if chosen else 1)
+		style.border_color = Color(1.0, 0.78, 0.2) if chosen else Color(1, 1, 1, 0.25)
+		slot.add_theme_stylebox_override("panel", style)
+		var ink := Color(0.15, 0.1, 0.05) if chosen else (Color(1, 1, 1) if have else Color(0.6, 0.62, 0.66))
+		(box.get_node("Number") as Label).add_theme_color_override("font_color", ink)
+		(box.get_node("Name") as Label).add_theme_color_override("font_color", ink)
+		var icon := box.get_node("Icon") as WeaponIcon
+		icon.dim = not have
+		icon.queue_redraw()
+	var def := Weapons.def(selected)
+	var stats := "damage %d, reach %.1f m" % [int(def["damage"]), float(def["reach"])]
+	if selected < 0:
+		_hotbar_hint.text = "Fists ready: F or left click to punch (%s). Press 1 to 5 to equip a weapon" % stats
+	elif Weapons.is_gun(selected):
+		_hotbar_hint.text = "%s: left click or F to shoot (%s, range %d m)" % [String(def["name"]), stats, int(def["reach"])]
+	else:
+		_hotbar_hint.text = "%s: left click or F to swing (%s). Press %d again to put it away" % [String(def["name"]), stats, selected + 1]
+
+
+## The sweep on the weapon in hand: a dark cover over its slot that shrinks as the weapon becomes ready again (`fraction` 1 = just used, 0 = ready).
+func set_cooldown(fraction: float) -> void:
+	if _hotbar == null or _hotbar_selected < 0:
+		for i in _hotbar.get_child_count():
+			_cooldown_cover(i).visible = false
+		return
+	for i in _hotbar.get_child_count():
+		var cover := _cooldown_cover(i)
+		cover.visible = i == _hotbar_selected and fraction > 0.01
+		if cover.visible:
+			var slot := _hotbar.get_child(i) as Control
+			cover.size = Vector2(slot.size.x, slot.size.y * clampf(fraction, 0.0, 1.0))
+			cover.position = Vector2(0, slot.size.y - cover.size.y)
+
+
+func _cooldown_cover(slot_index: int) -> ColorRect:
+	var slot := _hotbar.get_child(slot_index) as Control
+	var cover := slot.get_node_or_null("Cooldown") as ColorRect
+	if cover == null:
+		cover = ColorRect.new()
+		cover.name = "Cooldown"
+		cover.color = Color(0.0, 0.0, 0.0, 0.5)
+		cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cover.top_level = false
+		cover.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		slot.add_child(cover)
+		cover.visible = false
+	return cover
+
+
+## The bar as text, one entry per slot ("1 Wooden Sword", "2 locked"), for tests.
+func hotbar_text() -> String:
+	var parts: Array[String] = []
+	for i in _hotbar.get_child_count():
+		var box := (_hotbar.get_child(i) as PanelContainer).get_child(0) as VBoxContainer
+		parts.append("%d %s" % [i + 1, (box.get_node("Name") as Label).text])
+	return " | ".join(parts)
+
+
+## The size of every slot, for tests (they must all be the same).
+func hotbar_slot_sizes() -> Array[Vector2]:
+	var sizes: Array[Vector2] = []
+	for slot in _hotbar.get_children():
+		sizes.append((slot as Control).size)  # the real laid-out size: only meaningful in a rendered run (the dummy renderer measures no text)
+	return sizes
+
+
+func hotbar_selected() -> int:
+	return _hotbar_selected
+
+
+func hotbar_hint() -> String:
+	return _hotbar_hint.text
 
 
 func _build_hp_bar(root: Control) -> void:

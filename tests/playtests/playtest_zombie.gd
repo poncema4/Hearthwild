@@ -6,6 +6,7 @@ extends SceneTree
 ##   godot --path . --script res://tests/playtests/playtest_zombie.gd -- <qa_output> <run stamp>
 
 var kit: PlaytestKit
+var arena := Vector2.ZERO  ## an open meadow patch: the village now fills the area round the spawn
 var _camera: Camera3D
 
 
@@ -98,6 +99,7 @@ func _run() -> void:
 	kit = PlaytestKit.new(self)
 	kit.setup_screenshots()
 	await kit.load_world()
+	arena = kit.find_open_arena(40.0)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_camera = kit.spring_arm.get_node("Camera3D") as Camera3D
 	var health := kit.player.get_node("Health") as Health
@@ -106,9 +108,9 @@ func _run() -> void:
 
 	# 1. Night, the spawn clearing: a zombie 8 m ahead is walking toward the player.
 	kit.day_night.set_time(21.5)
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 20)
 	_aim_past(Vector3(0, 0, -1))
-	var z := _zombie(0.0, -8.0)
+	var z := _zombie(arena.x, arena.y - 8.0)
 	await kit.frames(8)
 	var image := await kit.shot("zombies", "night_approach", "Night (9:30 PM) in the meadow: a zombie 8 m ahead walks toward the player with its arms out.",
 			"A dark blue-ish meadow under moonlight; a small green-skinned figure with blue clothes and outstretched arms in the middle of the frame, upright, on the ground, facing the camera; the HUD clock reads 9:30 PM.")
@@ -127,10 +129,10 @@ func _run() -> void:
 	z.free()
 
 	# 2. Close-up of the model.
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 20)
 	_aim_past(Vector3(0, 0, -1), 36.0)  # a close subject needs a wider angle to clear the dog's head
 	kit.spring_arm.spring_length = 2.6
-	z = _zombie(0.0, -2.8)
+	z = _zombie(arena.x, arena.y - 2.8)
 	z.walk_speed = 0.0  # hold it still for the portrait
 	await kit.frames(10)
 	image = await kit.shot("zombies", "close_up", "A zombie 2.8 m from the player, seen from just behind the player's shoulder.",
@@ -147,9 +149,9 @@ func _run() -> void:
 
 	# 3. Noon, the open meadow: a zombie standing in the sun glows orange as it burns.
 	kit.day_night.set_time(12.0)
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 20)
 	_aim_past(Vector3(0, 0, -1), 30.0)
-	z = _zombie(0.0, -4.5)
+	z = _zombie(arena.x, arena.y - 4.5)
 	z.walk_speed = 0.0
 	await kit.physics_frames(90)  # about 1.5 s of sun: it is burning and has lost some hp
 	await kit.frames(6)
@@ -165,9 +167,9 @@ func _run() -> void:
 
 	# 3b. Sunrise: a zombie caught by the first light burns, and its own fire lights the ground around it (like a burning mob in Minecraft).
 	kit.day_night.set_time(6.5)
-	await kit.teleport(Vector3(0.0, NAN, 0.0), 20)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 20)
 	_aim_past(Vector3(0, 0, -1), 30.0)
-	z = _zombie(0.0, -4.5)
+	z = _zombie(arena.x, arena.y - 4.5)
 	z.walk_speed = 0.0
 	await kit.physics_frames(90)
 	await kit.frames(6)

@@ -55,7 +55,7 @@ EXERCISED with numbers, what you did NOT test, budget used, VERDICT: SHIP or FIX
   step 12 review found the real bug (lesson 62).
 - Do not report "zombies get stuck on trees/walls": obstacle avoidance is step 13 (Zombie AI) and listed in INTENTIONAL.md.
 - Zombies idle without a target (no wandering) until step 13: intended.
-- Sleeping does not heal the player yet: intended (INTENTIONAL.md).
+- Sleeping now heals to full (INTENTIONAL.md). Combat is new: probe zombie vs weapon INTERACTIONS (knock-back into a wall, a kill while burning, a hit while it opens a door, two zombies in one cone, a zombie killed by the sun is NOT 'defeated'), not what `test_combat.gd` pins. Zombies open closed doors (a door cannot be locked yet): intended.
 - Sizing thresholds: zombie speed 2.4 m/s, start-up ramp about 12 m/s^2; sun burn 2 hp/s in ticks of 0.25 s (0.5 hp per tick); a number
   checked over fewer than 2 ticks is noise (lesson 59).
 - Test clocks are paused: set the hour with `kit.day_night.set_time(h)`; the spawner is disabled by the kit unless a test enables it.

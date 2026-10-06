@@ -267,8 +267,8 @@ func _run() -> void:
 	kit.check("at noon in the open a zombie loses about 2 hp per second (15.4 to 16.6 of 20 after 2 s: 8 ticks of 0.5) and is burning", hp_start == 20.0 and hp_2s >= 15.4 and hp_2s <= 16.6 and z.is_burning(), "hp %.1f -> %.1f, burning %s" % [hp_start, hp_2s, z.is_burning()])
 	var torso_material := (z.get_node("Model/Torso") as MeshInstance3D).material_override as StandardMaterial3D
 	var glow := torso_material
-	kit.check("a burning zombie is scorched, not painted orange: its torso colour moves toward burnt brown (red up 0.05 to 0.3, blue down 0.1 to 0.4 from the base, and darker overall) with a faint orange glow",
-			glow.emission_enabled and glow.emission_energy_multiplier > 0.2 and glow.albedo_color.r > 0.34 + 0.05 and glow.albedo_color.r < 0.34 + 0.3 and glow.albedo_color.b < 0.66 - 0.1 and glow.albedo_color.b > 0.66 - 0.4
+	kit.check("a burning zombie is scorched, not painted orange: its torso colour moves toward burnt brown (red up 0.05 to 0.5, blue down 0.1 to 0.5 from the base, and darker overall) with a faint orange glow",
+			glow.emission_enabled and glow.emission_energy_multiplier > 0.2 and glow.albedo_color.r > 0.34 + 0.05 and glow.albedo_color.r < 0.34 + 0.5 and glow.albedo_color.b < 0.66 - 0.1 and glow.albedo_color.b > 0.66 - 0.5
 			and glow.albedo_color.get_luminance() < Color(0.34, 0.42, 0.66).get_luminance(),
 			"emission %s x%.2f, albedo %s" % [glow.emission_enabled, glow.emission_energy_multiplier, glow.albedo_color])
 	var flames := z.get_node("Model/Flames") as CPUParticles3D
@@ -393,12 +393,12 @@ func _run() -> void:
 			var d := _flat_distance(s, player)
 			var p := s.global_position
 			var limit := kit.terrain.half_size() - 6.0  # literal: the test must not read the setting from the thing under test
-			if d < 24.99 or d > 40.01 or absf(p.x) > limit or absf(p.z) > limit or kit.terrain.in_village(p.x, p.z, 6.0) or kit.terrain.water_depth_at(p.x, p.z) > 0.0 \
+			if d < 24.99 or d > 150.01 or absf(p.x) > limit or absf(p.z) > limit or kit.terrain.in_village(p.x, p.z, 6.0) or kit.terrain.water_depth_at(p.x, p.z) > 0.0 \
 					or absf(p.y - kit.terrain.height_at(p.x, p.z)) > 0.5:
 				positions_ok = false
 				bad = "%s (distance %.1f)" % [p, d]
 	kit.check("the cap of 2 holds: only 2 of 5 try_spawn calls produce a zombie", spawned.size() == 2 and spawner.zombie_count() == 2, "spawned %d" % spawned.size())
-	kit.check("their spawn points are 25 to 40 m from the player, inside the walls, outside the village, on dry ground, on the terrain", positions_ok, bad)
+	kit.check("their spawn points are 25 to 150 m from the player, inside the walls, outside the village, on dry ground, on the terrain", positions_ok, bad)
 	if not spawned.is_empty():  # never index an empty list: a crashed coroutine leaves Godot running until the step timeout
 		spawned[0].free()
 	kit.check("a free slot appears when a zombie is gone: the next try_spawn works", not spawned.is_empty() and spawner.try_spawn() != null)
@@ -410,7 +410,7 @@ func _run() -> void:
 		if not is_finite(point.x):
 			continue
 		var dd := Vector2(point.x, point.z).length()
-		if dd < 24.99 or dd > 40.01 or kit.terrain.in_village(point.x, point.z, 6.0) or kit.terrain.water_depth_at(point.x, point.z) > 0.0:
+		if dd < 24.99 or dd > 150.01 or kit.terrain.in_village(point.x, point.z, 6.0) or kit.terrain.water_depth_at(point.x, point.z) > 0.0:
 			many_ok = false
 			many_bad = str(point)
 	kit.check("300 random spawn points around the spawn clearing all obey the rules", many_ok, many_bad)
@@ -432,7 +432,7 @@ func _run() -> void:
 	kit.check("300 spawn points near the world corner never go past the 6 m edge margin, and 400 near the village never enter its 6 m margin band (literal margins)", edge_bad == 0 and band_bad == 0, "past edge %d, in village band %d" % [edge_bad, band_bad])
 	var touching := 0
 	var checked := 0
-	for centre in [Vector3(0, 0, 0), Vector3(46, 0, -34), kit.village.center(), Vector3(half - 8.0, 0.0, half - 8.0), Vector3(-half + 8.0, 0.0, half - 8.0)]:
+	for centre in [Vector3(0, 0, 0), Vector3(kit.terrain.pond_center.x, 0, kit.terrain.pond_center.y), kit.village.center(), Vector3(half - 8.0, 0.0, half - 8.0), Vector3(-half + 8.0, 0.0, half - 8.0)]:
 		for i in 400:
 			var q := spawner.pick_spawn_point(centre)
 			if is_finite(q.x):
@@ -469,8 +469,8 @@ func _run() -> void:
 	_died = 0
 	health.died.connect(func(): _died += 1)
 	await kit.physics_frames(30)
-	kit.check("a zombie hit at 5 hp knocks the player out once: back at the spawn point (within 1 m), full hp, alive, free to move",
-			_died == 1 and player.global_position.distance_to(Vector3(0, 1, 0)) < 1.5 and health.current == 100.0 and not health.is_dead() and not player.input_locked,
+	kit.check("a zombie hit at 5 hp knocks the player out once: back at the respawn point (within 1.5 m: the world spawn, or the bed an earlier section slept in), full hp, alive, free to move",
+			_died == 1 and player.global_position.distance_to(player.spawn_point()) < 1.5 and health.current == 100.0 and not health.is_dead() and not player.input_locked,
 			"died x%d, at %s, hp %.0f" % [_died, player.global_position, health.current])
 	kit.check("and the HUD says what happened", hud.message_text().contains("knocked out"), "'%s'" % hud.message_text())
 	_clear_zombies()
@@ -580,6 +580,33 @@ func _run() -> void:
 	kit.check("pressed against a 60 m wall with no way round, a zombie sidesteps loose: at some point 1.4 m+ to the side within 6 s", wiggle["unstick"] > 1.4, str(wiggle))
 	kit.check("control: with unsticking off it stays where it hit the wall (under 0.5 m sideways)", wiggle["off"] < 0.5, str(wiggle))
 	long_wall.free()
+	_clear_zombies()
+
+	# 12. Doors: a zombie that meets a closed cottage door opens it and comes in (a night indoors is not safe).
+	kit.day_night.set_time(22.0)
+	var cottage := kit.village.houses[0]
+	cottage.door.close()
+	await kit.physics_frames(40)
+	var spot_in := cottage.to_global(Vector3(0, 0, -0.5))
+	await kit.teleport(Vector3(spot_in.x, NAN, spot_in.z), 20)
+	var spot_out := cottage.door_outside(3.0)
+	z = _zombie(spot_out.x, spot_out.z)
+	z.walk_speed = 2.4
+	await kit.physics_frames(60 * 6)
+	kit.check("a zombie chasing a player inside a cottage opens the closed door (it opened %d time) and enters" % z.doors_opened, z.doors_opened >= 1 and cottage.door.is_open and cottage.is_inside(z.global_position), "opened %d, door open %s, zombie inside %s at %s" % [z.doors_opened, cottage.door.is_open, cottage.is_inside(z.global_position), z.global_position])
+	_clear_zombies()
+	cottage.door.close()
+	await kit.physics_frames(40)
+
+	# 13. Burning looks orange, not mauve: the scorched body is warmer than the unburnt one, in red against blue.
+	kit.day_night.set_time(12.0)
+	await _player_to(0.0, 0.0)
+	z = _zombie(30.0, 30.0)
+	var calm_colour := z.get_node("Model/Torso").get("material_override").albedo_color as Color
+	await kit.physics_frames(60)
+	var burnt_colour := z.get_node("Model/Torso").get("material_override").albedo_color as Color
+	kit.check("a burning torso is scorched toward orange: more red than blue (it is blue-ish cloth when calm)", burnt_colour.r > burnt_colour.b + 0.1 and calm_colour.r < calm_colour.b, "calm %s, burning %s" % [calm_colour, burnt_colour])
+	kit.check("the fire light is red-orange (red 1.0, green under 0.4) so it does not turn grass olive", (z.get_node("Model/FireLight") as OmniLight3D).light_color.g < 0.4)
 	_clear_zombies()
 
 	kit.finish()

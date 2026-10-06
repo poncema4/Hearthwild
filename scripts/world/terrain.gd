@@ -22,7 +22,7 @@ signal rebuilt
 		world_seed = value
 		_rebuild()
 ## Width and depth of the terrain in metres (square, centred on the origin).
-@export var size: int = 240:
+@export var size: int = 600:
 	set(value):
 		size = value
 		_rebuild()
@@ -52,7 +52,7 @@ signal rebuilt
 		village_center = value
 		_rebuild()
 ## Inside this radius the ground is perfectly flat (height 0) so buildings sit true.
-@export var village_flat_radius: float = 42.0:
+@export var village_flat_radius: float = 92.0:
 	set(value):
 		village_flat_radius = value
 		_rebuild()
@@ -72,9 +72,9 @@ signal rebuilt
 	set(value):
 		path_lines = value
 		_rebuild()
-## The lake. Far enough from the village (its flat zone and blend end 50 m from the plaza) and inside the hill rim (which
-## starts 78 m from the origin): centre 57 m from the origin plus radius 20 m = 77 m.
-@export var pond_center: Vector2 = Vector2(46, -34):
+## The lake. Far enough from the village (its flat zone and blend end 62 m from the plaza) and inside the hill rim (which
+## starts 195 m from the origin on the 600 m map): centre 152 m from the origin plus radius 20 m = 172 m.
+@export var pond_center: Vector2 = Vector2(150, 25):
 	set(value):
 		pond_center = value
 		_rebuild()
@@ -103,7 +103,7 @@ const PATH_DIRT := Color(0.63, 0.51, 0.37)
 
 var _rebuild_queued := false
 var _noise: FastNoiseLite
-var _mesh_instance: MeshInstance3D
+var _mesh_root: Node3D
 var _collision: CollisionShape3D
 var _water: MeshInstance3D
 
@@ -207,37 +207,65 @@ func _build() -> void:
 	_build_water()
 
 
-func _build_mesh(heights: PackedFloat32Array, verts: int, half: float) -> void:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for zi in verts:
-		for xi in verts:
-			var h := heights[zi * verts + xi]
-			st.set_color(_ground_color(xi - half, zi - half, h))
-			st.set_uv(Vector2(xi, zi) / float(verts - 1))
-			st.add_vertex(Vector3(xi - half, h, zi - half))
-	for zi in verts - 1:
-		for xi in verts - 1:
-			var a := zi * verts + xi
-			var b := a + 1
-			var c := a + verts
-			var d := c + 1
-			st.add_index(a); st.add_index(b); st.add_index(c)
-			st.add_index(b); st.add_index(d); st.add_index(c)
-	st.generate_normals()
+## The ground is drawn as square chunks (TERRAIN_CHUNK metres), not one big mesh: a mesh is drawn whole or not at all, so one mesh for a
+## 360 m map would shade about 260,000 triangles every frame while a chunk behind the camera costs nothing. Normals come from the height grid,
+## not from each chunk, so neighbouring chunks meet without a visible seam.
+const TERRAIN_CHUNK := 24
 
+func _build_mesh(heights: PackedFloat32Array, verts: int, half: float) -> void:
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	# Our colours are picked in sRGB; without this they render washed out.
 	material.vertex_color_is_srgb = true
 	material.roughness = 0.95
 
-	if _mesh_instance == null:
-		_mesh_instance = MeshInstance3D.new()
-		_mesh_instance.name = "TerrainMesh"
-		add_child(_mesh_instance)
-	_mesh_instance.mesh = st.commit()
-	_mesh_instance.material_override = material
+	if _mesh_root == null:
+		_mesh_root = Node3D.new()
+		_mesh_root.name = "TerrainMesh"
+		add_child(_mesh_root)
+	for old in _mesh_root.get_children():
+		_mesh_root.remove_child(old)
+		old.queue_free()
+
+	var cells := verts - 1
+	for cz in range(0, cells, TERRAIN_CHUNK):
+		for cx in range(0, cells, TERRAIN_CHUNK):
+			var x1 := mini(cx + TERRAIN_CHUNK, cells)
+			var z1 := mini(cz + TERRAIN_CHUNK, cells)
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var width := x1 - cx + 1
+			for zi in range(cz, z1 + 1):
+				for xi in range(cx, x1 + 1):
+					var h := heights[zi * verts + xi]
+					st.set_color(_ground_color(xi - half, zi - half, h))
+					st.set_uv(Vector2(xi, zi) / float(verts - 1))
+					st.set_normal(_grid_normal(heights, verts, xi, zi))
+					st.add_vertex(Vector3(xi - half, h, zi - half))
+			for zi in z1 - cz:
+				for xi in x1 - cx:
+					var a := zi * width + xi
+					var b := a + 1
+					var c := a + width
+					var d := c + 1
+					st.add_index(a); st.add_index(b); st.add_index(c)
+					st.add_index(b); st.add_index(d); st.add_index(c)
+			var instance := MeshInstance3D.new()
+			instance.name = "Chunk_%d_%d" % [cx / TERRAIN_CHUNK, cz / TERRAIN_CHUNK]
+			instance.mesh = st.commit()
+			instance.material_override = material
+			_mesh_root.add_child(instance)
+
+
+## The surface normal at a grid vertex from the heights around it (central differences, one-sided at the edges).
+func _grid_normal(heights: PackedFloat32Array, verts: int, xi: int, zi: int) -> Vector3:
+	var left := heights[zi * verts + maxi(xi - 1, 0)]
+	var right := heights[zi * verts + mini(xi + 1, verts - 1)]
+	var back := heights[maxi(zi - 1, 0) * verts + xi]
+	var front := heights[mini(zi + 1, verts - 1) * verts + xi]
+	var run_x := float(mini(xi + 1, verts - 1) - maxi(xi - 1, 0))
+	var run_z := float(mini(zi + 1, verts - 1) - maxi(zi - 1, 0))
+	return Vector3((left - right) / run_x, 1.0, (back - front) / run_z).normalized()
 
 
 func _build_collision(heights: PackedFloat32Array, verts: int) -> void:

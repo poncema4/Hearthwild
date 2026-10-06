@@ -26,7 +26,9 @@ func _run() -> void:
 	kit.check("player lands on the ground at spawn", kit.player.is_on_floor()
 		and absf(kit.player.global_position.y - ground) < 0.1, kit.where())
 
-	# Walk forward in the flat spawn clearing (camera faces -Z at start).
+	# Walk forward on an open meadow patch (the village fills the spawn area now) with the camera facing -Z.
+	var arena := kit.find_open_arena(50.0, 0.2)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 40)
 	var start := kit.player.global_position
 	await kit.hold(["move_forward"], 60)
 	var d := kit.player.global_position - start
@@ -36,7 +38,7 @@ func _run() -> void:
 	kit.check("body turns to face travel", absf(wrapf(body_yaw, -PI, PI)) < 0.1, "yaw=%.3f" % body_yaw)
 
 	# Sprint vs walk, measured as steady-state speed.
-	await kit.teleport(Vector3(0, NAN, 0))
+	await kit.teleport(Vector3(arena.x, NAN, arena.y))
 	await kit.hold(["move_forward"], 40)
 	var walk := kit.horizontal_speed()
 	Input.action_press("move_forward")
@@ -52,7 +54,7 @@ func _run() -> void:
 	kit.check("stops when keys released", kit.horizontal_speed() < 0.01, kit.where())
 
 	# Jump in the clearing.
-	await kit.teleport(Vector3(0, NAN, 0), 30)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 30)
 	var before_jump := kit.player.global_position.y
 	await kit.tap("jump")
 	await kit.physics_frames(18)
@@ -100,7 +102,7 @@ func _run() -> void:
 
 	# Opposite keys cancel out. Measured horizontally, after the player has
 	# settled: a drop from the teleport would otherwise count as movement.
-	await kit.teleport(Vector3(0, NAN, 0), 60)
+	await kit.teleport(Vector3(arena.x, NAN, arena.y), 60)
 	var before := kit.player.global_position
 	await kit.hold(["move_forward", "move_back"], 60)
 	await kit.hold(["move_left", "move_right"], 60)
@@ -111,7 +113,7 @@ func _run() -> void:
 	# to the camera's right (shoulder), so the trunk must sit ON the arm's
 	# line, not on the player's.
 	if trees.size() > 0:
-		var trunk_tree := _nearest(trees, Vector3(20, 0, 20))
+		var trunk_tree := _nearest(trees, Vector3(arena.x + 45.0, 0, arena.y))
 		var look := Vector3.FORWARD
 		var right := Vector3.RIGHT
 		var arm_line_point := Vector3(trunk_tree.position.x, 0, trunk_tree.position.z) + look * 2.0

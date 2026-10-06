@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/interaction/interactor.gd" id="4_interactor"]
 [ext_resource type="Script" path="res://scripts/ui/interaction_prompt.gd" id="5_prompt"]
 [ext_resource type="Script" path="res://scripts/player/health.gd" id="6_health"]
+[ext_resource type="Script" path="res://scripts/player/arsenal.gd" id="7_arsenal"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -31,6 +32,9 @@ script = ExtResource("4_interactor")
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("6_health")
+
+[node name="Arsenal" type="Node" parent="."]
+script = ExtResource("7_arsenal")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("5_prompt")
