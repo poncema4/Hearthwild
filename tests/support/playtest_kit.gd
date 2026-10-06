@@ -54,6 +54,16 @@ func load_world(settle_frames: int = 60) -> void:
 	if FileAccess.file_exists(TEST_PROFILE_PATH):
 		DirAccess.remove_absolute(TEST_PROFILE_PATH)
 	world = load(WORLD_SCENE).instantiate()
+	# Speed: a test does not need 240,000 grass tufts and 6,500 flowers (the biggest cost of loading the 600 m world); only a run that takes screenshots keeps
+	# full density, so the pictures show real grass. Trees and rocks stay: tests walk into them. test_render_budget reads the counts from the node, so it still
+	# checks that the chunking loses nothing at whatever count is in use.
+	if shots_base == "":
+		var scatter := world.get_node("Nature")
+		scatter.set("grass_count", 15000)
+		scatter.set("flower_count", 500)
+		scatter.set("tree_count", 450)
+		scatter.set("rock_count", 200)
+		world.get_node("Terrain").set("build_visuals", false)  # nothing a headless test measures can see the ground mesh (about 10 s of load)
 	# The character screen would cover every test on a first launch: switch it off before it
 	# looks at the world (it decides on the first idle frame, after this line).
 	(world.get_node("CharacterCreator") as CharacterCreator).enabled = false
