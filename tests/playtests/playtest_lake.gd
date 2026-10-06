@@ -45,7 +45,10 @@ func _run() -> void:
 		if entry[0] == "dusk":
 			# Review finding (Hawkeye): sharp orange sky reflections through the ripples made the dusk water read as lava
 			# (5.5% of the water's pixels were orange-tinted; the fixed shader has 0.2%).
-			var warm := _warm_fraction(image, Rect2i(330, 315, 600, 90))
+			# The water on both sides of the character (the dog stands in the middle of the old box: its orange fur and glow are not water).
+			var left := Rect2i(330, 315, 230, 90)
+			var right := Rect2i(690, 315, 240, 90)
+			var warm := (_warm_fraction(image, left) * left.size.x + _warm_fraction(image, right) * right.size.x) / float(left.size.x + right.size.x)
 			kit.check("the dusk water is not a pattern of orange cells (under 1.5 percent of its pixels orange-tinted)", warm < 0.015, "%.3f of the pixels" % warm)
 	kit.day_night.set_time(10.0)
 	print("SCREENSHOTS: %s/lake/%s" % [kit.shots_base, kit.shots_stamp])
