@@ -38,6 +38,18 @@ changed files). Do not explore the repo or re-review unchanged images.
   (Forward+ and Compatibility, `--rendering-driver opengl3 --rendering-method gl_compatibility`). Additive blending bleaches on bright daylight.
 - Walk cycle: legs swing in opposition, only while moving; `leg_swing(0)` is exactly 0; no NaN with a stationary variant (`walk_speed` 0).
 
+## Direction conventions of THIS rig (lesson 68; read before judging or writing ANY pose)
+- Every character and zombie model faces **-Z** (the camera sits at +Z when a playtest shows the front). In the model's own frame: z < 0 is IN FRONT, z > 0 is BEHIND, y up.
+- **A positive rotation about X swings an arm or leg FORWARD** (toward -Z): arm hanging = 0, straight out in front = +1.57, straight up = +3.1; the fishing pose uses +1.25 and the zombie arms +85 degrees. A NEGATIVE angle swings it BACKWARD. Combat's first version used negative angles and every swing went backwards (Marco: "when i swing my hand goes backwards").
+- Before you accept or write a pose, find an existing pose in the same rig that does the same thing and compare signs; never trust the sign of an angle you reasoned out, measure the DRAWN mesh instead (`limb_positions()["hand_r"]` is in the model frame; weapon tips via `model.to_local(node.global_position)`).
+- Every new motion needs a DIRECTION check in its test: at the key moment the hand/tip is in front (z <= -0.3 for a punch or a cut) AND at no frame is it behind the body beyond 0.12. A check that only says "the hand went up" is the check that missed the backwards swing.
+- Look at the strike frame, not the wind-up: take the screenshot or the position sample at the moment the hit lands, and describe in words which way the hand and the blade travel.
+
+## Combat poses (step 13)
+- Swing: the right arm goes over the shoulder then through (slash), thrusts forward (punch), or kicks up from the aimed pose (pistol recoil). Judge the DRAWN arm and weapon, not `rotation.x` (lesson 63): the blade must point forward from the fist, not into the body or the ground.
+- Weapons glow a little in their own colour so they read at night; the character glows at night (`night_glow`). A black weapon or a black dog is a finding.
+- Damage numbers: readable against sky AND grass, big enough at 6 m, fully visible for 0.45 s then fading, spread out when several appear at once.
+
 ## Smoothness checklist (Marco's rule of thumb: the game must NEVER be jittery; build it so it cannot be)
 Ask of every new model, effect, light, prop or system, BEFORE it ships:
 - How many draw calls does it add per frame, and at what distance? Anything repeated (trees, grass, props, particles) is a MultiMesh in CHUNKS or has `visibility_range_end`; a single big MultiMesh is drawn whole from everywhere.

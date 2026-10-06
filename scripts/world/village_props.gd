@@ -133,6 +133,93 @@ static func fence() -> Node3D:
 	return root
 
 
+## A gate in a fence line: two tall posts 2.4 m apart (centre to centre) and the gate leaf swung open flat against one post. Only the POSTS
+## collide, so the 2.0 m opening between them can never block anyone (the village test walks a capsule through every gate).
+static func gate() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Gate"
+	var body := _body(root)
+	for sign_x in [-1.0, 1.0]:
+		_box(body, "GatePost", Vector3(0.18, 1.7, 0.18), Vector3(sign_x * GATE_HALF_SPAN, 0.85, 0), WOOD)
+		_box(body, "GateCap", Vector3(0.26, 0.08, 0.26), Vector3(sign_x * GATE_HALF_SPAN, 1.74, 0), Color(0.45, 0.32, 0.22))
+		_collider(body, "GatePostCollision", Vector3(0.2, 1.7, 0.2), Vector3(sign_x * GATE_HALF_SPAN, 0.85, 0))
+	# The open leaf: flat against the right post, swung 90 degrees (decorative, no collision).
+	_box(root, "GateLeaf", Vector3(0.06, 0.9, 1.0), Vector3(GATE_HALF_SPAN + 0.12, 0.7, 0.55), Color(0.62, 0.45, 0.30))
+	return root
+
+
+const GATE_HALF_SPAN := 1.2  ## post centre to the gate's middle (the clear opening is 2 * this minus the post width)
+
+
+## A market stall: a counter with goods and a striped awning on four posts. The counter and posts collide.
+static func market_stall(awning: Color = Color(0.85, 0.35, 0.30)) -> Node3D:
+	var root := Node3D.new()
+	root.name = "MarketStall"
+	var body := _body(root)
+	_box(body, "Counter", Vector3(2.4, 0.9, 0.8), Vector3(0, 0.45, 0), Color(0.66, 0.50, 0.34))
+	_collider(body, "CounterCollision", Vector3(2.4, 0.9, 0.8), Vector3(0, 0.45, 0))
+	for sign_x in [-1.0, 1.0]:
+		for sign_z in [-1.0, 1.0]:
+			_box(body, "StallPost", Vector3(0.1, 2.3, 0.1), Vector3(sign_x * 1.15, 1.15, sign_z * 0.45), WOOD)
+	_collider(body, "StallPostsCollision", Vector3(2.4, 2.3, 0.1), Vector3(0, 1.15, -0.45))
+	for i in 6:  # the awning: alternating coloured and cream stripes, sloping down at the front
+		var stripe := awning if i % 2 == 0 else Color(0.96, 0.92, 0.82)
+		_box(root, "Awning", Vector3(0.42, 0.06, 1.3), Vector3(-1.05 + i * 0.42, 2.35, 0.05), stripe, Vector3(deg_to_rad(8.0), 0, 0))
+	var goods := [Color(0.85, 0.25, 0.22), Color(0.95, 0.75, 0.20), Color(0.40, 0.70, 0.30), Color(0.90, 0.50, 0.15)]
+	for i in goods.size():
+		_box(root, "Goods", Vector3(0.34, 0.2, 0.34), Vector3(-0.8 + i * 0.52, 1.0, 0.0), goods[i])
+	return root
+
+
+## The weapon rack: a wooden frame holding a sword, a spear and an axe. The `weapon_rack` group lets the combat system find it; the Interactable
+## on it (added by the village) hands the weapons over.
+static func weapon_rack() -> Node3D:
+	var root := Node3D.new()
+	root.name = "WeaponRack"
+	var body := _body(root)
+	for sign_x in [-1.0, 1.0]:
+		_box(body, "RackPost", Vector3(0.12, 1.8, 0.12), Vector3(sign_x * 0.9, 0.9, 0), WOOD)
+	_box(body, "RackBeamTop", Vector3(2.0, 0.1, 0.14), Vector3(0, 1.55, 0), WOOD)
+	_box(body, "RackBeamLow", Vector3(2.0, 0.1, 0.14), Vector3(0, 0.75, 0), WOOD)
+	_collider(body, "RackCollision", Vector3(2.0, 1.8, 0.3), Vector3(0, 0.9, 0))
+	var steel := Color(0.75, 0.78, 0.82)
+	var grip := Color(0.45, 0.30, 0.20)
+	_box(root, "SwordBlade", Vector3(0.09, 0.8, 0.03), Vector3(-0.5, 1.15, 0.12), steel)
+	_box(root, "SwordGuard", Vector3(0.3, 0.05, 0.05), Vector3(-0.5, 0.72, 0.12), grip)
+	_box(root, "SpearShaft", Vector3(0.05, 1.7, 0.05), Vector3(0.0, 0.95, 0.12), grip)
+	_box(root, "SpearHead", Vector3(0.12, 0.22, 0.03), Vector3(0.0, 1.9, 0.12), steel)
+	_box(root, "AxeHandle", Vector3(0.05, 0.9, 0.05), Vector3(0.5, 1.1, 0.12), grip)
+	_box(root, "AxeHead", Vector3(0.3, 0.22, 0.04), Vector3(0.62, 1.45, 0.12), steel)
+	return root
+
+
+## A garage: a lean-to shed 3.4 m wide and 4.2 m deep with the whole front open (walk in to park a cart or just shelter), a flat roof sloping down at the back,
+## a roll-up door drawn rolled up above the opening. Open side = local +Z. Solid: the two side walls, the back wall and the roof beam; the floor slab is walkable.
+static func garage(wall_color: Color = Color(0.82, 0.78, 0.70), roof_color: Color = Color(0.40, 0.42, 0.46)) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Garage"
+	var body := _body(root)
+	var w := GARAGE_WIDTH
+	var d := GARAGE_DEPTH
+	_box(body, "Slab", Vector3(w, 0.08, d), Vector3(0, 0.04, 0), STONE)
+	_box(body, "WallLeft", Vector3(0.2, 2.6, d), Vector3(-(w * 0.5 - 0.1), 1.3, 0), wall_color)
+	_box(body, "WallRight", Vector3(0.2, 2.6, d), Vector3(w * 0.5 - 0.1, 1.3, 0), wall_color)
+	_box(body, "WallBack", Vector3(w, 2.6, 0.2), Vector3(0, 1.3, -(d * 0.5 - 0.1)), wall_color)
+	_box(body, "Roof", Vector3(w + 0.4, 0.14, d + 0.4), Vector3(0, 2.72, 0), roof_color, Vector3(deg_to_rad(-4.0), 0, 0))
+	_box(body, "Lintel", Vector3(w, 0.35, 0.22), Vector3(0, 2.4, d * 0.5 - 0.1), DARK_WOOD)
+	_box(root, "RolledDoor", Vector3(w - 0.5, 0.22, 0.26), Vector3(0, 2.18, d * 0.5 - 0.12), IRON)  # the roll-up door, rolled up
+	_box(root, "Crate", Vector3(0.6, 0.5, 0.6), Vector3(-(w * 0.5 - 0.7), 0.33, -(d * 0.5 - 0.7)), WOOD)
+	_collider(body, "LeftCollision", Vector3(0.2, 2.6, d), Vector3(-(w * 0.5 - 0.1), 1.3, 0))
+	_collider(body, "RightCollision", Vector3(0.2, 2.6, d), Vector3(w * 0.5 - 0.1, 1.3, 0))
+	_collider(body, "BackCollision", Vector3(w, 2.6, 0.2), Vector3(0, 1.3, -(d * 0.5 - 0.1)))
+	_collider(body, "LintelCollision", Vector3(w, 0.35, 0.22), Vector3(0, 2.4, d * 0.5 - 0.1))
+	return root
+
+
+const GARAGE_WIDTH := 3.4
+const GARAGE_DEPTH := 4.2
+
+
 static func _body(root: Node3D) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = "Body"

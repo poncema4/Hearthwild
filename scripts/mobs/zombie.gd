@@ -36,9 +36,11 @@ const HEAD_HEIGHT := 1.7  ## where the sun ray starts (the head actually reaches
 const SUN_RAY_LENGTH := 80.0
 const SUN_MIN_ELEVATION := 0.05  ## the sun must be this far above the horizon to burn (0 = exactly sunrise)
 const FLAME_HOLD := 0.5  ## the fire dies down this long after the zombie reaches shade (damage stops at once)
+const DOOR_CHECK_INTERVAL := 0.3  ## how often a walking zombie looks for a closed door in its way
+const DOOR_REACH := 1.4
 const SUN_TICK := 0.25  ## seconds between sunlight checks (one ray each)
 const NIGHT_LIFT := 0.7  ## how strongly the body glows in its own colour when not burning
-const BURN_TINT := Color(0.62, 0.26, 0.08)  ## a burning body is scorched toward this burnt orange-brown (Animator: orange alone read as pale pink)
+const BURN_TINT := Color(0.74, 0.30, 0.05)  ## a burning body is scorched toward this burnt orange-brown (Animator: orange alone read as pale pink)
 const BURN_GLOW := Color(1.0, 0.4, 0.1)
 
 var health: Health
@@ -47,6 +49,14 @@ var hits_landed := 0
 var _attack_cooldown := 0.0
 var _sun_timer := 0.0
 var _in_sun := false
+var _door_timer := 0.0
+var doors_opened := 0
+var _stagger := 0.0  ## seconds the zombie reels after a hit (no chasing, no attacking)
+var _flash := 0.0  ## seconds left of the red hit flash
+var _flash_on := false
+var killed_by_player := false
+var _hp_bar: Node3D
+var _hp_fill: MeshInstance3D
 var _flame_hold := 0.0  ## seconds the flames keep going after the sun ray was last blocked (a tree trunk edge must not make the fire flicker)
 var _legs: Array[Node3D] = []
 var _arms: Array[Node3D] = []
@@ -93,7 +103,7 @@ func _ready() -> void:
 	health.name = "Health"
 	health.max_health = max_health
 	add_child(health)
-	health.died.connect(queue_free)
+	health.died.connect(_on_died)
 	_build_model()
 
 
@@ -130,6 +140,19 @@ func _physics_process(delta: float) -> void:
 			if wanted.length() > 0.05:
 				_face(wanted.normalized(), delta)
 	wanted = _unstick(wanted, intended, delta)
+	_door_timer -= delta
+	if _door_timer <= 0.0 and intended.length() > 0.1:
+		_door_timer = DOOR_CHECK_INTERVAL
+		_open_door_ahead(intended.normalized())
+	if _stagger > 0.0:
+		_stagger -= delta
+		wanted = Vector3.ZERO  # reeling: the knock-back slows to a stop by itself
+	if _flash > 0.0:
+		_flash -= delta
+		if not _flash_on:
+			_tint_hurt(true)
+		if _flash <= 0.0:
+			_tint_hurt(false)
 	var flat := Vector2(velocity.x, velocity.z).move_toward(Vector2(wanted.x, wanted.z), acceleration * delta)
 	velocity.x = flat.x
 	velocity.z = flat.y
@@ -146,11 +169,134 @@ func _physics_process(delta: float) -> void:
 		_sun_timer -= SUN_TICK
 		_in_sun = is_in_sunlight()
 		if _in_sun:
-			health.damage(sun_damage_per_second * SUN_TICK)
+			health.damage(sun_damage_per_second * SUN_TICK, &"fire")
 			_flame_hold = FLAME_HOLD
 		else:
 			_flame_hold = maxf(_flame_hold - SUN_TICK, 0.0)
 		_set_glow(1.0 if _in_sun or _flame_hold > 0.0 else 0.0)
+
+
+## A zombie that walks into a closed door opens it (it cannot be locked: a night in a cottage is not safe, a good reason to fight).
+func _open_door_ahead(heading: Vector3) -> void:
+	for height in [0.6, 1.4]:
+		var from: Vector3 = global_position + Vector3.UP * height
+		var hit := _ray_first_hit(from, from + heading * DOOR_REACH)
+		if hit.is_empty():
+			continue
+		var door := (hit["collider"] as Node).get_parent() as Door
+		if door != null and not door.is_open and not door.is_moving():
+			door.open()
+			doors_opened += 1
+			return
+
+
+## A weapon hit. Takes `damage` hit points, is thrown `knockback` m/s away from `from_position`, reels for a moment (no chasing or attacking), flashes red,
+## shows the damage as a number that floats up and a small bar over its head. Returns the hit points really taken (0 if it was already dead).
+func take_hit(damage: float, from_position: Vector3, knockback: float) -> float:
+	if health == null or health.is_dead():
+		return 0.0
+	var away := global_position - from_position
+	away.y = 0.0
+	away = away.normalized() if away.length() > 0.01 else Vector3.BACK
+	killed_by_player = damage >= health.current  # set BEFORE the damage: `died` fires inside health.damage() and _on_died reads this
+	var taken := health.damage(damage)
+	if taken <= 0.0:
+		killed_by_player = false
+		return 0.0
+	velocity.x = away.x * knockback
+	velocity.z = away.z * knockback
+	_stagger = 0.35
+	_attack_cooldown = maxf(_attack_cooldown, 0.5)
+	_flash = 0.18
+	_update_hp_bar()
+	return taken
+
+
+func _tint_hurt(on: bool) -> void:
+	_flash_on = on
+	if on:
+		for material in _glow_materials:
+			material.emission_enabled = true
+			material.emission = Color(1.0, 0.25, 0.25)
+			material.emission_energy_multiplier = 1.6
+	else:
+		_set_glow(1.0 if (_in_sun or _flame_hold > 0.0) else 0.0)
+
+
+## The little health bar over the head: hidden at full health, otherwise a red fill on a dark back that always faces the camera.
+func _update_hp_bar() -> void:
+	if _hp_bar == null:
+		_hp_bar = Node3D.new()
+		_hp_bar.name = "HpBar"
+		_hp_bar.position = Vector3(0, 2.25, 0)
+		add_child(_hp_bar)
+		var back := _bar_quad(Vector2(0.9, 0.12), Color(0.1, 0.1, 0.12), 0.0)
+		back.name = "Back"
+		_hp_bar.add_child(back)
+		_hp_fill = _bar_quad(Vector2(0.86, 0.08), Color(0.86, 0.22, 0.27), 0.001)
+		_hp_fill.name = "Fill"
+		_hp_bar.add_child(_hp_fill)
+	var fraction := health.fraction()
+	_hp_bar.visible = fraction < 0.999 and not health.is_dead()
+	_hp_fill.scale.x = maxf(fraction, 0.001)
+	_hp_fill.position.x = -0.43 * (1.0 - fraction)
+
+
+func _bar_quad(size: Vector2, color: Color, lift: float) -> MeshInstance3D:
+	var quad := MeshInstance3D.new()
+	var mesh := QuadMesh.new()
+	mesh.size = size
+	quad.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.no_depth_test = true
+	quad.material_override = material
+	quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	quad.position.z = lift
+	return quad
+
+
+func _on_died() -> void:
+	if killed_by_player:
+		_death_puff()
+		for node in get_tree().get_nodes_in_group(&"player"):
+			var hud := node.get_node_or_null("HUD") as InteractionPrompt
+			if hud != null:
+				hud.show_message("Zombie defeated!", 2.0)
+	queue_free()
+
+
+## One burst of grey squares where the zombie fell (a one-shot CPU particle effect that frees itself).
+func _death_puff() -> void:
+	var holder := get_parent()
+	if holder == null:
+		return
+	var puff := CPUParticles3D.new()
+	puff.one_shot = true
+	puff.emitting = true
+	puff.amount = 18
+	puff.lifetime = 0.7
+	puff.explosiveness = 1.0
+	puff.direction = Vector3.UP
+	puff.spread = 70.0
+	puff.initial_velocity_min = 1.5
+	puff.initial_velocity_max = 3.2
+	puff.gravity = Vector3(0, -4.0, 0)
+	puff.scale_amount_min = 0.6
+	puff.scale_amount_max = 1.2
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.14, 0.14, 0.14)
+	puff.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.62, 0.66, 0.60)
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	puff.material_override = material
+	holder.add_child(puff)
+	puff.global_position = global_position + Vector3(0, 1.0, 0)
+	puff.add_to_group(&"death_puff")
+	get_tree().create_timer(1.2).timeout.connect(puff.queue_free)
 
 
 ## The nearest living player within detect_range, or null. A sleeping player is left alone (nobody is a target
@@ -377,7 +523,7 @@ func _set_glow(amount: float) -> void:
 		if amount > 0.0:
 			# Burning: the colour itself moves toward orange, because an additive glow alone washes out to pale pink in the
 			# bright Compatibility-renderer daylight (CI caught it, lesson 63).
-			material.albedo_color = _base_colors[i].lerp(BURN_TINT, 0.4 * amount)  # a scorched look; the FIRE below carries the effect
+			material.albedo_color = _base_colors[i].lerp(BURN_TINT, 0.62 * amount)  # a scorched look; the FIRE below carries the effect
 			material.emission = BURN_GLOW
 			material.emission_energy_multiplier = 0.3 * amount
 		else:
@@ -441,7 +587,7 @@ func _build_fire(model: Node3D) -> void:
 	_fire_light = OmniLight3D.new()
 	_fire_light.name = "FireLight"
 	_fire_light.position = Vector3(0.0, 1.2, 0.0)
-	_fire_light.light_color = Color(1.0, 0.55, 0.2)
+	_fire_light.light_color = Color(1.0, 0.30, 0.06)  # red-orange: a yellower light turned green grass olive (Hawkeye, 2026-10-05)
 	_fire_light.omni_range = 4.5
 	_fire_light.light_energy = 1.5
 	_fire_light.shadow_enabled = false

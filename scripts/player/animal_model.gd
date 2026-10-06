@@ -63,6 +63,13 @@ var _seat_amount := 0.0
 var _sleep_amount := 0.0
 var _zzz: Label3D
 var _fishing_amount := 0.0
+var _night_timer := 0.0
+var _night_lift := 0.0
+var _swing_style := 0  ## 0 slash, 1 punch, 2 gun recoil
+var _aiming := false
+var _aim_amount := 0.0
+var _swing := -1.0  ## weapon swing progress 0..1, -1 when not swinging
+var _held_weapon: Node3D
 var _rod: Node3D
 var _tail_phase := 0.0
 var _fade := 0.0
@@ -131,6 +138,8 @@ func equip(slot: StringName, item: Node3D) -> void:
 	sockets[slot].add_child(item)
 	_equipped[slot] = item
 	_register_materials(item)
+	if _night_lift > 0.01:
+		_apply_night_lift()  # a hat put on at night glows like the rest
 	_position_name_tag()
 
 
@@ -179,6 +188,85 @@ func start_fishing() -> void:
 		_arm_r.get_node("Paw").add_child(_rod)
 		set_fade(_fade)  # a rod made while the body is faded must be faded too
 	_rod.visible = true
+
+
+## Puts a weapon model in the right hand (replacing the previous one). `hold` says how it sits in the fist:
+## "blade" (sword, axe): the blade leans 0.9 rad (about 50 degrees) forward of the arm: with the arm hanging it points forward and down, with the arm out in
+##   front it points forward and up, and in the middle of a cut (arm at about 1.0 to 1.5) it points straight at the target, the way a sword is held;
+## "point" (spear, pistol): the weapon points straight out of the fist along the arm (arm-local -Y), so with the arm stretched forward it points forward.
+func hold_weapon(weapon: Node3D, hold: String = "blade") -> void:
+	if _held_weapon != null and is_instance_valid(_held_weapon):
+		_held_weapon.get_parent().remove_child(_held_weapon)
+		_held_weapon.queue_free()
+	_held_weapon = weapon
+	if weapon != null:
+		weapon.rotation = Vector3(0.9, 0, 0) if hold == "blade" else Vector3.ZERO
+		_arm_r.get_node("Paw").add_child(weapon)
+
+
+## The weapon swing: `progress` 0..1 raises the right arm over the shoulder then brings it down across the body; -1 ends it.
+func set_swing(progress: float) -> void:
+	_swing = progress
+
+
+## At night every part of the character (body and outfit) glows a little in its own colour, so a dark brown dog is still readable against a dark
+## meadow (Hawkeye: the player was a near-black silhouette at 9:30 PM). The same trick the zombies use. Costs nothing: no light, one value per material.
+const NIGHT_GLOW := 0.42
+
+func _update_night_lift() -> void:
+	var clock := get_tree().get_first_node_in_group(&"day_night") as DayNight if is_inside_tree() else null
+	var amount := clock.night_amount() if clock != null else 0.0
+	if absf(amount - _night_lift) < 0.02:
+		return
+	_night_lift = amount
+	_apply_night_lift()
+
+
+func _apply_night_lift() -> void:
+	for material in _materials:
+		material.emission_enabled = _night_lift > 0.01
+		material.emission = material.albedo_color
+		material.emission_energy_multiplier = NIGHT_GLOW * _night_lift
+
+
+## How strongly the character glows right now (0 by day, NIGHT_GLOW at night), for tests.
+func night_glow() -> float:
+	return NIGHT_GLOW * _night_lift
+
+
+func set_swing_style(style: int) -> void:
+	_swing_style = style
+
+
+## True while a gun is in hand: the arm points forward whenever it is not recoiling.
+func set_aim(on: bool) -> void:
+	_aiming = on
+
+
+func is_swinging() -> bool:
+	return _swing >= 0.0
+
+
+## The right arm's rotation about X (radians) for an attack at progress `t` (0..1). IN THIS RIG A POSITIVE ROTATION ABOUT X SWINGS THE ARM FORWARD (the model
+## faces -Z; 0 = hanging down, 1.57 = straight out in front, 3.1 = straight up; the fishing pose already uses +1.25). A negative angle swings it BACKWARD: my first
+## version used negative angles and every swing went backwards (Marco: "when i swing my hand goes backwards").
+##   style 0 slash : wind up over the head (2.6) then cut down through "straight forward" (1.57) to low in front (0.5)
+##   style 1 punch : the fist thrusts out in front (1.55) and returns
+##   style 2 recoil: the aimed arm (1.45) kicks up a little and settles
+##   style 3 thrust: pull back a little (0.5), then drive the point forward (1.5)
+static func swing_arm_angle(t: float, style: int = 0) -> float:
+	match style:
+		1:
+			return lerpf(0.15, 1.55, sin(t * PI))
+		2:
+			return 1.45 + 0.35 * sin(t * PI)
+		3:
+			if t < 0.3:
+				return lerpf(0.9, 0.5, smoothstep(0.0, 1.0, t / 0.3))
+			return lerpf(0.5, 1.5, smoothstep(0.0, 1.0, minf((t - 0.3) / 0.35, 1.0))) if t < 0.65 else lerpf(1.5, 0.9, smoothstep(0.0, 1.0, (t - 0.65) / 0.35))
+	if t < 0.4:
+		return lerpf(0.3, 2.6, smoothstep(0.0, 1.0, t / 0.4))
+	return lerpf(2.6, 0.5, smoothstep(0.0, 1.0, (t - 0.4) / 0.6))
 
 
 func stop_fishing() -> void:
@@ -328,6 +416,10 @@ func _physics_process(delta: float) -> void:
 	if _rig == null:
 		return
 	_time += delta
+	_night_timer -= delta
+	if _night_timer <= 0.0:
+		_night_timer = 0.25
+		_update_night_lift()
 	var target_walk := clampf(_speed / 3.0, 0.0, 1.0) if _grounded else 0.0
 	_walk_amount = move_toward(_walk_amount, target_walk, delta * 10.0)
 	_air_amount = move_toward(_air_amount, 0.0 if _grounded else 1.0, delta * 10.0)
@@ -350,6 +442,11 @@ func _physics_process(delta: float) -> void:
 		_rod.visible = _fishing and _fishing_amount > 0.25 and _seat_amount < 0.1  # no rod through the thigh of a sitter
 	_arm_l.rotation.x = _slew(_arm_l.rotation.x, lerpf(lerpf(-arm_swing, 0.15, _air_amount), 0.55, _fishing_amount), delta)
 	_arm_r.rotation.x = _slew(_arm_r.rotation.x, lerpf(lerpf(arm_swing, 0.15, _air_amount), 1.25, _fishing_amount), delta)
+	_aim_amount = move_toward(_aim_amount, 1.0 if _aiming else 0.0, delta * 8.0)
+	if _swing >= 0.0:
+		_arm_r.rotation.x = swing_arm_angle(_swing, _swing_style)
+	elif _aim_amount > 0.01 and _seat_amount < 0.1:
+		_arm_r.rotation.x = lerpf(_arm_r.rotation.x, 1.45, _aim_amount)
 	_arm_l.rotation.z = _slew(_arm_l.rotation.z, lerpf(0.0, arms_up, _air_amount), delta)
 	_arm_r.rotation.z = _slew(_arm_r.rotation.z, lerpf(0.0, -arms_up, _air_amount), delta)
 

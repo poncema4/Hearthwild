@@ -230,6 +230,21 @@ func _run() -> void:
 	await kit.frames(3)
 	kit.check("the HUD clock reads the game time", hud.clock_text() == "3:15 PM", "HUD says '%s'" % hud.clock_text())
 	dn.set_time(10.0)
+	# The character glows a little at night so a dark brown dog is not a black silhouette on a dark meadow.
+	var avatar := kit.player.get_node("Body/Model") as AnimalModel
+	kit.day_night.set_time(12.0)
+	await kit.physics_frames(30)
+	var day_glow := avatar.night_glow()
+	kit.day_night.set_time(22.0)
+	await kit.physics_frames(30)
+	var night_glow := avatar.night_glow()
+	var lit_parts := 0
+	for node in avatar.find_children("*", "MeshInstance3D", true, false):
+		var material := (node as MeshInstance3D).material_override as StandardMaterial3D
+		if material != null and material.emission_enabled and material.emission_energy_multiplier > 0.2:
+			lit_parts += 1
+	kit.check("at night the character glows in its own colour (none by day, 0.3+ at night, on 10+ parts)", day_glow < 0.01 and night_glow > 0.3 and lit_parts >= 10, "day %.2f, night %.2f, %d parts glowing" % [day_glow, night_glow, lit_parts])
+
 	kit.finish()
 
 

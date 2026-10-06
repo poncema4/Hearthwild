@@ -41,7 +41,7 @@ FOCUS = {
         "the lessons gate: new lessons in AGENTS.md section 14 AND in the relevant agent files, docs and step counts (`check_repo.py` once)",
     ],
     "hawkeye": [
-        "look at every image, crop and zoom 5x on the subject; direction (which way arms/legs/eyes point) cannot be judged from a thumbnail (lesson 63)",
+        "look at every image, crop and zoom 5x on the subject; direction (which way arms/legs/eyes point) cannot be judged from a thumbnail (lesson 63); say in words which way the hand and weapon point at the strike frame (lesson 68)",
         "effects and particles: judge them in BOTH renderers (Forward+ and Compatibility, CI's); a bleached or invisible effect is a finding",
         "readability: the subject must stand out from what is BESIDE it (lighter AND different), not only exist",
     ],
@@ -57,6 +57,7 @@ FOCUS = {
     ],
     "animator": [
         "measure the DRAWN MESH centres against the facing direction (arms forward and level, legs down, eyes front), never a pivot point (lesson 63)",
+        "DIRECTION SIGNS (lesson 68): the rig faces -Z and a POSITIVE X rotation swings a limb FORWARD; for every new attack/pose check the hand and the tip at the strike frame are in front (z <= -0.3 in the model frame) and never behind; compare with the fishing pose (+1.25)",
         "walk cycle: legs in opposition, no snap, no NaN, stops when standing; items worn on every animal (the wardrobe test covers 9 x 25: probe what it does not)",
         "particles and fire light: emit only when they should, rise, cover feet to head, read in both renderers",
     ],

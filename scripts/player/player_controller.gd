@@ -36,6 +36,8 @@ extends CharacterBody3D
 @onready var _camera_rig: ThirdPersonCamera = $CameraRig
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+signal spawn_changed(point: Vector3)
+
 var _spawn_position: Vector3
 var _coyote := 0.0
 ## True while a full-screen menu (the character screen) is open: no movement, jumping or interacting.
@@ -67,6 +69,9 @@ var _jump_blocked := false  ## Space was held to stand up: it is not also a jump
 func _ready() -> void:
 	add_to_group(&"player")
 	_spawn_position = global_position
+	var saved := PlayerProfile.current().spawn_position()
+	if saved != Vector3.INF:
+		_spawn_position = saved  # a bed chosen in an earlier session
 	var health := get_node_or_null("Health") as Health
 	if health:
 		health.died.connect(_on_died)
@@ -136,6 +141,20 @@ func _on_died() -> void:
 	var hud := get_node_or_null("HUD") as InteractionPrompt
 	if hud:
 		hud.show_message("You were knocked out and woke up at the village spawn.", 4.0)
+
+
+## Makes `point` where the player respawns after a knock-out (a bed does this) and remembers it in the saved profile, so it survives a restart.
+func set_spawn_point(point: Vector3) -> void:
+	_spawn_position = point
+	var profile := PlayerProfile.current()
+	profile.spawn = [point.x, point.y, point.z]
+	profile.save()
+	spawn_changed.emit(point)
+
+
+## Where the player comes back after a knock-out right now.
+func spawn_point() -> Vector3:
+	return _spawn_position
 
 
 ## Puts the player back at the spawn point, standing still.

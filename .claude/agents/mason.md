@@ -90,3 +90,7 @@ measured so "none" is credible.
 - No pop-up windows: headless runs use `--fixed-fps 60`; rendered ones go through `xvfb-run -a`.
 - Write Godot's output to a file and wait for the run to finish before reporting (lesson 20).
 - A run you did not finish is NOT REVIEWED, never "no findings".
+
+## Routes and fences (Marco, 2026-10-06)
+- A fence or gate must never block a way to a door or a path: `test_village.gd` `_check_routes` walks a capsule along every path line. Probe what it does not: a path through a gap between two fences, a gate whose posts a capsule can squeeze between, a fence that touches a house wall, props within 1.6 m of a path, grass bare patches (`grass_allowed`).
+- Yards are behind the cottages only; the far ring's paths branch off inner paths, so their doors face the path they join.

@@ -14,10 +14,10 @@ extends Node3D
 
 @export var terrain_path: NodePath = ^"../Terrain"
 @export var scatter_seed: int = 11
-@export var tree_count: int = 280
-@export var rock_count: int = 130
-@export var grass_count: int = 48000
-@export var flower_count: int = 1400
+@export var tree_count: int = 1500
+@export var rock_count: int = 650
+@export var grass_count: int = 240000
+@export var flower_count: int = 6500
 ## No trees or rocks closer than this to the spawn point.
 @export var clear_radius: float = 11.0
 
@@ -36,9 +36,12 @@ const FLOWER_COLORS: Array[Color] = [
 var _terrain: Terrain
 var _rng := RandomNumberGenerator.new()
 var _generated: Node3D
+var _house_footprints: Array = []
 
+const GRASS_PATH_CLEAR := 1.6  ## grass keeps this far from a dirt path (m)
+const GRASS_HOUSE_CLEAR := 1.6  ## and this far from a cottage wall (m)
 const GRASS_CHUNK := 16.0  ## metres per grass chunk
-const GRASS_CULL_DISTANCE := 70.0  ## chunks farther than this are not drawn
+const GRASS_CULL_DISTANCE := 75.0  ## chunks farther than this are not drawn
 const TREE_CULL_DISTANCE := 95.0
 const ROCK_CULL_DISTANCE := 70.0
 
@@ -81,6 +84,7 @@ func _generate() -> void:
 	_generated.name = "Generated"
 	add_child(_generated)
 	_rng.seed = scatter_seed
+	_house_footprints = Village.house_footprints(_terrain.village_center)
 
 	_place_trees()
 	_place_rocks()
@@ -160,8 +164,8 @@ func _make_grass() -> Node3D:
 		attempts += 1
 		# Up to the boundary walls (58 of 60 m), so the hill rim gets grass too.
 		var spot := _random_spot(0.96)
-		# Grass is allowed on steeper slopes than trees, so the hills aren't bare.
-		if not _is_open_ground(spot, 0.0, 1.6):
+		# Grass is allowed on steeper slopes than trees, so the hills aren't bare, and in the village too (lawns between the cottages).
+		if not grass_allowed(spot):
 			continue
 		var basis := Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.3))
 		# A little deeper and more saturated than the ground, so tufts read
@@ -287,6 +291,29 @@ func _is_open_ground(spot: Vector3, clearing: float, max_slope: float = 0.8) -> 
 	var dx := _terrain.height_at(spot.x + 1.0, spot.z) - spot.y
 	var dz := _terrain.height_at(spot.x, spot.z + 1.0) - spot.y
 	return Vector2(dx, dz).length() < max_slope
+
+
+## Grass grows almost everywhere dry: it only keeps off the plaza cobbles, dirt paths, the ground right around a cottage (walls and doorstep),
+## the water and very steep slopes. (It used to be banned from the whole village flat zone: the village looked like bare terrain.)
+func grass_allowed(spot: Vector3) -> bool:
+	if spot.y < _terrain.water_level + 0.3:
+		return false
+	if _terrain.path_distance(spot.x, spot.z) < GRASS_PATH_CLEAR:
+		return false
+	var point := Vector2(spot.x, spot.z)
+	if point.distance_to(_terrain.village_center) < _terrain.plaza_radius + 1.2:
+		return false
+	if _terrain.in_village(spot.x, spot.z):
+		for house in _house_footprints:
+			var local := point - (house[0] as Vector2)
+			var yaw: float = deg_to_rad(house[1])
+			var lx := local.x * cos(yaw) - local.y * sin(yaw)
+			var lz := local.x * sin(yaw) + local.y * cos(yaw)
+			if absf(lx) < House.WIDTH * 0.5 + GRASS_HOUSE_CLEAR and absf(lz) < House.DEPTH * 0.5 + GRASS_HOUSE_CLEAR:
+				return false
+	var dx := _terrain.height_at(spot.x + 1.0, spot.z) - spot.y
+	var dz := _terrain.height_at(spot.x, spot.z + 1.0) - spot.y
+	return Vector2(dx, dz).length() < 1.6
 
 
 func _too_close(parent: Node3D, spot: Vector3, distance: float) -> bool:

@@ -231,3 +231,10 @@ observation is a hunch (UNCONFIRMED), not a finding.
 - If a result surprises you, re-check it in the same launch (add a second
   copy of the scenario), not with a new launch.
 - Never create, edit or delete files inside the repo. Propose fixes; the lead makes them.
+
+## Watch the motion, in words (lesson 68)
+- For every new action (swing, punch, shot, cart ride, sitting) record the first 12 frames of the hand/limb positions in the model's frame and say which way each limb travels (-Z is forward). If a limb travels the wrong way the report is CONFIRMED, even when every number in the test is green.
+
+## Combat controls (step 13)
+- Press REAL keys and real mouse buttons: left click and F attack, 1 to 5 equip (the same number again holsters), nothing is equipped at the start (fists). Try every combination with Shift (run), Alt (shift lock), a held W+Space, the character screen open, sitting, sleeping: nothing may swing or leave the player stuck.
+- A click on a menu must never swing; a swing must never take the mouse.

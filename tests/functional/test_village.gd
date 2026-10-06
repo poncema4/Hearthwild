@@ -31,18 +31,24 @@ func _run() -> void:
 	await _check_wall_slide(kit, village)
 	await _check_path(kit, terrain)
 	_check_door_links(kit, terrain, village)
+	_check_routes(kit, terrain, village, space)
+	_check_grass(kit, terrain, village)
 	kit.finish()
 
 
 ## Built, flat, spaced, and sized for the player.
 func _check_layout(kit: PlaytestKit, terrain: Terrain, village: Village) -> void:
-	var tally := {"Well": 0, "LampPost": 0, "Bench": 0, "NoticeBoard": 0, "Fence": 0, "Clock": 0}
+	var tally := {}
 	for prop in village.props:
 		var kind: String = prop.get_meta("kind", "?")
 		tally[kind] = tally.get(kind, 0) + 1
-	kit.check("village has 11 houses (3 at the plaza, 5 in the ring, 3 in the outer ring) and exactly 1 well, 12 lamp posts, 10 benches, 1 notice board, 3 fences, 1 clock",
-			village.houses.size() == 11 and tally == {"Well": 1, "LampPost": 12, "Bench": 10, "NoticeBoard": 1, "Fence": 3, "Clock": 1},
+	var fences: int = tally.get("Fence", 0)
+	var gates: int = tally.get("Gate", 0)
+	kit.check("village has 47 houses (3 at the plaza, 5 + 3 + 5 in the inner rings, 31 in the two outer rings), a garage for each, 1 well, 40+ lamp posts, 12+ benches, 1 notice board, 1 clock, 3 market stalls, 1 weapon rack",
+			village.houses.size() == 47 and tally.get("Well", 0) == 1 and tally.get("LampPost", 0) >= 40 and tally.get("Bench", 0) >= 12 and tally.get("NoticeBoard", 0) == 1
+			and tally.get("Clock", 0) == 1 and tally.get("MarketStall", 0) == 3 and tally.get("WeaponRack", 0) == 1 and tally.get("Garage", 0) == 47,
 			"%d houses, props %s" % [village.houses.size(), tally])
+	kit.check("the inner-ring cottages have fenced back yards: at least 20 fence pieces and 4 yard gates besides the 4 perimeter gates", fences >= 20 and gates >= 8, "%d fences, %d gates" % [fences, gates])
 
 	# Ground under every house corner and prop is flat (height 0): a slope here
 	# would leave a gap under a wall or bury half of it.
@@ -92,13 +98,26 @@ func _check_layout(kit: PlaytestKit, terrain: Terrain, village: Village) -> void
 	kit.check("door is taller than the player with room to spare", House.DOOR_HEIGHT >= capsule.height + 0.3,
 			"door %.2f m, player %.2f m tall" % [House.DOOR_HEIGHT, capsule.height])
 
-	# Each door faces the plaza (the village centre), so the paths run the short way.
+	# Each door faces the way its own dirt path leaves the doorstep (toward the plaza, or toward the path it joins).
 	var worst_angle := 0.0
+	var worst_house := ""
 	for house in village.houses:
 		var front: Vector3 = house.global_transform.basis.z
-		var to_centre := (village.center() - house.global_position).normalized()
-		worst_angle = maxf(worst_angle, rad_to_deg(front.angle_to(to_centre)))
-	kit.check("every door faces the plaza", worst_angle < 15.0, "worst door is %.0f degrees off" % worst_angle)
+		var door_end := house.door_outside(0.9)
+		var heading := Vector3.ZERO
+		for i in range(1, terrain.path_lines.size()):
+			var line := terrain.path_lines[i]
+			if line[0].distance_to(Vector2(door_end.x, door_end.z)) < 0.3:
+				heading = Vector3(line[1].x - line[0].x, 0.0, line[1].y - line[0].y).normalized()
+		if heading == Vector3.ZERO:
+			worst_angle = 180.0
+		else:
+			var to_plaza := (village.center() - house.global_position).normalized()
+			var angle := minf(rad_to_deg(front.angle_to(heading)), rad_to_deg(front.angle_to(to_plaza)))  # faces its path OR the plaza
+			if angle > worst_angle:
+				worst_angle = angle
+				worst_house = house.name
+	kit.check("every door faces the way its own path leaves the doorstep", worst_angle < 15.0, "worst door (%s) is %.0f degrees off its path" % [worst_house, worst_angle])
 
 
 ## No tree or rock in the village or on a path (lessons: nature must not grow through buildings).
@@ -150,13 +169,17 @@ func _check_solid(kit: PlaytestKit, village: Village, space: PhysicsDirectSpaceS
 		kit.check("%s: the doorway is clear at knee, waist and 2 m height" % house.name, blocked == 0, "%d of 3 rays blocked" % blocked)
 
 	var passable := 0
+	var passable_names: Array[String] = []
 	for prop in village.props:
-		var from := prop.global_position + prop.global_transform.basis.z * 3.0 + Vector3(0, 0.3, 0)
+		if prop.get_meta("kind", "") == "Gate" or prop.get_meta("kind", "") == "Garage":
+			continue  # a gate is open by design: its middle is the way through (its posts are checked in _check_routes)
+		var from := prop.global_position + prop.global_transform.basis.z * 1.6 + Vector3(0, 0.3, 0)
 		var to := prop.global_position + Vector3(0, 0.3, 0)
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to))
 		if hit.is_empty() or not prop.is_ancestor_of(hit["collider"]):
 			passable += 1
-	kit.check("every prop is solid at knee height", passable == 0, "%d of %d props can be walked through" % [passable, village.props.size()])
+			passable_names.append("%s at (%.1f, %.1f)" % [prop.name, prop.global_position.x, prop.global_position.z])
+	kit.check("every prop is solid at knee height", passable == 0, "%d of %d props can be walked through: %s" % [passable, village.props.size(), passable_names])
 
 
 ## Walk the real player through each door: they must end up inside.
@@ -285,3 +308,129 @@ func _check_path(kit: PlaytestKit, terrain: Terrain) -> void:
 		left = Vector2(kit.player.global_position.x, kit.player.global_position.z).distance_to(b)
 		kit.check("path segment %d walks through (%.0f, %.0f) to (%.0f, %.0f)" % [i + 1, a.x, a.y, b.x, b.y],
 				left < 1.8, "ended %.2f m from the end point after %d of %d frames" % [left, spent, frame_cap])
+
+
+## NOTHING BLOCKS A ROUTE (Marco: "a fence is blocking the pathway to some houses"). A capsule the size of the player is placed every half metre along every
+## door route (all the path lines) and must touch nothing but the ground; every gate's opening must pass the capsule while its posts must not; and no
+## fence stands in front of a door. Controls (a prop dropped on a path, a fence across a gate) are in the mutation sweep.
+func _check_routes(kit: PlaytestKit, terrain: Terrain, village: Village, space: PhysicsDirectSpaceState3D) -> void:
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.4
+	capsule.height = 1.8
+	var terrain_rid := terrain.get_rid()
+	var blocked: Array[String] = []
+	var samples := 0
+	var line_index := -1
+	for line in terrain.path_lines:
+		line_index += 1
+		for i in range(line.size() - 1):
+			var a := line[i]
+			var b := line[i + 1]
+			var steps := maxi(int(a.distance_to(b) / 0.5), 1)
+			for k in steps + 1:
+				var point := a.lerp(b, float(k) / steps)
+				if point.distance_to(terrain.village_center) < terrain.plaza_radius:
+					continue  # the plaza itself is the well and the lamp posts: people walk around them
+				samples += 1
+				# A route is blocked only when the middle AND both sides (0.8 m left and right) are blocked: a lamp post in the lane is walked around,
+				# a fence across the path is not.
+				var side := (b - a).normalized().orthogonal()
+				var labels: Array[String] = []
+				var open := false
+				for lateral in [0.0, 0.8, -0.8]:
+					var spot: Vector2 = point + side * lateral
+					var query := PhysicsShapeQueryParameters3D.new()
+					query.shape = capsule
+					query.transform = Transform3D(Basis.IDENTITY, Vector3(spot.x, terrain.height_at(spot.x, spot.y) + 1.0, spot.y))
+					query.exclude = [terrain_rid, kit.player.get_rid()]
+					var hits := space.intersect_shape(query, 4)
+					if hits.is_empty():
+						open = true
+						break
+					var owner_node := (hits[0]["collider"] as Node)
+					labels.append("%s" % [owner_node.get_parent().name if owner_node.get_parent() else owner_node.name])
+				if not open:
+					var label := "%s at (%.1f, %.1f) on line %d (%s to %s)" % [labels[0], point.x, point.y, line_index, line[0], line[line.size() - 1]]
+					if label not in blocked:
+						blocked.append(label)
+	kit.check("every route is clear: a player-sized capsule every 0.5 m along all %d path lines (%d samples) touches nothing" % [terrain.path_lines.size(), samples], blocked.is_empty() and samples > 500, "blocked by: %s" % [blocked.slice(0, 6)])
+
+	var gate_problems: Array[String] = []
+	var gate_count := 0
+	for prop in village.props:
+		if prop.get_meta("kind", "") != "Gate":
+			continue
+		gate_count += 1
+		var middle := prop.global_position + Vector3.UP * 1.0
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = capsule
+		query.exclude = [terrain_rid, kit.player.get_rid()]
+		query.transform = Transform3D(Basis.IDENTITY, middle)
+		if not space.intersect_shape(query, 2).is_empty():
+			gate_problems.append("%s opening is blocked" % prop.name)
+		var along := prop.global_transform.basis.x
+		query.transform = Transform3D(Basis.IDENTITY, middle + along * VillageProps.GATE_HALF_SPAN)
+		var post_hit := false
+		for hit in space.intersect_shape(query, 6):
+			if prop.is_ancestor_of(hit["collider"]):  # the gate's OWN post, not a neighbouring fence piece
+				post_hit = true
+		if not post_hit:
+			gate_problems.append("%s post does not collide (a gate you can walk through the post of)" % prop.name)
+	kit.check("every gate (%d) lets a player through its middle and its posts are solid" % gate_count, gate_count >= 8 and gate_problems.is_empty(), str(gate_problems))
+
+	var in_front := 0
+	var in_front_list: Array[String] = []
+	for house in village.houses:
+		for prop in village.props:
+			var kind: String = prop.get_meta("kind", "")
+			if kind != "Fence" and kind != "Gate":
+				continue
+			var local := house.to_local(prop.global_position)
+			if local.z > -House.DEPTH * 0.5 - 0.2 and local.z < House.DEPTH * 0.5 + 6.0 and absf(local.x) < House.WIDTH * 0.5 + 0.5:
+				in_front += 1
+				in_front_list.append("%s near %s at local (%.1f, %.1f)" % [prop.name, house.name, local.x, local.z])
+	kit.check("no fence or gate stands beside or in front of a door (yards are behind the cottages)", in_front == 0, "%d pieces: %s" % [in_front, in_front_list.slice(0, 4)])
+
+	var weapon_rack := get_first_with_group(kit.world, &"weapon_rack")
+	kit.check("the weapon rack stands by the plaza with a 'Take the weapons' prompt", weapon_rack != null and weapon_rack.get_node_or_null("TakeWeapons") != null and weapon_rack.global_position.distance_to(village.center()) < 14.0)
+
+
+func get_first_with_group(root: Node, group: StringName) -> Node3D:
+	for node in root.get_tree().get_nodes_in_group(group):
+		return node as Node3D
+	return null
+
+
+## Grass grows in the village (Marco: "some parts dont have grass its just plain terrain"): on the lawns between the cottages, but not on the dirt paths, the plaza
+## cobbles or inside a cottage. 3000 random points on the flat ground of the village are asked whether grass may grow there.
+func _check_grass(kit: PlaytestKit, terrain: Terrain, village: Village) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var lawn := 0
+	var lawn_ok := 0
+	var on_path := 0
+	var in_house := 0
+	var on_plaza := 0
+	for i in 3000:
+		var angle := rng.randf() * TAU
+		var radius := sqrt(rng.randf()) * (terrain.village_flat_radius - 4.0)
+		var x := terrain.village_center.x + cos(angle) * radius
+		var z := terrain.village_center.y + sin(angle) * radius
+		var spot := Vector3(x, terrain.height_at(x, z), z)
+		var allowed := kit.nature.grass_allowed(spot)
+		var near_house := false
+		for house in village.houses:
+			var local := house.to_local(spot)
+			if absf(local.x) < House.WIDTH * 0.5 + 2.0 and absf(local.z) < House.DEPTH * 0.5 + 2.0:
+				near_house = true
+			if allowed and house.is_inside(spot):
+				in_house += 1
+		if terrain.path_distance(x, z) < 1.0:
+			on_path += 1 if allowed else 0
+		elif radius < terrain.plaza_radius:
+			on_plaza += 1 if allowed else 0
+		elif terrain.path_distance(x, z) > 3.0 and not near_house:
+			lawn += 1
+			lawn_ok += 1 if allowed else 0
+	kit.check("grass may grow on the village lawns (%d of %d open-ground points allow it: at least 90%%)" % [lawn_ok, lawn], lawn > 500 and lawn_ok >= lawn * 0.9)
+	kit.check("but not on a dirt path (%d allowed), on the plaza cobbles (%d) or inside a cottage (%d)" % [on_path, on_plaza, in_house], on_path == 0 and on_plaza == 0 and in_house == 0)

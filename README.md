@@ -13,16 +13,17 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | Feature | What you get |
 |---|---|
 | **Shared screen** | A big screen with benches on the north side of the village: press E, paste a YouTube link, and the screen shows what you chose (watching it together comes with multiplayer) |
-| **Village** | Eleven cottages: three round a cobbled plaza with a well, lamps, clock and notice board, five more in a ring and three in an outer ring, each with its own dirt path, lamp post and bench; every bench can be sat on (E to sit, E, Space or a move key to stand) |
-| **Meadow world** | A 240 × 240 m valley (four times the area, room for many players) with rolling hills, a ring of taller hills around the edge, a lake with reeds and lily pads, and a flat clearing where you spawn |
+| **Village** | Sixteen cottages in three rings round a cobbled plaza (the far ring's paths branch off the inner ones), fenced back yards with gates, a market with three stalls, a weapon rack: three round a cobbled plaza with a well, lamps, clock and notice board, five more in a ring and three in an outer ring, each with its own dirt path, lamp post and bench; every bench can be sat on (E to sit, E, Space or a move key to stand) |
+| **Meadow world** | A 600 × 600 m valley (25 times the original area, room for many players) with rolling hills, a ring of taller hills around the edge, a lake with reeds and lily pads, and a flat clearing where you spawn |
 | **Nature** | 90 trees (round and pine), 45 rocks, thousands of grass tufts and wildflowers, in a soft low-poly style |
 | **Daytime lighting** | Warm sun with shadows, soft sky, gentle fog for depth, ambient occlusion and glow |
-| **Village** | A flat village green at the north-west with a cobble plaza, a well, eleven cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
+| **Village** | A flat village green at the north-west with a cobble plaza, a well, forty-seven cottages you can walk into (door, windows, gabled roof, chimney), lamp posts, benches, a notice board, fences and dirt paths from the spawn and to every door |
 | **Your character** | A cute dog with big eyes, floppy ears and a wagging tail, animated as you move (walk, sprint, jump), ready for outfits (a cap and a scarf are in) and for more animals later |
 | **Third-person player** | Walk, hold Shift to sprint, hold Space to keep hopping; trees, rocks and walls are solid; fall out of the world and you respawn |
 | **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |
 | **Fishing** | Twelve spots round the lake, each with a signpost: cast, wait for the bobber to dip, reel in. Different fish by day and night, some rare, a bit of junk; your catches are saved |
 | **Sleep** | Beds in the cottages work from 7 PM to 6 AM: press E, the screen fades to black while the clock runs to 6:30 AM, and you wake beside the bed with full health |
+| **Combat** | Fists, four melee weapons and a pistol (instant shot with a tracer); zombies are knocked back, reel, flash red and show a health bar; every kind of damage and healing pops a number out of whoever it happened to; a zombie that meets a closed door opens it |
 | **Day and night** | A 20-minute day (about 10 minutes of night, like Minecraft): the sun crosses the sky, sets in orange, the moon and warm lamps take over, then it brightens again at dawn; a clock on screen and a clock post in the plaza |
 | **Interaction** | Press E near a cottage door to open or close it, or at the notice board to read it |
 | **Camera** | Orbit with the mouse, zoom with the wheel; pulls in so it never clips through walls, and your character fades out if the camera gets too close |
@@ -47,12 +48,14 @@ up in the editor, not only when playing.
 | Mouse wheel | Zoom camera |
 | Hold right mouse button | Look around (the cursor comes back where it was) |
 | Alt | Shift lock on / off: the mouse always steers, the character faces where the camera looks, over-the-shoulder camera (Esc also turns it off) |
+| 1 to 5 | Equip a weapon (wooden sword, stone sword, spear, axe, pistol; the rack in the village gives all but the first); press the number again to put it away |
+| Left click or F | Attack with what is in hand: fists when nothing is equipped, a swing with a melee weapon, a shot with the pistol. Every hit pops a damage number out of its target |
 | F3 | Input overlay: which keys and mouse buttons the game is receiving, speed, fps |
 
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (41 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (45 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 
