@@ -66,6 +66,10 @@ signal rebuilt
 	set(value):
 		plaza_radius = value
 		_rebuild()
+## False skips the visible ground mesh (collision, height_at and every query still work). Headless tests set it: the mesh colours 361,000 vertices and costs about 10 s of the
+## 16 s world load, and nothing a headless test measures can see it. Only the game and the screenshot runs build it.
+var build_visuals := true
+
 ## Dirt paths, each a polyline of world (x, z) points. Paths are coloured into the
 ## ground (not flattened) and kept clear of trees and rocks.
 @export var path_lines: Array[PackedVector2Array] = []:
@@ -202,7 +206,8 @@ func _build() -> void:
 		for xi in verts:
 			heights[zi * verts + xi] = height_at(xi - half, zi - half)
 
-	_build_mesh(heights, verts, half)
+	if build_visuals:
+		_build_mesh(heights, verts, half)
 	_build_collision(heights, verts)
 	_build_water()
 
