@@ -90,7 +90,7 @@ const YARD_TO := 16  ## only the 36 m and 47 m rings get fenced yards (the outer
 ## The perimeter fence round the village, with a gate in the middle of each side (north, east, south, west).
 const FENCE_RADIUS := 88.0
 const GATE_BEARINGS := [0.0, 90.0, 180.0, 270.0]
-const CULL_DISTANCE := 170.0  ## village meshes fade out beyond this (smoothness: a big village must not cost the same from everywhere)
+const CULL_DISTANCE := 90.0  ## village meshes fade out beyond this (smoothness: a big village must not cost the same from everywhere)
 
 ## Where the shared screen stands, relative to the plaza (the open north side), facing the plaza.
 const SCREEN_OFFSET := Vector2(6, -24)

@@ -41,8 +41,8 @@ var _house_footprints: Array = []
 const GRASS_PATH_CLEAR := 1.6  ## grass keeps this far from a dirt path (m)
 const GRASS_HOUSE_CLEAR := 1.6  ## and this far from a cottage wall (m)
 const GRASS_CHUNK := 16.0  ## metres per grass chunk
-const GRASS_CULL_DISTANCE := 75.0  ## chunks farther than this are not drawn
-const TREE_CULL_DISTANCE := 95.0
+const GRASS_CULL_DISTANCE := 70.0  ## chunks farther than this are not drawn
+const TREE_CULL_DISTANCE := 80.0
 const ROCK_CULL_DISTANCE := 70.0
 
 
