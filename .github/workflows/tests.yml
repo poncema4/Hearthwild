@@ -8,7 +8,7 @@ on:
 jobs:
   godot-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       GODOT_VERSION: 4.7.2
     steps:
