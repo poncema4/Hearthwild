@@ -152,6 +152,12 @@ func set_spawn_point(point: Vector3) -> void:
 	spawn_changed.emit(point)
 
 
+## The respawn point for a player who has not chosen a bed: set when they join, not saved (a bed's point is saved and wins).
+func set_default_spawn(point: Vector3) -> void:
+	if PlayerProfile.current().spawn_position() == Vector3.INF:
+		_spawn_position = point
+
+
 ## Where the player comes back after a knock-out right now.
 func spawn_point() -> Vector3:
 	return _spawn_position

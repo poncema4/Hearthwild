@@ -9,6 +9,9 @@
 [ext_resource type="Script" path="res://scripts/world/sleep_system.gd" id="8_sleep"]
 [ext_resource type="Script" path="res://scripts/world/fishing_pond.gd" id="7_fishing"]
 [ext_resource type="Script" path="res://scripts/mobs/zombie_spawner.gd" id="10_spawner"]
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="11_menu"]
+[ext_resource type="Script" path="res://scripts/ui/loading_screen.gd" id="12_loading"]
+[ext_resource type="Script" path="res://scripts/world/game_flow.gd" id="13_flow"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_day"]
@@ -113,3 +116,12 @@ script = ExtResource("8_sleep")
 
 [node name="ZombieSpawner" type="Node" parent="."]
 script = ExtResource("10_spawner")
+
+[node name="MainMenu" type="CanvasLayer" parent="."]
+script = ExtResource("11_menu")
+
+[node name="LoadingScreen" type="CanvasLayer" parent="."]
+script = ExtResource("12_loading")
+
+[node name="GameFlow" type="Node" parent="."]
+script = ExtResource("13_flow")
