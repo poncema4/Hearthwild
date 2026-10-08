@@ -59,6 +59,10 @@ func _run() -> void:
 		await kit.stop_driving()
 		if house == house1:
 			reached_all = await kit.drive_to(Vector3(-22, 0, 9), 1.0, false, "back to the path") and reached_all
+		else:
+			# The well now stands off to one side of the plaza, at (-14.6, 11): leaving the east cottage, go round its west side instead of straight at the path.
+			reached_all = await kit.drive_to(Vector3(-17.5, 0, 12.5), 1.0, false, "round the well") and reached_all
+			reached_all = await kit.drive_to(Vector3(-17, 0, 8), 1.0, false, "back to the path") and reached_all
 	for i in range(path.size() - 2, -1, -1):  # home along the path, backwards
 		if i == path.size() - 2:
 			continue
