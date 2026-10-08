@@ -77,6 +77,7 @@ run_step "player movement test" "$GODOT" --headless --path . --fixed-fps 60 --sc
 run_step "keys test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_keys.gd
 run_step "camera input test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_camera_input.gd
 run_step "smoothness test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_smoothness.gd
+run_step "game flow test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_game_flow.gd
 run_step "town test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_town.gd
 run_step "combat test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_combat.gd
 run_step "render budget test" "$GODOT" --headless --path . --fixed-fps 60 --script res://tests/functional/test_render_budget.gd
@@ -130,6 +131,9 @@ if [[ $HEADLESS_ONLY -eq 0 ]]; then
 	run_step "daynight playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_daynight.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 	# shellcheck disable=SC2086
+	run_step "flow playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
+		--script res://tests/playtests/playtest_flow.gd -- "$QA_OUTPUT" "$RUN_STAMP"
+
 	run_step "combat playtest" "${WINDOWED[@]}" "$GODOT" --path . --resolution 1280x720 $GODOT_FLAGS \
 		--script res://tests/playtests/playtest_combat.gd -- "$QA_OUTPUT" "$RUN_STAMP"
 
@@ -167,6 +171,7 @@ else
 	echo "=== character playtest: SKIPPED (--headless-only)"
 	echo "=== animation playtest: SKIPPED (--headless-only)"
 	echo "=== daynight playtest: SKIPPED (--headless-only)"
+	echo "=== flow playtest: SKIPPED (--headless-only)"
 	echo "=== combat playtest: SKIPPED (--headless-only)"
 	echo "=== world playtest: SKIPPED (--headless-only)"
 	echo "=== creator playtest: SKIPPED (--headless-only)"

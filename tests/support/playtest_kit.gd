@@ -48,7 +48,7 @@ func _init(scene_tree: SceneTree) -> void:
 
 
 ## Loads the world and waits for the player to land.
-func load_world(settle_frames: int = 60) -> void:
+func load_world(settle_frames: int = 60, with_flow: bool = false) -> void:
 	PlayerProfile.save_path = TEST_PROFILE_PATH
 	PlayerProfile.reset_current()
 	if FileAccess.file_exists(TEST_PROFILE_PATH):
@@ -66,7 +66,10 @@ func load_world(settle_frames: int = 60) -> void:
 		world.get_node("Terrain").set("build_visuals", false)  # nothing a headless test measures can see the ground mesh (about 10 s of load)
 	# The character screen would cover every test on a first launch: switch it off before it
 	# looks at the world (it decides on the first idle frame, after this line).
-	(world.get_node("CharacterCreator") as CharacterCreator).enabled = false
+	if not with_flow:
+		(world.get_node("CharacterCreator") as CharacterCreator).enabled = false
+		(world.get_node("GameFlow") as GameFlow).enabled = false  # no title screen or loading screen in tests: the world starts playable
+		(world.get_node("MainMenu") as MainMenu).enabled = false
 	tree.root.add_child(world)
 	player = world.get_node("Player")
 	camera_rig = player.get_node("CameraRig")

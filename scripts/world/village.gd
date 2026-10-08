@@ -137,7 +137,7 @@ func _build() -> void:
 		_generated.add_child(house)
 		houses.append(house)
 
-	_place(VillageProps.well(), Vector2(0, 0), 0.0)
+	_place_well()
 	for sign_x in [-1.0, 1.0]:
 		for sign_z in [-1.0, 1.0]:
 			_place(VillageProps.lamp_post(), Vector2(sign_x * 3.9, sign_z * 3.9), 0.0)
@@ -222,6 +222,22 @@ func _free_spot(door: Vector3, along: Vector3, side: Vector3, length: float, fra
 			if free:
 				return point
 	return Vector3.INF
+
+
+## The middle of the plaza, where players appear when they join (nothing solid stands there: the well is off to one side).
+func spawn_point() -> Vector3:
+	return center() + Vector3.UP * 0.1
+
+
+## The well stands on the plaza but NOT in the middle (Marco: the player spawns in the middle): the first spot, trying the plaza's corners, that is clear of the dirt
+## paths and of the lamp posts and benches placed by hand below.
+func _place_well() -> void:
+	for spot in [Vector2(5.4, -3.0), Vector2(-5.4, -3.0), Vector2(5.8, 3.4), Vector2(-5.8, 3.4), Vector2(0, -5.6), Vector2(6.4, 0)]:
+		var world := _at(spot)
+		if _terrain.path_distance(world.x, world.z) >= 2.4:
+			_place(VillageProps.well(), spot, 0.0)
+			return
+	_place(VillageProps.well(), Vector2(5.4, -3.0), 0.0)
 
 
 ## The plaza clock faces the well from the first spot (searching outward from its first choice) that is off every dirt path.

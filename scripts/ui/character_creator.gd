@@ -15,6 +15,8 @@ signal finished(profile: PlayerProfile)
 
 ## Tests switch this off before the first frame so the world starts playable.
 @export var enabled: bool = true
+## False: the screen does not open by itself when the game starts (the join flow opens it after the title screen).
+@export var auto_start: bool = true
 @export var player_path: NodePath = ^"../Player"
 @export var preview_spin_speed: float = 0.7
 
@@ -30,6 +32,7 @@ var _item_labels := {}
 var _name_edit: LineEdit
 var _viewport: SubViewport
 var _cancel_button: Button
+var _start_button: Button
 var _choice := {}  # slot -> item index in the slot's list, -1 = nothing
 
 
@@ -43,7 +46,7 @@ func _ready() -> void:
 
 
 func _begin() -> void:
-	if not enabled:
+	if not enabled or not auto_start:
 		return
 	var saved := PlayerProfile.load_saved()
 	if saved != null:
@@ -64,7 +67,8 @@ func _process(delta: float) -> void:
 
 
 ## Shows the screen, starting from `start_profile` (it is copied; nothing changes until Start).
-func open(start_profile: PlayerProfile, allow_cancel: bool = true) -> void:
+func open(start_profile: PlayerProfile, allow_cancel: bool = true, confirm_text: String = "Start") -> void:
+	_start_button.text = confirm_text
 	can_cancel = allow_cancel
 	_cancel_button.visible = allow_cancel
 	profile = PlayerProfile.from_dict(start_profile.to_dict())
@@ -131,6 +135,11 @@ func confirm() -> PlayerProfile:
 	if hud:
 		hud.show_message("Welcome, %s! Press F2 any time to change your look." % profile.display_name, 6.0)
 	return profile
+
+
+## The on-screen rectangle of the whole panel (for the fit-in-window check).
+func confirm_button_text() -> String:
+	return _start_button.text
 
 
 ## The on-screen rectangle of the whole panel (for the fit-in-window check).
@@ -270,6 +279,7 @@ func _build_ui() -> void:
 	_name_edit.text_changed.connect(func(_t): _refresh())
 	column.add_child(_name_edit)
 	var start := Button.new()
+	_start_button = start
 	start.text = "Start"
 	start.add_theme_font_size_override("font_size", 26)
 	start.custom_minimum_size = Vector2(0, 50)

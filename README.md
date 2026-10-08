@@ -23,6 +23,7 @@ survival, playing together) lives in [`docs/VISION.md`](docs/VISION.md).
 | **Your character** | Pick your animal (dog, cat or bunny) and dress it (hat, glasses, neck, top, back) on a screen at the first start, with your name floating over your head; press F2 any time to change it |
 | **Fishing** | Twelve spots round the lake, each with a signpost: cast, wait for the bobber to dip, reel in. Different fish by day and night, some rare, a bit of junk; your catches are saved |
 | **Sleep** | Beds in the cottages work from 7 PM to 6 AM: press E, the screen fades to black while the clock runs to 6:30 AM, and you wake beside the bed with full health |
+| **Joining** | Every launch: a title screen (Play / Info / Settings / Quit), then the character screen with a Join button, then a loading screen, then you appear in the middle of the village (the plaza; the well stands to one side). Info lists every key; Settings has fullscreen and volume |
 | **Combat** | Fists, four melee weapons and a pistol (instant shot with a tracer); zombies are knocked back, reel, flash red and show a health bar; every kind of damage and healing pops a number out of whoever it happened to; a zombie that meets a closed door opens it |
 | **Day and night** | A 20-minute day (about 10 minutes of night, like Minecraft): the sun crosses the sky, sets in orange, the moon and warm lamps take over, then it brightens again at dawn; a clock on screen and a clock post in the plaza |
 | **Interaction** | Press E near a cottage door to open or close it, or at the notice board to read it |
@@ -55,7 +56,7 @@ up in the editor, not only when playing.
 ## Testing
 
 ```bash
-tests/run_tests.sh                 # everything (45 steps, about 5 minutes)
+tests/run_tests.sh                 # everything (47 steps, about 5 minutes)
 tests/run_tests.sh --headless-only # skip the rendered checks
 ```
 
